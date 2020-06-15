@@ -1,0 +1,1 @@
+--command=cabal repl --warnings --test=appMain --restart templates/ --restart config/ --restart static/
