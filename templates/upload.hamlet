@@ -2,13 +2,19 @@
   <form method=post action=@{UploadR}>
     <div .form-group .required>
       <label for=#{composerId}>
-      <input ##{composerId} .#{composerId} list="composers" v-model="composer" placeholder="Composer">
+      <input ##{composerId} .#{composerId} list="composers" v-model.lazy="composer" placeholder="Composer">
       <datalist #composers>
         $forall composer <- composers
           <option value=#{composerFull_name (entityVal composer)}>
     <div .form-group .required>
       <label for=#{workId}>
-      <input ##{workId} .#{workId} list="works" placeholder="Work">
+      <input ##{workId} .#{workId} list="works" placeholder="Work" v-model.lazy="work">
       <datalist #works>
         <option v-for="work in works" v-bind:value="work">
+    <div .form-group .required v-if="movements.length !== 0">
+      <label for=#{movementId}>
+      <select ##{movementId} .#{movementId} v-model.lazy="movement">
+        <option v-for="(m, i) in movements">
+          {{ i + 1 }}. {{ m }}
+
     <button>Submit

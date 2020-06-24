@@ -14,3 +14,5 @@
 /composers ComposersR GET
 
 /works WorksR GET
+
+/movements MovementsR GET

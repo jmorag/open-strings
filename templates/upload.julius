@@ -1,11 +1,20 @@
 new Vue({
   el: "##{rawJS uploadId}",
-  data: { composer: "", works: [] },
+  data: { composer: "", works: [], work: "", movement: "", movements: [] },
   watch: {
-    composer: async function (newComposer, oldComposer) {
-      const response = await fetch(`@{WorksR}?composer=${newComposer}`);
+    composer: async function (c) {
+      this.work = "";
+      this.movement = "";
+      const response = await fetch(`@{WorksR}?composer=${c}`);
       const body = await response.json();
       this.works = body;
+    },
+    work: async function (w) {
+      this.movement = "";
+      const response = await fetch(`@{MovementsR}?composer=${this.composer}&work=${w}`);
+      const body = await response.json();
+      this.movements = body;
     }
+
   }
 });

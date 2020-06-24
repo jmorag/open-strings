@@ -4,9 +4,7 @@ module Handler.Upload where
 import Import
 
 import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
-import Yesod.Form.Jquery
 import Text.Julius
-import Data.Aeson
 
 sampleForm :: Form FileForm
 sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
@@ -33,19 +31,27 @@ data FileForm = FileForm
 postUploadR :: Handler Html
 postUploadR = undefined
 
+-- uploadForm :: Form (Text, Text)
+-- uploadForm = renderBootstrap3 BootstrapBasicForm $ (,) <$>
+--   areq (jqueryAutocompleteField ComposersR) "Composer" Nothing <*>
+--   areq (textField) "Work" Nothing
+
 getUploadR :: Handler Html
-getUploadR = defaultLayout do
-  [whamlet|
-<div #upload-music>
-  <script type="module" src=@{StaticR js_upload_js}>
-|]
 getUploadR = do
   -- (widget, enctype) <- generateFormPost uploadForm
   (composers :: [Entity Composer]) <- runDB $ selectList [] []
   defaultLayout do
     addScriptRemote "https://cdn.jsdelivr.net/npm/vue/dist/vue.js"
-    addScriptRemote "https://unpkg.com/@trevoreyre/autocomplete-vue"
     uploadId <- newIdent
     composerId <- newIdent
     workId <- newIdent
+    movementId <- newIdent
     $(widgetFile "upload")
+
+
+
+-- addJquery = do
+--   yesod <- getYesod
+--   addScriptEither $ urlJqueryJs yesod
+--   addScriptEither $ urlJqueryUiJs yesod
+--   addStylesheetEither $ urlJqueryUiCss yesod
