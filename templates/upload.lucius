@@ -1,0 +1,6 @@
+.#{composerId} {
+  width: 50%;
+}
+.#{workId} {
+  width: 50%;
+}

@@ -15,8 +15,7 @@ import Import
 -- functions. You can spread them across multiple files if you are so
 -- inclined, or create a single monolithic file.
 getHomeR :: Handler Html
-getHomeR = do
-    defaultLayout $ do
-        aDomId <- newIdent
-        setTitle "Welcome To Yesod!"
-        $(widgetFile "homepage")
+getHomeR = defaultLayout do
+  aDomId <- newIdent
+  setTitle "Welcome To Yesod!"
+  $(widgetFile "homepage")

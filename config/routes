@@ -10,3 +10,7 @@
 / HomeR GET
 
 /upload UploadR GET POST
+
+/composers ComposersR GET
+
+/works WorksR GET

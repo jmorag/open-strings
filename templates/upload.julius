@@ -1,0 +1,11 @@
+new Vue({
+  el: "##{rawJS uploadId}",
+  data: { composer: "", works: [] },
+  watch: {
+    composer: async function (newComposer, oldComposer) {
+      const response = await fetch(`@{WorksR}?composer=${newComposer}`);
+      const body = await response.json();
+      this.works = body;
+    }
+  }
+});

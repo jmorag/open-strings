@@ -1,8 +1,12 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Handler.Upload where
 
 import Import
 
 import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
+import Yesod.Form.Jquery
+import Text.Julius
+import Data.Aeson
 
 sampleForm :: Form FileForm
 sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
@@ -35,3 +39,13 @@ getUploadR = defaultLayout do
 <div #upload-music>
   <script type="module" src=@{StaticR js_upload_js}>
 |]
+getUploadR = do
+  -- (widget, enctype) <- generateFormPost uploadForm
+  (composers :: [Entity Composer]) <- runDB $ selectList [] []
+  defaultLayout do
+    addScriptRemote "https://cdn.jsdelivr.net/npm/vue/dist/vue.js"
+    addScriptRemote "https://unpkg.com/@trevoreyre/autocomplete-vue"
+    uploadId <- newIdent
+    composerId <- newIdent
+    workId <- newIdent
+    $(widgetFile "upload")
