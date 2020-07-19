@@ -1,0 +1,13 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:fingerdb"
+
+    - path: "app/main.hs"
+      component: "fingerdb:exe:fingerdb"
+
+    - path: "app/Paths_fingerdb.hs"
+      component: "fingerdb:exe:fingerdb"
+
+    - path: "test"
+      component: "fingerdb:test:fingerdb-test"

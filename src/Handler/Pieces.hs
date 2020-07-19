@@ -32,16 +32,13 @@ getWorksR = do
   case composerKey of
     Nothing -> pure (Array (V.fromList []))
     Just cKey -> do
-      works <- runDB (selectList [WorkComposerId ==. entityKey cKey] [])
-      pure . Array . V.fromList
-        . map (String . T.dropEnd (T.length composer + 3) . workWork_id . entityVal)
-        $ works
+      works <- runDB (selectList [WorkComposerId ==. entityKey cKey] [Asc WorkWork_id])
+      pure . Array . V.fromList . map (String . workWork_id . entityVal) $ works
 
 getMovementsR :: Handler Value
 getMovementsR = do
-  composer <- fromMaybe "" <$> lookupGetParam "composer"
   work <- fromMaybe "" <$> lookupGetParam "work"
-  ws <- runDB $ selectList [WorkWork_id ==. work <> " (" <> composer <> ")"] []
+  ws <- runDB $ selectList [WorkWork_id ==. work] []
   print ws
   pure . Array . V.fromList
     . concatMap (\(Entity _ w) -> map String (workMovements w))

@@ -17,5 +17,5 @@ import Import
 getHomeR :: Handler Html
 getHomeR = defaultLayout do
   aDomId <- newIdent
-  setTitle "Welcome To Yesod!"
+  setTitle "Welcome To Fingerdb!"
   $(widgetFile "homepage")

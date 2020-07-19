@@ -1,20 +1,65 @@
 new Vue({
   el: "##{rawJS uploadId}",
-  data: { composer: "", works: [], work: "", movement: "", movements: [] },
+  data: {
+    composer: "",
+    works: [],
+    work: "",
+    movement: "",
+    movements: [],
+    osmd: new opensheetmusicdisplay.OpenSheetMusicDisplay(#{renderId}, {
+      autoResize: true,
+      backend: "svg",
+      drawingParameters: "compact",
+      drawPartNames: false,
+      drawTitle: true,
+      drawFingerings: true,
+      fingeringPosition: "left",
+      setWantedStemDirectionByXml: true,
+      drawMeasureNumbers: false,
+      autoBeam: false,
+      pageFormat: "Endless"
+  })
+  },
   watch: {
-    composer: async function (c) {
+    composer: async function(c) {
       this.work = "";
       this.movement = "";
+      try {
+          this.osmd.clear()
+      }
+      catch (err) {
+          console.log(err);
+      }
       const response = await fetch(`@{WorksR}?composer=${c}`);
       const body = await response.json();
       this.works = body;
     },
-    work: async function (w) {
+    work: async function(w) {
       this.movement = "";
-      const response = await fetch(`@{MovementsR}?composer=${this.composer}&work=${w}`);
+      const response = await fetch(
+        `@{MovementsR}?work=${w} (${this.composer})`
+      );
       const body = await response.json();
       this.movements = body;
+    },
+  },
+  methods: {
+    renderXml: function(event) {
+      let reader = new FileReader();
+      reader.readAsText(event.target.files[0]);
+      const osmd = this.osmd;
+      reader.onload = function(event) {
+        osmd.load(event.target.result).then(() => osmd.render());
+      };
     }
-
+  },
+  filters: {
+    dropComposer: function(work, composer) {
+      if (work && composer) {
+        const end = work.length - (composer.length + 3);
+        return work.substring(0, end);
+      }
+      return "";
+    }
   }
 });

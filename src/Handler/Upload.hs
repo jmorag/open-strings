@@ -39,19 +39,21 @@ postUploadR = undefined
 getUploadR :: Handler Html
 getUploadR = do
   -- (widget, enctype) <- generateFormPost uploadForm
-  (composers :: [Entity Composer]) <- runDB $ selectList [] []
+  (composers :: [Entity Composer]) <- runDB $ selectList [] [Asc ComposerFull_name]
   defaultLayout do
-    addScriptRemote "https://cdn.jsdelivr.net/npm/vue/dist/vue.js"
+    addScript (StaticR js_opensheetmusicdisplay_js)
+    addVueDev
     uploadId <- newIdent
     composerId <- newIdent
     workId <- newIdent
     movementId <- newIdent
+    renderId <- newIdent
     $(widgetFile "upload")
 
-
-
--- addJquery = do
---   yesod <- getYesod
---   addScriptEither $ urlJqueryJs yesod
---   addScriptEither $ urlJqueryUiJs yesod
---   addStylesheetEither $ urlJqueryUiCss yesod
+addVueDev :: WidgetFor App ()
+addVueDev = do
+  addStylesheetRemote "https://cdn.materialdesignicons.com/5.3.45/css/materialdesignicons.min.css"
+  addStylesheetRemote "https://use.fontawesome.com/releases/v5.2.0/css/all.css"
+  addScriptRemote "https://cdn.jsdelivr.net/npm/vue/dist/vue.js"
+  -- addStylesheetRemote "https://unpkg.com/buefy/dist/buefy.min.css"
+  -- addScriptRemote "https://unpkg.com/buefy/dist/buefy.min.js"

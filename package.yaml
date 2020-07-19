@@ -43,7 +43,7 @@ dependencies:
   - foreign-store
   - lens
   - generic-lens
-  - aeson-lens
+  - lens-aeson
   - xml-conduit
   - xml-lens
 

@@ -1,6 +1,3 @@
-.#{composerId} {
-  width: 50%;
-}
-.#{workId} {
+##{composerId}, ##{movementId}, ##{workId} {
   width: 50%;
 }
