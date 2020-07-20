@@ -9,5 +9,11 @@ cradle:
     - path: "app/Paths_fingerdb.hs"
       component: "fingerdb:exe:fingerdb"
 
+    - path: "./src/Scrape.hs"
+      component: "fingerdb:exe:scrape-imslp"
+
+    - path: "./Paths_fingerdb.hs"
+      component: "fingerdb:exe:scrape-imslp"
+
     - path: "test"
       component: "fingerdb:test:fingerdb-test"

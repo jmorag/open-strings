@@ -2,50 +2,55 @@ name: fingerdb
 version: "0.0.0"
 
 dependencies:
+  - aeson >=1.4 && <1.5
   - base >=4.9.1.0 && <5
-  - yesod >=1.6 && <1.7
-  - yesod-core >=1.6 && <1.7
-  - yesod-auth >=1.6 && <1.7
-  - yesod-static >=1.6 && <1.7
-  - yesod-form >=1.6 && <1.7
+  - bytestring >=0.10 && <0.11
+  - case-insensitive
   - classy-prelude >=1.5 && <1.6
   - classy-prelude-conduit >=1.5 && <1.6
   - classy-prelude-yesod >=1.5 && <1.6
-  - bytestring >=0.10 && <0.11
-  - text >=0.11 && <2.0
+  - conduit >=1.0 && <2.0
+  - containers
+  - data-default
+  - directory >=1.1 && <1.4
+  - fast-logger >=2.2 && <3.1
+  - file-embed
+  - foreign-store
+  - generic-lens
+  - hjsmin >=0.1 && <0.3
+  - html-conduit
+  - http-client-tls >=0.3 && <0.4
+  - http-conduit >=2.3 && <2.4
+  - http-types
+  - language-javascript
+  - lens
+  - lens-aeson
+  - monad-control >=0.3 && <1.1
+  - monad-logger >=0.3 && <0.4
   - persistent >=2.9 && <2.11
   - persistent-postgresql >=2.9 && <2.11
   - persistent-template >=2.5 && <2.9
-  - template-haskell
-  - shakespeare >=2.0 && <2.1
-  - hjsmin >=0.1 && <0.3
-  - monad-control >=0.3 && <1.1
-  - wai-extra >=3.0 && <3.1
-  - yaml >=0.11 && <0.12
-  - http-client-tls >=0.3 && <0.4
-  - http-conduit >=2.3 && <2.4
-  - directory >=1.1 && <1.4
-  - warp >=3.0 && <3.4
-  - data-default
-  - aeson >=1.4 && <1.5
-  - conduit >=1.0 && <2.0
-  - monad-logger >=0.3 && <0.4
-  - fast-logger >=2.2 && <3.1
-  - wai-logger >=2.2 && <2.4
-  - file-embed
+  - raw-strings-qq
   - safe
-  - unordered-containers
-  - containers
-  - vector
+  - shakespeare >=2.0 && <2.1
+  - string-conversions
+  - template-haskell
+  - text >=0.11 && <2.0
   - time
-  - case-insensitive
+  - unordered-containers
+  - vector
   - wai
-  - foreign-store
-  - lens
-  - generic-lens
-  - lens-aeson
+  - wai-extra >=3.0 && <3.1
+  - wai-logger >=2.2 && <2.4
+  - warp >=3.0 && <3.4
   - xml-conduit
   - xml-lens
+  - yaml >=0.11 && <0.12
+  - yesod >=1.6 && <1.7
+  - yesod-auth >=1.6 && <1.7
+  - yesod-core >=1.6 && <1.7
+  - yesod-form >=1.6 && <1.7
+  - yesod-static >=1.6 && <1.7
 
 default-extensions:
   - BangPatterns
@@ -128,6 +133,19 @@ executables:
     when:
       - condition: flag(library-only)
         buildable: false
+  scrape-imslp:
+    main: IMSLP.hs
+    source-dirs: app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - fingerdb
+    when:
+      - condition: flag(library-only)
+        buildable: false
+
 
 # Test suite
 tests:
