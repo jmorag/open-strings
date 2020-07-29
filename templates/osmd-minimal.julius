@@ -1,0 +1,127 @@
+const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", {
+  autoResize: true,
+  backend: "svg",
+  drawingParameters: "compact",
+  drawPartNames: false,
+  drawTitle: true,
+  drawFingerings: true,
+  fingeringPosition: "left",
+  setWantedStemDirectionByXml: true,
+  drawMeasureNumbers: false,
+  autoBeam: false,
+  pageFormat: "Endless"
+});
+const parser = new DOMParser();
+let xml = parser.parseFromString(brahms, "application/xml");
+xml.querySelectorAll("note").forEach(function(note) {
+  if (note.querySelector("rest")) {
+    return;
+  }
+  if (note.querySelector("notations") === null) {
+    let notations = xml.createElement("notations");
+    let technical = xml.createElement("technical");
+    let fingering = xml.createElement("fingering");
+    fingering.appendChild(xml.createTextNode("6"));
+    technical.appendChild(fingering);
+    notations.appendChild(technical);
+    note.appendChild(notations);
+  } else if (note.querySelector("notations>technical") === null) {
+    let technical = xml.createElement("technical");
+    let fingering = xml.createElement("fingering");
+    fingering.appendChild(xml.createTextNode("6"));
+    technical.appendChild(fingering);
+    note.querySelector("notations").appendChild(technical);
+  } else if (note.querySelector("notations>technical>fingering") === null) {
+    let fingering = xml.createElement("fingering");
+    fingering.appendChild(xml.createTextNode("6"));
+    note.querySelector("notations>technical").appendChild(fingering);
+  }
+});
+osmd.load(xml).then(osmd.render);
+const unfocused = "#000000";
+const selected = "#34d8eb";
+let target = document.getElementById("osmd");
+
+const observer = new MutationObserver(function(_) {
+  const svg = document.querySelector("svg");
+  const svg_notes = svg.querySelectorAll("g.vf-stavenote");
+  svg_notes.forEach(function(modifier) {
+    modifier.querySelectorAll("g.vf-modifiers>text").forEach(function(f) {
+      if (f.textContent === "6") {
+        f.setAttribute("visibility", "hidden");
+      }
+    });
+  });
+
+  let index = 0;
+  svg_notes[index]
+    .querySelector("g.vf-note>g.vf-notehead>path")
+    .setAttribute("fill", selected);
+
+  const next = function() {
+    if (index >= svg_notes.length - 1) return;
+    svg_notes[index]
+      .querySelector("g.vf-note>g.vf-notehead>path")
+      .setAttribute("fill", unfocused);
+    index++;
+    svg_notes[index]
+      .querySelector("g.vf-note>g.vf-notehead>path")
+      .setAttribute("fill", selected);
+  };
+
+  const prev = function() {
+    if (index <= 0) return;
+    svg_notes[index]
+      .querySelector("g.vf-note>g.vf-notehead>path")
+      .setAttribute("fill", unfocused);
+    index--;
+    svg_notes[index]
+      .querySelector("g.vf-note>g.vf-notehead>path")
+      .setAttribute("fill", selected);
+  };
+
+  const handleKeypress = function(e) {
+    console.log(e);
+    let finger = svg_notes[index].querySelector("g.vf-modifiers>text");
+    let xml_finger = xml.querySelectorAll("note>notations>technical>fingering")[
+      index
+    ];
+    const setFinger = n => {
+      finger.textContent = n;
+      xml_finger.textContent = n;
+      finger.removeAttribute("visibility");
+      next();
+    };
+    switch (e.key) {
+      case "ArrowRight":
+        next();
+        break;
+      case "ArrowLeft":
+        prev();
+        break;
+      case "0":
+        setFinger("0");
+        break;
+      case "1":
+        setFinger("1");
+        break;
+      case "2":
+        setFinger("2");
+        break;
+      case "3":
+        setFinger("3");
+        break;
+      case "4":
+        setFinger("4");
+        break;
+      case "Backspace":
+        finger.textContent = "6";
+        finger.setAttribute("visibility", "hidden");
+        prev();
+        break;
+    }
+  };
+  window.addEventListener("keydown", handleKeypress);
+});
+
+observer.observe(target, { childList: true });
