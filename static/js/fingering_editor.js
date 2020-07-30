@@ -1,5 +1,31 @@
-async function render_musicxml(xml_string) {
-  const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", {
+function get_svg_fingerings(svg) {
+  let svg_fingerings = [];
+  svg
+    .querySelectorAll("g.vf-stavenote>g.vf-modifiers")
+    .forEach(m =>
+      m.querySelectorAll("text").forEach(f => svg_fingerings.push(f))
+    );
+  svg_fingerings.forEach(
+    f => f.textContent === "-1" && f.setAttribute("visibility", "hidden")
+  );
+  return svg_fingerings;
+}
+
+function get_svg_noteheads(svg) {
+  let svg_noteheads = [];
+  svg.querySelectorAll("g.vf-stavenote").forEach(
+    n =>
+      // filter rests
+      n.querySelector("g.vf-modifiers").childElementCount > 0 &&
+      n
+        .querySelectorAll("g.vf-notehead>path")
+        .forEach(n => svg_noteheads.push(n))
+  );
+  return svg_noteheads;
+}
+
+async function render_musicxml(xml, nodeId) {
+  const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(nodeId, {
     autoResize: true,
     backend: "svg",
     drawingParameters: "compact",
@@ -12,8 +38,7 @@ async function render_musicxml(xml_string) {
     autoBeam: false,
     pageFormat: "Endless"
   });
-  const parser = new DOMParser();
-  let xml = parser.parseFromString(xml_string, "application/xml");
+
   xml.querySelectorAll("note").forEach(function(note) {
     if (note.querySelector("rest")) {
       return;
@@ -22,53 +47,27 @@ async function render_musicxml(xml_string) {
       let notations = xml.createElement("notations");
       let technical = xml.createElement("technical");
       let fingering = xml.createElement("fingering");
-      fingering.appendChild(xml.createTextNode("6"));
+      fingering.appendChild(xml.createTextNode("-1"));
       technical.appendChild(fingering);
       notations.appendChild(technical);
       note.appendChild(notations);
     } else if (note.querySelector("notations>technical") === null) {
       let technical = xml.createElement("technical");
       let fingering = xml.createElement("fingering");
-      fingering.appendChild(xml.createTextNode("6"));
+      fingering.appendChild(xml.createTextNode("-1"));
       technical.appendChild(fingering);
       note.querySelector("notations").appendChild(technical);
     } else if (note.querySelector("notations>technical>fingering") === null) {
       let fingering = xml.createElement("fingering");
-      fingering.appendChild(xml.createTextNode("6"));
+      fingering.appendChild(xml.createTextNode("-1"));
       note.querySelector("notations>technical").appendChild(fingering);
     }
   });
-  await osmd.load(xml)
+  await osmd.load(xml);
   osmd.render;
   const unfocused = "#000000";
   const selected = "#34d8eb";
-  let target = document.getElementById("osmd");
-
-  function get_svg_fingerings(svg) {
-    let svg_fingerings = [];
-    svg
-      .querySelectorAll("g.vf-stavenote>g.vf-modifiers")
-      .forEach(m =>
-        m.querySelectorAll("text").forEach(f => svg_fingerings.push(f))
-      );
-    svg_fingerings.forEach(
-      f => f.textContent === "6" && f.setAttribute("visibility", "hidden")
-    );
-    return svg_fingerings;
-  }
-
-  function get_svg_noteheads(svg) {
-    let svg_noteheads = [];
-    svg.querySelectorAll("g.vf-stavenote").forEach(n => {
-      // filter rests
-      if (n.querySelector("g.vf-modifiers").childElementCount > 0)
-        n.querySelectorAll("g.vf-notehead>path").forEach(n =>
-          svg_noteheads.push(n)
-        );
-      return;
-    });
-    return svg_noteheads;
-  }
+  let target = document.getElementById(nodeId);
 
   const observer = new MutationObserver(function(_) {
     const svg = document.querySelector("svg");
@@ -96,10 +95,9 @@ async function render_musicxml(xml_string) {
     const handleKeypress = function(e) {
       console.log(e);
       let finger = svg_fingerings[index];
-      let xml_finger = xml.querySelectorAll("fingering")[index];
       const setFinger = n => {
         finger.textContent = n;
-        xml_finger.textContent = n;
+        xml.querySelectorAll("fingering")[index].textContent = n;
         finger.removeAttribute("visibility");
         next();
       };
@@ -109,6 +107,9 @@ async function render_musicxml(xml_string) {
           break;
         case "ArrowLeft":
           prev();
+          break;
+        case "`":
+          setFinger("0");
           break;
         case "0":
           setFinger("0");
@@ -126,16 +127,23 @@ async function render_musicxml(xml_string) {
           setFinger("4");
           break;
         case "Backspace":
-          finger.textContent = "6";
+          finger.textContent = "-1";
           finger.setAttribute("visibility", "hidden");
           prev();
+          break;
+        case "Enter":
           break;
       }
     };
     window.addEventListener("keydown", handleKeypress);
   });
-
   observer.observe(target, { childList: true });
 }
 
-render_musicxml(brahms);
+function clean_xml(xml) {
+  xml
+    .querySelectorAll("fingering")
+    .forEach(
+      node => node.textContent === "-1" && node.parentNode.removeChild(node)
+    );
+}
