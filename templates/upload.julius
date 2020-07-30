@@ -1,4 +1,4 @@
-new Vue({
+const upload = new Vue({
   el: "##{rawJS uploadId}",
   data: {
     composer: "",
@@ -6,30 +6,12 @@ new Vue({
     work: "",
     movement: "",
     movements: [],
-    osmd: new opensheetmusicdisplay.OpenSheetMusicDisplay(#{renderId}, {
-      autoResize: true,
-      backend: "svg",
-      drawingParameters: "compact",
-      drawPartNames: false,
-      drawTitle: true,
-      drawFingerings: true,
-      fingeringPosition: "left",
-      setWantedStemDirectionByXml: true,
-      drawMeasureNumbers: false,
-      autoBeam: false,
-      pageFormat: "Endless"
-  })
+    editor: new FingeringEditor(#{renderId}),
   },
   watch: {
     composer: async function(c) {
       this.work = "";
       this.movement = "";
-      try {
-          this.osmd.clear()
-      }
-      catch (err) {
-          console.log(err);
-      }
       const response = await fetch(`@{WorksR}?composer=${c}`);
       const body = await response.json();
       this.works = body;
@@ -44,14 +26,16 @@ new Vue({
     },
   },
   methods: {
-    renderXml: function(event) {
+    renderXml: function({ target }) {
       let reader = new FileReader();
-      reader.readAsText(event.target.files[0]);
-      const osmd = this.osmd;
-      reader.onload = function(event) {
-        osmd.load(event.target.result).then(() => osmd.render());
-      };
-    }
+      reader.readAsText(target.files[0]);
+      reader.onload = ({ target: { result }}) => this.editor.render(result);
+    },
+    submit: function(_) {
+      const fs = []
+      this.editor.musicxml.querySelectorAll("fingering").forEach(f => fs.push(f.textContent));
+      console.log(fs);
+    },
   },
   filters: {
     dropComposer: function(work, composer) {
