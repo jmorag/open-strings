@@ -1,127 +1,141 @@
-const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", {
-  autoResize: true,
-  backend: "svg",
-  drawingParameters: "compact",
-  drawPartNames: false,
-  drawTitle: true,
-  drawFingerings: true,
-  fingeringPosition: "left",
-  setWantedStemDirectionByXml: true,
-  drawMeasureNumbers: false,
-  autoBeam: false,
-  pageFormat: "Endless"
-});
-const parser = new DOMParser();
-let xml = parser.parseFromString(brahms, "application/xml");
-xml.querySelectorAll("note").forEach(function(note) {
-  if (note.querySelector("rest")) {
-    return;
-  }
-  if (note.querySelector("notations") === null) {
-    let notations = xml.createElement("notations");
-    let technical = xml.createElement("technical");
-    let fingering = xml.createElement("fingering");
-    fingering.appendChild(xml.createTextNode("6"));
-    technical.appendChild(fingering);
-    notations.appendChild(technical);
-    note.appendChild(notations);
-  } else if (note.querySelector("notations>technical") === null) {
-    let technical = xml.createElement("technical");
-    let fingering = xml.createElement("fingering");
-    fingering.appendChild(xml.createTextNode("6"));
-    technical.appendChild(fingering);
-    note.querySelector("notations").appendChild(technical);
-  } else if (note.querySelector("notations>technical>fingering") === null) {
-    let fingering = xml.createElement("fingering");
-    fingering.appendChild(xml.createTextNode("6"));
-    note.querySelector("notations>technical").appendChild(fingering);
-  }
-});
-osmd.load(xml).then(osmd.render);
-const unfocused = "#000000";
-const selected = "#34d8eb";
-let target = document.getElementById("osmd");
+async function render_musicxml(xml_string) {
+  const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay("osmd", {
+    autoResize: true,
+    backend: "svg",
+    drawingParameters: "compact",
+    drawPartNames: false,
+    drawTitle: true,
+    drawFingerings: true,
+    fingeringPosition: "left",
+    setWantedStemDirectionByXml: true,
+    drawMeasureNumbers: false,
+    autoBeam: false,
+    pageFormat: "Endless"
+  });
+  const parser = new DOMParser();
+  let xml = parser.parseFromString(xml_string, "application/xml");
+  xml.querySelectorAll("note").forEach(function(note) {
+    if (note.querySelector("rest")) {
+      return;
+    }
+    if (note.querySelector("notations") === null) {
+      let notations = xml.createElement("notations");
+      let technical = xml.createElement("technical");
+      let fingering = xml.createElement("fingering");
+      fingering.appendChild(xml.createTextNode("6"));
+      technical.appendChild(fingering);
+      notations.appendChild(technical);
+      note.appendChild(notations);
+    } else if (note.querySelector("notations>technical") === null) {
+      let technical = xml.createElement("technical");
+      let fingering = xml.createElement("fingering");
+      fingering.appendChild(xml.createTextNode("6"));
+      technical.appendChild(fingering);
+      note.querySelector("notations").appendChild(technical);
+    } else if (note.querySelector("notations>technical>fingering") === null) {
+      let fingering = xml.createElement("fingering");
+      fingering.appendChild(xml.createTextNode("6"));
+      note.querySelector("notations>technical").appendChild(fingering);
+    }
+  });
+  await osmd.load(xml)
+  osmd.render;
+  const unfocused = "#000000";
+  const selected = "#34d8eb";
+  let target = document.getElementById("osmd");
 
-const observer = new MutationObserver(function(_) {
-  const svg = document.querySelector("svg");
-  const svg_notes = svg.querySelectorAll("g.vf-stavenote");
-  svg_notes.forEach(function(modifier) {
-    modifier.querySelectorAll("g.vf-modifiers>text").forEach(function(f) {
-      if (f.textContent === "6") {
-        f.setAttribute("visibility", "hidden");
-      }
+  function get_svg_fingerings(svg) {
+    let svg_fingerings = [];
+    svg
+      .querySelectorAll("g.vf-stavenote>g.vf-modifiers")
+      .forEach(m =>
+        m.querySelectorAll("text").forEach(f => svg_fingerings.push(f))
+      );
+    svg_fingerings.forEach(
+      f => f.textContent === "6" && f.setAttribute("visibility", "hidden")
+    );
+    return svg_fingerings;
+  }
+
+  function get_svg_noteheads(svg) {
+    let svg_noteheads = [];
+    svg.querySelectorAll("g.vf-stavenote").forEach(n => {
+      // filter rests
+      if (n.querySelector("g.vf-modifiers").childElementCount > 0)
+        n.querySelectorAll("g.vf-notehead>path").forEach(n =>
+          svg_noteheads.push(n)
+        );
+      return;
     });
+    return svg_noteheads;
+  }
+
+  const observer = new MutationObserver(function(_) {
+    const svg = document.querySelector("svg");
+    const svg_noteheads = get_svg_noteheads(svg);
+    const svg_fingerings = get_svg_fingerings(svg);
+    console.log(svg_noteheads.length, svg_fingerings.length);
+
+    let index = 0;
+    svg_noteheads[index].setAttribute("fill", selected);
+
+    const next = function() {
+      if (index >= svg_noteheads.length - 1) return;
+      svg_noteheads[index].setAttribute("fill", unfocused);
+      index++;
+      svg_noteheads[index].setAttribute("fill", selected);
+    };
+
+    const prev = function() {
+      if (index <= 0) return;
+      svg_noteheads[index].setAttribute("fill", unfocused);
+      index--;
+      svg_noteheads[index].setAttribute("fill", selected);
+    };
+
+    const handleKeypress = function(e) {
+      console.log(e);
+      let finger = svg_fingerings[index];
+      let xml_finger = xml.querySelectorAll("fingering")[index];
+      const setFinger = n => {
+        finger.textContent = n;
+        xml_finger.textContent = n;
+        finger.removeAttribute("visibility");
+        next();
+      };
+      switch (e.key) {
+        case "ArrowRight":
+          next();
+          break;
+        case "ArrowLeft":
+          prev();
+          break;
+        case "0":
+          setFinger("0");
+          break;
+        case "1":
+          setFinger("1");
+          break;
+        case "2":
+          setFinger("2");
+          break;
+        case "3":
+          setFinger("3");
+          break;
+        case "4":
+          setFinger("4");
+          break;
+        case "Backspace":
+          finger.textContent = "6";
+          finger.setAttribute("visibility", "hidden");
+          prev();
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleKeypress);
   });
 
-  let index = 0;
-  svg_notes[index]
-    .querySelector("g.vf-note>g.vf-notehead>path")
-    .setAttribute("fill", selected);
+  observer.observe(target, { childList: true });
+}
 
-  const next = function() {
-    if (index >= svg_notes.length - 1) return;
-    svg_notes[index]
-      .querySelector("g.vf-note>g.vf-notehead>path")
-      .setAttribute("fill", unfocused);
-    index++;
-    svg_notes[index]
-      .querySelector("g.vf-note>g.vf-notehead>path")
-      .setAttribute("fill", selected);
-  };
-
-  const prev = function() {
-    if (index <= 0) return;
-    svg_notes[index]
-      .querySelector("g.vf-note>g.vf-notehead>path")
-      .setAttribute("fill", unfocused);
-    index--;
-    svg_notes[index]
-      .querySelector("g.vf-note>g.vf-notehead>path")
-      .setAttribute("fill", selected);
-  };
-
-  const handleKeypress = function(e) {
-    console.log(e);
-    let finger = svg_notes[index].querySelector("g.vf-modifiers>text");
-    let xml_finger = xml.querySelectorAll("note>notations>technical>fingering")[
-      index
-    ];
-    const setFinger = n => {
-      finger.textContent = n;
-      xml_finger.textContent = n;
-      finger.removeAttribute("visibility");
-      next();
-    };
-    switch (e.key) {
-      case "ArrowRight":
-        next();
-        break;
-      case "ArrowLeft":
-        prev();
-        break;
-      case "0":
-        setFinger("0");
-        break;
-      case "1":
-        setFinger("1");
-        break;
-      case "2":
-        setFinger("2");
-        break;
-      case "3":
-        setFinger("3");
-        break;
-      case "4":
-        setFinger("4");
-        break;
-      case "Backspace":
-        finger.textContent = "6";
-        finger.setAttribute("visibility", "hidden");
-        prev();
-        break;
-    }
-  };
-  window.addEventListener("keydown", handleKeypress);
-});
-
-observer.observe(target, { childList: true });
+render_musicxml(brahms);
