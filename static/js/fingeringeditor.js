@@ -8,10 +8,11 @@ class FingeringEditor {
     this.unfocused = "#000000";
     this.focused = "#34d8eb";
     this.handleKeypress = this.handleKeypress.bind(this);
+    this.handleClick = this.handleClick.bind(this);
   }
 
   get musicxml() {
-    const xml = this.xml.cloneNode(true)
+    const xml = this.xml.cloneNode(true);
     xml.querySelectorAll("fingering").forEach(function(fingering) {
       if (fingering.textContent === "-1") {
         const technical = fingering.parentNode;
@@ -60,27 +61,32 @@ class FingeringEditor {
   }
 
   set_fingerings(svg) {
+    let i = 0;
     let svg_fingerings = [];
-    svg
-      .querySelectorAll("g.vf-stavenote>g.vf-modifiers")
-      .forEach(m =>
-        m.querySelectorAll("text").forEach(f => svg_fingerings.push(f))
-      );
-    svg_fingerings.forEach(
-      f => f.textContent === "-1" && f.setAttribute("visibility", "hidden")
+    svg.querySelectorAll("g.vf-stavenote>g.vf-modifiers").forEach(m =>
+      m.querySelectorAll("text").forEach(f => {
+        f.setAttribute("index", i);
+        i++;
+        // hide bogus fingerings
+        f.textContent === "-1" && f.setAttribute("visibility", "hidden");
+        svg_fingerings.push(f);
+      })
     );
     this.svg_fingerings = svg_fingerings;
   }
 
   set_noteheads(svg) {
+    let i = 0;
     let svg_noteheads = [];
     svg.querySelectorAll("g.vf-stavenote").forEach(
       n =>
         // filter rests
         n.querySelector("g.vf-modifiers").childElementCount > 0 &&
-        n
-          .querySelectorAll("g.vf-notehead>path")
-          .forEach(n => svg_noteheads.push(n))
+        n.querySelectorAll("g.vf-notehead>path").forEach(note => {
+          note.setAttribute("index", i);
+          i++;
+          svg_noteheads.push(note);
+        })
     );
     svg_noteheads[0].setAttribute("fill", this.focused);
     this.svg_noteheads = svg_noteheads;
@@ -109,7 +115,6 @@ class FingeringEditor {
   }
 
   handleKeypress(e) {
-    console.log(e.key, this.index);
     let finger = this.svg_fingerings[this.index];
     switch (e.key) {
       case "ArrowRight":
@@ -118,6 +123,7 @@ class FingeringEditor {
       case "ArrowLeft":
         this.prev();
         break;
+      // lies conveniently to the left of 1 on most keyboards
       case "`":
         this.setFinger("0");
         break;
@@ -137,7 +143,7 @@ class FingeringEditor {
         this.setFinger("4");
         break;
       case "Backspace":
-        finger.textContent = "-1";
+        this.setFinger("-1")
         finger.setAttribute("visibility", "hidden");
         this.prev();
         break;
@@ -146,10 +152,19 @@ class FingeringEditor {
     }
   }
 
+  handleClick({ target }) {
+    const target_ix = parseInt(target.getAttribute("index"))
+    if (!target_ix) return;
+    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[target_ix].setAttribute("fill", this.focused);
+    this.index = target_ix;
+  }
+
   async render(xml_string) {
     this.index = 0;
     this.xml = this.constructor.parse_xml(xml_string);
     window.removeEventListener("keydown", this.handleKeypress);
+    window.removeEventListener("mouseup", this.handleClick);
     const target = document.getElementById(this.nodeId);
     const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(this.nodeId, {
       autoResize: true,
@@ -173,5 +188,6 @@ class FingeringEditor {
     });
     observer.observe(target, { childList: true });
     window.addEventListener("keydown", this.handleKeypress);
+    window.addEventListener("mouseup", this.handleClick);
   }
 }

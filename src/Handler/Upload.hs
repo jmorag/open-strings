@@ -41,7 +41,8 @@ getUploadR = do
   -- (widget, enctype) <- generateFormPost uploadForm
   (composers :: [Entity Composer]) <- runDB $ selectList [] [Asc ComposerFull_name]
   defaultLayout do
-    addScript (StaticR js_opensheetmusicdisplay_js)
+    addScript (StaticR js_opensheetmusicdisplay_min_js)
+    addScript (StaticR js_fingeringeditor_js)
     addVueDev
     uploadId <- newIdent
     composerId <- newIdent
