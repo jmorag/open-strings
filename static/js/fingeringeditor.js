@@ -143,7 +143,7 @@ class FingeringEditor {
         this.setFinger("4");
         break;
       case "Backspace":
-        this.setFinger("-1")
+        this.setFinger("-1");
         finger.setAttribute("visibility", "hidden");
         this.prev();
         break;
@@ -153,11 +153,12 @@ class FingeringEditor {
   }
 
   handleClick({ target }) {
-    const target_ix = parseInt(target.getAttribute("index"))
-    if (!target_ix) return;
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-    this.svg_noteheads[target_ix].setAttribute("fill", this.focused);
-    this.index = target_ix;
+    let target_ix = parseInt(target?.getAttribute("index"));
+    if (!isNaN(target_ix)) {
+      this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+      this.svg_noteheads[target_ix].setAttribute("fill", this.focused);
+      this.index = target_ix;
+    }
   }
 
   async render(xml_string) {
