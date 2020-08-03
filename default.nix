@@ -40,6 +40,9 @@ let
         ghcide
         implicit-hie
         hlint
+        ormolu
+        dhall
+        dhall-lsp-server
       ]);
   };
   buildInputs = [ pkgs.libpqxx ];
