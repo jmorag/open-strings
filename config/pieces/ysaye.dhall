@@ -57,17 +57,14 @@ let solo_sonatas =
             ]
         ]
 
-let composer_works =
-        c
-      ⫽ { works =
-              [ Types.add_parts
-                  [ Types.solo_violin ⫽ { part_num = 1 }
-                  , Types.solo_violin ⫽ { part_num = 2 }
-                  ]
-                  (c.symphony "Amitié,_Op.26" ([] : List Text))
-              , c.sonata Types.violin "Poème_élégiaque,_Op.12" ([] : List Text)
-              ]
-            # solo_sonatas
-        }
-
-in  composer_works.(Types.Composer)
+in    c
+    ⫽ { works =
+            [ Types.add_parts
+                [ Types.solo_violin ⫽ { part_num = 1 }
+                , Types.solo_violin ⫽ { part_num = 2 }
+                ]
+                (c.symphony "Amitié,_Op.26" ([] : List Text))
+            , c.sonata Types.violin "Poème_élégiaque,_Op.12" ([] : List Text)
+            ]
+          # solo_sonatas
+      }

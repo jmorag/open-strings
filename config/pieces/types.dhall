@@ -36,6 +36,22 @@ let add_parts =
       λ(w : Work) →
         w ⫽ { instrumentation = w.instrumentation # p }
 
+let Piece
+    : Type
+    = Text → List Text → Work
+
+let ComposerType
+    : Type
+    = { name : Text
+      , imslp : Optional Text
+      , sonata : StringInstrument → Piece
+      , concerto : StringInstrument → Piece
+      , symphony : Piece
+      , quartet : Piece
+      , piece : Piece
+      , works : List Work
+      }
+
 in  { Solo
     , StringInstrument
     , violin
@@ -63,4 +79,5 @@ in  { Solo
     , Work
     , Composer = { name : Text, imslp : Optional Text, works : List Work }
     , add_parts
+    , ComposerType
     }
