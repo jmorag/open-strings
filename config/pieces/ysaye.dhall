@@ -26,7 +26,7 @@ let solo_sonatas =
             ]
         , c.sonata
             Types.violin
-            "Solo Sonata No. 2, Op. 27 (A Jacques Thibaud)"
+            "Solo_Sonata_No._2,_Op._27_(A_Jacques_Thibaud)"
             [ "Obsession. Prélude. Poco vivace"
             , "Malinconia. Poco lento"
             , "Danse des ombres. Sarabande (lento)"
@@ -34,25 +34,25 @@ let solo_sonatas =
             ]
         , c.sonata
             Types.violin
-            "Solo Sonata No. 3, Op. 27 (A Georges Enesco)"
+            "Solo_Sonata_No._3,_Op._27_(A_Georges_Enesco)"
             [ "Ballade. Lento molto sostenuto in modo di recitativo - Molto moderato quasi lento - Allegro in tempo giusto e con bravura"
             ]
         , c.sonata
             Types.violin
-            "Solo Sonata No. 4, Op. 27 (A Fritz Kreisler)"
+            "Solo_Sonata_No._4,_Op._27_(A_Fritz_Kreisler)"
             [ "Allemanda. Lento maestoso"
             , "Sarabande. Quasi lento"
             , "Finale. Presto ma non troppo"
             ]
         , c.sonata
             Types.violin
-            "Solo Sonata No. 5, Op. 27 (A Mathieu Crickboom)"
+            "Solo_Sonata_No._5,_Op._27_(A_Mathieu_Crickboom)"
             [ "L'Aurore. Lento assai"
             , "Danse rustique. Allegro giocoso molto moderato"
             ]
         , c.sonata
             Types.violin
-            "Solo Sonata No. 6, Op. 27 (A Manuel Quiroga)"
+            "Solo_Sonata_No._6,_Op._27_(A_Manuel_Quiroga)"
             [ "Allegro giusto non troppo vivo - Allegretto poco scherzando - Allegro Tempo I"
             ]
         ]
@@ -65,6 +65,7 @@ let composer_works =
                   , Types.solo_violin ⫽ { part_num = 2 }
                   ]
                   (c.symphony "Amitié,_Op.26" ([] : List Text))
+              , c.sonata Types.violin "Poème_élégiaque,_Op.12" ([] : List Text)
               ]
             # solo_sonatas
         }
