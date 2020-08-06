@@ -12,7 +12,7 @@ let solo_sonatas =
         Work
         ( λ(w : Work) →
               w
-            ⫽ { imslp = Some
+            ⫽ { url = Some
                   "https://imslp.org/wiki/6_Sonatas_for_Solo_Violin,_Op.27_(Ysaÿe,_Eugène)"
               }
         )

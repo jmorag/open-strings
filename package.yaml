@@ -12,6 +12,7 @@ dependencies:
   - conduit >=1.0 && <2.0
   - containers
   - data-default
+  - dhall
   - directory >=1.1 && <1.4
   - fast-logger >=2.2 && <3.1
   - file-embed
@@ -134,8 +135,8 @@ executables:
       - condition: flag(library-only)
         buildable: false
   scrape-imslp:
-    main: IMSLP.hs
-    source-dirs: app
+    main: main.hs
+    source-dirs: scrape-imslp
     ghc-options:
       - -threaded
       - -rtsopts
@@ -145,6 +146,19 @@ executables:
     when:
       - condition: flag(library-only)
         buildable: false
+  dhall-to-db:
+    main: main.hs
+    source-dirs: dhall-to-db
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - fingerdb
+    when:
+      - condition: flag(library-only)
+        buildable: false
+
 
 
 # Test suite

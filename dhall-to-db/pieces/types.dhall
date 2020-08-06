@@ -26,7 +26,7 @@ let solo_bass = { instrument = bass, solo = Solo.Solo, part_num = 0 }
 
 let Work =
       { title : Text
-      , imslp : Optional Text
+      , url : Optional Text
       , instrumentation : List Part
       , movements : List Text
       }
@@ -43,7 +43,7 @@ let Piece
 let ComposerType
     : Type
     = { name : Text
-      , imslp : Optional Text
+      , url : Optional Text
       , sonata : StringInstrument → Piece
       , concerto : StringInstrument → Piece
       , symphony : Piece
@@ -77,7 +77,7 @@ in  { Solo
       , { instrument = bass, solo = Solo.Tutti, part_num = 0 }
       ]
     , Work
-    , Composer = { name : Text, imslp : Optional Text, works : List Work }
+    , Composer = { name : Text, url : Optional Text, works : List Work }
     , add_parts
     , ComposerType
     }

@@ -2,32 +2,51 @@
 -- Syntax for this file here: https://github.com/yesodweb/persistent/blob/master/docs/Persistent-entity-syntax.md
 
 User
-    ident Text
-    password Text Maybe
-    UniqueUser ident
-    deriving Typeable
+  ident Text
+  password Text Maybe
+  UniqueUser ident
+  deriving Typeable
+
 Email
-    email Text
-    userId UserId Maybe
-    verkey Text Maybe
-    UniqueEmail email
+  email Text
+  userId UserId Maybe
+  verkey Text Maybe
+  UniqueEmail email
 
 Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived.
-    message Text
-    userId UserId Maybe
-    deriving Eq
-    deriving Show
+  message Text
+  userId UserId Maybe
+  entryId EntryId
+  deriving Eq
+  deriving Show
 
 Composer sql=composers
-  full_name Text
-  imslp_url ByteString
-  UniqueComposerName full_name
+  name Text
+  url Text Maybe
+  UniqueComposerName name
   deriving Show
 
 Work sql=works
-  work_id Text
-  imslp_url ByteString
-  movements [Text]
-  instrumentation Text Maybe
+  title Text
+  url Text Maybe
+  instrumentation (Set Part)
   composerId ComposerId
+  UniqueWork composerId title
+  deriving Show
+
+Movement sql=movements
+  number Int
+  name Text
+  workId WorkId
+  UniqueMovement workId number name
+  deriving Show
+
+Entry sql=entries
+  measure_start Int
+  measure_end Int
+  part Part
+  musicxml ByteString
+  uploadedBy UserId
+  movementId MovementId
+  createdAt UTCTime
   deriving Show

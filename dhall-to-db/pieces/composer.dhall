@@ -7,7 +7,7 @@ let piece =
       λ(title : Text) →
       λ(movements : List Text) →
           { title
-          , imslp = Some "https://imslp.org/wiki/${title}_(${composer})"
+          , url = Some "https://imslp.org/wiki/${title}_(${composer})"
           , instrumentation = [] : List types.Part
           , movements
           }
@@ -18,7 +18,7 @@ let symphony =
       λ(title : Text) →
       λ(movements : List Text) →
           { title
-          , imslp = Some "https://imslp.org/wiki/${title}_(${composer})"
+          , url = Some "https://imslp.org/wiki/${title}_(${composer})"
           , instrumentation = types.string_orchestra
           , movements
           }
@@ -29,7 +29,7 @@ let quartet =
       λ(title : Text) →
       λ(movements : List Text) →
           { title
-          , imslp = Some "https://imslp.org/wiki/${title}_(${composer})"
+          , url = Some "https://imslp.org/wiki/${title}_(${composer})"
           , instrumentation = types.string_quartet
           , movements
           }
@@ -41,7 +41,7 @@ let solo =
       λ(title : Text) →
       λ(movements : List Text) →
           { title
-          , imslp = Some "https://imslp.org/wiki/${title}_(${composer})"
+          , url = Some "https://imslp.org/wiki/${title}_(${composer})"
           , instrumentation =
             [ { instrument, solo = types.Solo.Solo, part_num = 0 } ]
           , movements
@@ -63,7 +63,7 @@ let concerto =
 
 in  λ(composer : Text) →
       { name = composer
-      , imslp = Some "https://imslp.org/wiki/Category:${composer}"
+      , url = Some "https://imslp.org/wiki/Category:${composer}"
       , sonata = solo composer
       , concerto = concerto composer
       , symphony = symphony composer

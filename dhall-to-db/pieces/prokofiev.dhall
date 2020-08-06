@@ -32,7 +32,7 @@ in    c
               , "Andante"
               , "Allegrissimo - Andate assai, come prima"
               ]
-          ⫽ { imslp = Some
+          ⫽ { url = Some
                 "https://en.wikipedia.org/wiki/Violin_Sonata_No._1_(Prokofiev)"
             }
         , c.sonata
