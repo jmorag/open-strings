@@ -1,27 +1,27 @@
 const upload = new Vue({
   el: "##{rawJS uploadId}",
   data: {
-    composer: "",
+    composer: null,
     works: [],
-    work: "",
-    movement: "",
+    work: null,
+    movement: null,
     movements: [],
     editor: new FingeringEditor(#{renderId}),
   },
   watch: {
     composer: async function(c) {
-      this.work = "";
-      this.movement = "";
+      this.work = null;
+      this.movement = null;
       const response = await fetch(`@{WorksR}?composer=${c}`);
       const body = await response.json();
       this.works = body;
+      this.movements = [];
     },
     work: async function(w) {
-      this.movement = "";
-      const response = await fetch(
-        `@{MovementsR}?work=${w} (${this.composer})`
-      );
+      this.movement = null;
+      const response = await fetch(`@{MovementsR}?work=${w} (${this.composer})`);
       const body = await response.json();
+      console.log(body);
       this.movements = body;
     },
   },
