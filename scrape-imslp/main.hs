@@ -1,5 +1,3 @@
-module Main where
-
 import Control.Lens
 import Control.Monad.Logger (runStderrLoggingT)
 import Data.Aeson.Lens
@@ -28,15 +26,16 @@ getWorksHtml composer = do
   let scriptPrefix =
         [r|if(typeof catpagejs=='undefined')catpagejs={};$.extend(catpagejs,{"p1"|]
       workIds =
-        doc ^.. root
-          . script (scriptPrefix `isPrefixOf`)
-          . stringLiterals
-          . filtered (\s -> not (T.null s) && T.head s /= '|')
-          . to (T.dropWhileEnd (/= ')'))
+        doc
+          ^.. root
+            . script (scriptPrefix `isPrefixOf`)
+            . stringLiterals
+            . filtered (\s -> not (T.null s) && T.head s /= '|')
+            . to (T.dropWhileEnd (/= ')'))
   pooledForConcurrently_ workIds \work -> do
     let pieceLink = "https://imslp.org/wiki/" <> urlEncode False (cs work)
     (movements, instrumentation) <- getMovementsAndInstrumentation =<< parseRequest (cs pieceLink)
-    void $ insert $ Work work pieceLink movements instrumentation (entityKey composer)
+    insert_ $ Work work pieceLink movements instrumentation (entityKey composer)
   say $ "Got works for " <> composerFull_name (entityVal composer)
 
 getMovementsAndInstrumentation :: (MonadUnliftIO m) => Request -> m ([Text], Maybe Text)
@@ -46,12 +45,13 @@ getMovementsAndInstrumentation pieceLink = do
         let tr = doc ^? root . deep (el "tr") . taking 1 (filtered (\tr' -> Just "Movements/Sections" == tr' ^? deep (el "span" . text)))
          in map T.strip (tr ^.. _Just . deep (el "li" . text) <|> tr ^.. _Just . deep (el "dd" . text))
       instrumentation =
-        doc ^? root
-          . deep (el "tr")
-          . filtered (\tr -> tr ^. plate . el "th" . text == "Instrumentation")
-          . plate
-          . el "td"
-          . text
+        doc
+          ^? root
+            . deep (el "tr")
+            . filtered (\tr -> tr ^. plate . el "th" . text == "Instrumentation")
+            . plate
+            . el "td"
+            . text
   pure (movements, instrumentation)
 
 composerHtml :: (MonadThrow m, MonadUnliftIO m) => m Document
@@ -61,12 +61,13 @@ composerHtml =
 
 getComposers :: Document -> [Composer]
 getComposers doc =
-  doc ^? root
-    . deep (el "div" . attributeIs "class" "body")
-    . script (const True)
+  doc
+    ^? root
+      . deep (el "div" . attributeIs "class" "body")
+      . script (const True)
     ^.. _Just
-    . stringLiterals
-    . to (\composer -> Composer composer (composerUrl composer))
+      . stringLiterals
+      . to (\composer -> Composer composer (composerUrl composer))
 
 script :: (Text -> Bool) -> Fold Text.XML.Lens.Element JSAST
 script p =
@@ -92,10 +93,12 @@ composerUrl composer =
   "https://imslp.org/wiki/Category:" <> (urlEncode False . cs $ composer)
 
 populateDB :: IO ()
-populateDB = runStderrLoggingT $ withPostgresqlPool "dbname=fingerdb" 10 $
-  \pool -> liftIO $ flip runSqlPersistMPool pool $ do
-    runMigration migrateAll
-    composers <- composerHtml >>= traverse insertEntity . getComposers
-    traverse_ getWorksHtml composers
+populateDB = runStderrLoggingT $
+  withPostgresqlPool "dbname=fingerdb" 10 $
+    \pool -> liftIO $
+      flip runSqlPersistMPool pool $ do
+        runMigration migrateAll
+        composers <- composerHtml >>= traverse insertEntity . getComposers
+        traverse_ getWorksHtml composers
 
 main = populateDB
