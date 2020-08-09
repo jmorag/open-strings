@@ -1,49 +1,49 @@
-const upload = new Vue({
-  el: "##{rawJS uploadId}",
-  data: {
-    composer: null,
-    works: [],
-    work: null,
-    movement: null,
-    movements: [],
-    editor: new FingeringEditor(#{renderId}),
+const form = document.querySelector("form");
+const work_input = document.getElementById(#{workId});
+let work_id = "0";
+let movement_id = "0";
+const ac = new autocomplete({
+  input: work_input,
+  fetch: async (text, update) => {
+    const data = await fetch(`@{ComposersR}?term=${text}`);
+    const suggestions = await data.json();
+    update(suggestions);
   },
-  watch: {
-    composer: async function(c) {
-      this.work = null;
-      this.movement = null;
-      const response = await fetch(`@{WorksR}?composer=${c}`);
-      const body = await response.json();
-      this.works = body;
-      this.movements = [];
-    },
-    work: async function(w) {
-      this.movement = null;
-      const response = await fetch(`@{MovementsR}?work=${w} (${this.composer})`);
-      const body = await response.json();
-      console.log(body);
-      this.movements = body;
-    },
+  onSelect: async item => {
+    work_input.value = item.label;
+    work_id = item.value;
+    const data = await fetch(`@{MovementsR}?work-id=${work_id}`);
+    const movements = await data.json();
+    const movementsDiv = document.getElementById(#{movementId})
+    let radioButtons = "";
+    if (movements.length == 1) {
+      movement_id = movements[0].value;
+    } else {
+      movements.forEach((m, i) => {
+        radioButtons += `
+<div>
+  <input type="radio" value="${m.value}" id="${m.value}" name="movement">
+  <label for=${m.value}>${i + 1}. ${m.label}</label>
+</div>`;
+      });
+      movementsDiv.innerHTML = radioButtons;
+    }
   },
-  methods: {
-    renderXml: function({ target }) {
+  debounceWaitMs: 300,
+  preventSubmit: true
+});
+
+const editor = new FingeringEditor(#{renderId})
+form.addEventListener("change", ({ target }) => {
+  console.log(target);
+  switch (target.getAttribute("type")) {
+    case "radio":
+      movement_id = target.getAttribute("value");
+      break;
+    case "file":
       let reader = new FileReader();
       reader.readAsText(target.files[0]);
-      reader.onload = ({ target: { result }}) => this.editor.render(result);
-    },
-    submit: function(_) {
-      const fs = []
-      this.editor.musicxml.querySelectorAll("fingering").forEach(f => fs.push(f.textContent));
-      console.log(fs);
-    },
-  },
-  filters: {
-    dropComposer: function(work, composer) {
-      if (work && composer) {
-        const end = work.length - (composer.length + 3);
-        return work.substring(0, end);
-      }
-      return "";
-    }
+      reader.onload = ({ target: { result }}) => editor.render(result);
+      break;
   }
-});
+})

@@ -161,6 +161,10 @@ class FingeringEditor {
     }
   }
 
+  clear() {
+    document.querySelector(`#${this.nodeId}`).innerHTML = ""
+  }
+
   async render(xml_string) {
     this.index = 0;
     this.xml = this.constructor.parse_xml(xml_string);
