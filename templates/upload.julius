@@ -1,49 +1,108 @@
-const form = document.querySelector("form");
-const work_input = document.getElementById(#{workId});
-let work_id = "0";
-let movement_id = "0";
-const ac = new autocomplete({
-  input: work_input,
-  fetch: async (text, update) => {
-    const data = await fetch(`@{ComposersR}?term=${text}`);
-    const suggestions = await data.json();
-    update(suggestions);
+const vue = new Vue({
+  el: "##{rawJS uploadId}",
+  data: {
+    existing_work: false, //true,
+    show_add_work_link: false,
+    work_id: 0,
+    movement_id: 0,
+    start_measure: 1,
+    movements: [],
+    parts: [],
+    part: "",
+    xml_file: null,
+    editor: new FingeringEditor(#{renderId}),
+    // Data for adding work form
+    url: "",
+    title: "",
+    composer: "",
+    instrumentation: [],
+    work_movements: [],
   },
-  onSelect: async item => {
-    work_input.value = item.label;
-    work_id = item.value;
-    const data = await fetch(`@{MovementsR}?work-id=${work_id}`);
-    const movements = await data.json();
-    const movementsDiv = document.getElementById(#{movementId})
-    let radioButtons = "";
-    if (movements.length == 1) {
-      movement_id = movements[0].value;
-    } else {
-      movements.forEach((m, i) => {
-        radioButtons += `
-<div>
-  <input type="radio" value="${m.value}" id="${m.value}" name="movement">
-  <label for=${m.value}>${i + 1}. ${m.label}</label>
-</div>`;
-      });
-      movementsDiv.innerHTML = radioButtons;
+  components: { Autocomplete },
+  methods: {
+    async search(input) {
+      console.log("Called search", input);
+      if (input.length < 2) {
+        return [];
+      }
+      const data = await fetch(`@{WorksR}?term=${input}`);
+      const suggestions = await data.json();
+      return suggestions;
+    },
+    update(results, selectedIndex) {
+      console.log(results, selectedIndex);
+      if (this.$refs.autocomplete.value.length < 2) {
+        this.work_id = 0;
+        this.movements = [];
+        this.parts = [];
+      }
+      this.show_add_work_link =
+        results.length === 0 &&
+        !this.work_id &&
+        this.$refs.autocomplete.value.length >= 2;
+    },
+    getResultValue(result) {
+      return result.label;
+    },
+    async autocompleteSubmit({ value }) {
+      console.log("Called autocomplete submit", value);
+      this.work_id = value;
+      const data = await fetch(`@{MovementsR}?work-id=${value}`);
+      const json = await data.json();
+      this.movements = json.movements;
+      this.movement_id = json.movements[0].value;
+      this.parts = json.parts;
+      this.part = json.parts[0];
+    },
+    submit(e) {
+      console.log("Called form submit", e);
+    },
+    async renderXml({ target }) {
+      const reader = new FileReader();
+      reader.readAsText(target.files[0]);
+      reader.onload = ({ target: { result } }) => this.editor.render(result);
+    },
+    clear() {
+      this.work_id = 0;
+      this.movement_id = 0;
+      this.start_measure = 1;
+      this.movements = [];
+      this.xml_file = null;
+      this.existing_work && (this.$refs.autocomplete.value = "");
+      this.existing_work = true;
+      this.show_add_work_link = false;
+    },
+    validatePart(part) {
+      const regex = /^(?:(?:(solo|tutti)\s*)?(?:(violin|viola|cello|bass))(\s+[1-9]\d*)?|strings|quartet)$/;
+      return part.match(regex);
+    },
+    add_work(e) {
+      console.log(e, "Clicked Add work to db");
+    },
+  },
+  computed: {
+    tooltipWidth: function() {
+      return this.$refs.instrumentationInput?.$el?.offsetWidth
     }
   },
-  debounceWaitMs: 300,
-  preventSubmit: true
-});
-
-const editor = new FingeringEditor(#{renderId})
-form.addEventListener("change", ({ target }) => {
-  console.log(target);
-  switch (target.getAttribute("type")) {
-    case "radio":
-      movement_id = target.getAttribute("value");
-      break;
-    case "file":
-      let reader = new FileReader();
-      reader.readAsText(target.files[0]);
-      reader.onload = ({ target: { result }}) => editor.render(result);
-      break;
+  watch: {
+    url: async function(url) {
+      if (!url.includes("imslp.org")) return;
+      const data = await fetch(`/imslp/${encodeURIComponent(url)}`);
+      const json = await data.json();
+      this.title = json.title;
+      this.composer = json.composer;
+      this.instrumentation = json.instrumentation.filter(this.validatePart);
+      this.work_movements = json.movements;
+    },
+    xml_file: async function(file) {
+      if (file) {
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = ({ target: { result } }) => this.editor.render(result);
+      } else {
+        this.editor.clear();
+      }
+    }
   }
-})
+});

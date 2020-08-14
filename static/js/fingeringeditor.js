@@ -6,7 +6,7 @@ class FingeringEditor {
     this.svg_fingerings = null;
     this.svg_noteheads = null;
     this.unfocused = "#000000";
-    this.focused = "#34d8eb";
+    this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
     this.handleClick = this.handleClick.bind(this);
   }
@@ -170,7 +170,6 @@ class FingeringEditor {
     this.xml = this.constructor.parse_xml(xml_string);
     window.removeEventListener("keydown", this.handleKeypress);
     window.removeEventListener("mouseup", this.handleClick);
-    const target = document.getElementById(this.nodeId);
     const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(this.nodeId, {
       autoResize: true,
       backend: "svg",
@@ -191,7 +190,7 @@ class FingeringEditor {
       this.set_noteheads(svg);
       this.set_fingerings(svg);
     });
-    observer.observe(target, { childList: true });
+    observer.observe(document.getElementById(this.nodeId), { childList: true });
     window.addEventListener("keydown", this.handleKeypress);
     window.addEventListener("mouseup", this.handleClick);
   }

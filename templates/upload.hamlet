@@ -1,8 +1,115 @@
 <div ##{uploadId}>
-  <form method=post v-on:submit.prevent="submit">
-    <div .form-group .required>
-      <input ##{workId} placeholder="Work" autocomplete="off" type="search">
-      <div ##{movementId}>
-      <input type="file">
-    <button>Submit
+  <div v-if=existing_work>
+    <form method=post v-on:submit.prevent="submit" v-on:reset.prevent="clear">
+      <div .form-group .required>
+        <div .form-row>
+          <div .form-group .col-md-10>
+            <label for="work-title">Work Title
+            <!-- Ref set to clear autocomplete input -->
+            <!-- See https://github.com/trevoreyre/autocomplete/issues/64 -->
+            <autocomplete
+              #work-title
+              @submit="autocompleteSubmit"
+              @update="update"
+              default-value=""
+              placeholder="Work"
+              ref="autocomplete"
+              v-bind:auto-select="true"
+              v-bind:debounce-time="300"
+              v-bind:get-result-value="getResultValue"
+              v-bind:search="search"
+              >
+            <small for="work-title">Type the composer then the piece name, ex. beethoven violin concerto
+          <div .form-group .col-md-2>
+            <label for="start-measure">Starting Measure
+            <input #start-measure .form-control
+              type="number"
+              v-model.number="start_measure">
+        <div v-if="show_add_work_link">
+          <p>Could not find this work in the database. <a href=# v-on:click="existing_work = false">Please enter the piece data manually.</a>
+        <b-form-row>
+          <b-col md="auto" v-show="movements.length > 1">
+            <b-form-group label="Movements">
+              <b-form-radio-group v-model="movement_id" v-bind:options="movements"
+                buttons button-variant="outline-primary" stacked #movements-select>
+          <b-col md="auto" v-show="parts.length > 0">
+            <b-form-group label="Parts">
+              <b-form-radio-group v-model=part v-bind:options="parts"
+                buttons button-variant="outline-primary">
+        <div .form-group>
+          <b-form-file v-model="xml_file" accept=".musicxml">
+        <div .form-group>
+          <button .btn .btn-primary type="submit">Submit
+          <button .btn .btn-secondary type="reset">Clear
+  <div v-else>
+    <form v-on:submit.prevent="add_work" v-on:reset.prevent="clear">
+      <div .form-group .required>
+        <div .form-group>
+          <label for="piece-url">URL
+          <input type="url" #piece-url v-model="url" placeholder="URL" .form-control
+            autocomplete="on">
+          <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter it's url. If not, a Wikipedia or composer page will do.
+        <b-form-group v-bind:disabled="!url">
+          <div .form-row>
+            <div .form-group .col>
+              <label for="piece-title">Title
+              <b-form-input
+                type="text"
+                #piece-title
+                v-model="title"
+                placeholder="Title"
+                >
+            <div .form-group .col>
+              <label for="piece-composer">Composer
+              <b-form-input
+                type="text"
+                #piece-composer
+                v-model="composer"
+                placeholder="Composer"
+                >
+          <div .form-row>
+            <div .form-group .col>
+              <label for="piece-movements">Movements
+              <b-input-group
+                v-for="(movement, i) in work_movements"
+                v-bind:prepend="`${i+1}`"
+                #piece-movements
+                >
+                <b-form-input v-model="work_movements[i]">
+                <b-input-group-append>
+                  <b-button variant="outline-secondary" @click="work_movements.splice(i, 1)">x
+              <b-button @click="work_movements.splice(work_movements.length, 0, '')"
+                block size="sm" variant="outline-secondary">Add movement
+            <div .form-group .col>
+              <label #instrumentation-label for="piece-instrumentation">Instrumentation <span style='color: #007bff'>(?)</span>
+              <b-form-tags
+                ref="instrumentationInput"
+                v-model="instrumentation"
+                input-id="piece-instrumentation"
+                placeholder=""
+                remove-on-delete
+                separator=",;"
+                v-bind:tag-validator="validatePart"
+                >
+              <b-popover
+                #instrumentation-info
+                triggers="hover"
+                noninteractive
+                target="instrumentation-label"
+                >
+                  <template v-slot:title>
+                  Enter string parts separated by commas or semicolons, ex. #
+                  <kbd>violin, violin 1, tutti violin 2, cello, bass
+                  \. Instruments not preceded by a #
+                  <kbd>solo
+                  \ or #
+                  <kbd>tutti
+                  \ default to solo parts. For convenience, you can use #
+                  <kbd>strings
+                  \ to refer to a standard orchestral string section and #
+                  <kbd>quartet
+                  \ for a string quartet.
+        <div .form-group>
+          <button .btn .btn-primary type="submit">Add work to database
+          <button .btn .btn-secondary type="reset">Back
 <div ##{renderId}>
