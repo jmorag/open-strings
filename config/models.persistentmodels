@@ -38,7 +38,7 @@ Movement sql=movements
   number Int
   name Text
   workId WorkId
-  UniqueMovement workId number name
+  UniqueMovement workId number
   deriving Show
 
 Entry sql=entries
