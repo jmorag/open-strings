@@ -1,25 +1,75 @@
 .autocomplete {
-  background: white;
-  z-index: 1000;
-  overflow: auto;
+  z-index: 1000 !important;
+}
+
+.autocomplete-input {
+  background-color: #eee;
+}
+.autocomplete-input:focus,
+.autocomplete-input[aria-expanded="true"] {
+  border-color: rgba(0, 0, 0, 0.12);
+  background-color: #fff;
+  outline: none;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.16);
+}
+[data-position="below"] .autocomplete-input[aria-expanded="true"] {
+  border-bottom-color: transparent;
+}
+[data-position="above"] .autocomplete-input[aria-expanded="true"] {
+  border-top-color: transparent;
+  z-index: 2;
+}
+.autocomplete[data-loading="true"]:after {
+  content: "";
+  border: 3px solid rgba(0, 0, 0, 0.12);
+  border-right-color: rgba(0, 0, 0, 0.48);
+  border-radius: 100%;
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  animation: rotate 1s linear infinite;
+}
+.autocomplete-result-list {
+  margin: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  padding: 0;
   box-sizing: border-box;
-  border: 1px solid #c1c1c1;
+  max-height: 296px;
+  overflow-y: auto;
+  background: #fff;
+  list-style: none;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.16);
 }
-
-.autocomplete * {
-  font: inherit;
+[data-position="below"] .autocomplete-result-list {
+  margin-top: -1px;
+  border-top-color: transparent;
+  padding-bottom: 8px;
 }
-
-.autocomplete > div {
-  padding: 4px 4px;
+[data-position="above"] .autocomplete-result-list {
+  margin-bottom: -1px;
+  border-bottom-color: transparent;
+  padding-top: 8px;
 }
-
-.autocomplete .group {
-  background: #eee;
+.autocomplete-result {
+  cursor: default;
+  padding: 12px;
+  background-repeat: no-repeat;
+  background-position: 12px;
+  z-index: 3;
 }
-
-.autocomplete > div:hover:not(.group),
-.autocomplete > div.selected {
-  background: #c1c1c1;
-  cursor: pointer;
+.autocomplete-result:hover,
+.autocomplete-result[aria-selected="true"] {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+@keyframes rotate {
+  0% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateY(-50%) rotate(359deg);
+  }
 }

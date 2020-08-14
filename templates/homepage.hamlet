@@ -1,8 +1,5 @@
-<div .masthead>
-    <div .container>
-        <div .row>
-            <h1 .header>
-                Fingerdb
-            <h2>
-                A platform for violinists to share and view fingerings
-
+<div .title>
+    <h1>
+        Mignolo
+    <p .lead>
+        A platform for string players to share and view fingerings

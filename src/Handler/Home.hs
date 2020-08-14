@@ -1,8 +1,9 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+
 module Handler.Home where
 
 import Import
@@ -16,6 +17,5 @@ import Import
 -- inclined, or create a single monolithic file.
 getHomeR :: Handler Html
 getHomeR = defaultLayout do
-  aDomId <- newIdent
-  setTitle "Welcome To Fingerdb!"
+  setTitle "Welcome To Mignolo!"
   $(widgetFile "homepage")

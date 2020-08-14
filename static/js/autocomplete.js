@@ -1,393 +1,568 @@
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
-  (global = global || self, global.autocomplete = factory());
-}(this, function () { 'use strict';
-
-  /*
-   * https://github.com/kraaden/autocomplete
-   * Copyright (c) 2016 Denys Krasnoshchok
-   * MIT License
-   */
-  function autocomplete(settings) {
-      // just an alias to minimize JS file size
-      var doc = document;
-      var container = doc.createElement("div");
-      var containerStyle = container.style;
-      var userAgent = navigator.userAgent;
-      var mobileFirefox = userAgent.indexOf("Firefox") !== -1 && userAgent.indexOf("Mobile") !== -1;
-      var debounceWaitMs = settings.debounceWaitMs || 0;
-      var preventSubmit = settings.preventSubmit || false;
-      // 'keyup' event will not be fired on Mobile Firefox, so we have to use 'input' event instead
-      var keyUpEventName = mobileFirefox ? "input" : "keyup";
-      var items = [];
-      var inputValue = "";
-      var minLen = 2;
-      var showOnFocus = settings.showOnFocus;
-      var selected;
-      var keypressCounter = 0;
-      var debounceTimer;
-      if (settings.minLength !== undefined) {
-          minLen = settings.minLength;
-      }
-      if (!settings.input) {
-          throw new Error("input undefined");
-      }
-      var input = settings.input;
-      container.className = "autocomplete " + (settings.className || "");
-      // IOS implementation for fixed positioning has many bugs, so we will use absolute positioning
-      containerStyle.position = "absolute";
-      /**
-       * Detach the container from DOM
-       */
-      function detach() {
-          var parent = container.parentNode;
-          if (parent) {
-              parent.removeChild(container);
-          }
-      }
-      /**
-       * Clear debouncing timer if assigned
-       */
-      function clearDebounceTimer() {
-          if (debounceTimer) {
-              window.clearTimeout(debounceTimer);
-          }
-      }
-      /**
-       * Attach the container to DOM
-       */
-      function attach() {
-          if (!container.parentNode) {
-              doc.body.appendChild(container);
-          }
-      }
-      /**
-       * Check if container for autocomplete is displayed
-       */
-      function containerDisplayed() {
-          return !!container.parentNode;
-      }
-      /**
-       * Clear autocomplete state and hide container
-       */
-      function clear() {
-          // prevent the update call if there are pending AJAX requests
-          keypressCounter++;
-          items = [];
-          inputValue = "";
-          selected = undefined;
-          detach();
-      }
-      /**
-       * Update autocomplete position
-       */
-      function updatePosition() {
-          if (!containerDisplayed()) {
-              return;
-          }
-          containerStyle.height = "auto";
-          containerStyle.width = input.offsetWidth + "px";
-          var maxHeight = 0;
-          var inputRect;
-          function calc() {
-              var docEl = doc.documentElement;
-              var clientTop = docEl.clientTop || doc.body.clientTop || 0;
-              var clientLeft = docEl.clientLeft || doc.body.clientLeft || 0;
-              var scrollTop = window.pageYOffset || docEl.scrollTop;
-              var scrollLeft = window.pageXOffset || docEl.scrollLeft;
-              inputRect = input.getBoundingClientRect();
-              var top = inputRect.top + input.offsetHeight + scrollTop - clientTop;
-              var left = inputRect.left + scrollLeft - clientLeft;
-              containerStyle.top = top + "px";
-              containerStyle.left = left + "px";
-              maxHeight = window.innerHeight - (inputRect.top + input.offsetHeight);
-              if (maxHeight < 0) {
-                  maxHeight = 0;
-              }
-              containerStyle.top = top + "px";
-              containerStyle.bottom = "";
-              containerStyle.left = left + "px";
-              containerStyle.maxHeight = maxHeight + "px";
-          }
-          // the calc method must be called twice, otherwise the calculation may be wrong on resize event (chrome browser)
-          calc();
-          calc();
-          if (settings.customize && inputRect) {
-              settings.customize(input, inputRect, container, maxHeight);
-          }
-      }
-      /**
-       * Redraw the autocomplete div element with suggestions
-       */
-      function update() {
-          // delete all children from autocomplete DOM container
-          while (container.firstChild) {
-              container.removeChild(container.firstChild);
-          }
-          // function for rendering autocomplete suggestions
-          var render = function (item, currentValue) {
-              var itemElement = doc.createElement("div");
-              itemElement.textContent = item.label || "";
-              return itemElement;
-          };
-          if (settings.render) {
-              render = settings.render;
-          }
-          // function to render autocomplete groups
-          var renderGroup = function (groupName, currentValue) {
-              var groupDiv = doc.createElement("div");
-              groupDiv.textContent = groupName;
-              return groupDiv;
-          };
-          if (settings.renderGroup) {
-              renderGroup = settings.renderGroup;
-          }
-          var fragment = doc.createDocumentFragment();
-          var prevGroup = "#9?$";
-          items.forEach(function (item) {
-              if (item.group && item.group !== prevGroup) {
-                  prevGroup = item.group;
-                  var groupDiv = renderGroup(item.group, inputValue);
-                  if (groupDiv) {
-                      groupDiv.className += " group";
-                      fragment.appendChild(groupDiv);
-                  }
-              }
-              var div = render(item, inputValue);
-              if (div) {
-                  div.addEventListener("click", function (ev) {
-                      settings.onSelect(item, input);
-                      clear();
-                      ev.preventDefault();
-                      ev.stopPropagation();
-                  });
-                  if (item === selected) {
-                      div.className += " selected";
-                  }
-                  fragment.appendChild(div);
-              }
-          });
-          container.appendChild(fragment);
-          if (items.length < 1) {
-              if (settings.emptyMsg) {
-                  var empty = doc.createElement("div");
-                  empty.className = "empty";
-                  empty.textContent = settings.emptyMsg;
-                  container.appendChild(empty);
-              }
-              else {
-                  clear();
-                  return;
-              }
-          }
-          attach();
-          updatePosition();
-          updateScroll();
-      }
-      function updateIfDisplayed() {
-          if (containerDisplayed()) {
-              update();
-          }
-      }
-      function resizeEventHandler() {
-          updateIfDisplayed();
-      }
-      function scrollEventHandler(e) {
-          if (e.target !== container) {
-              updateIfDisplayed();
-          }
-          else {
-              e.preventDefault();
-          }
-      }
-      function keyupEventHandler(ev) {
-          var keyCode = ev.which || ev.keyCode || 0;
-          var ignore = [38 /* Up */, 13 /* Enter */, 27 /* Esc */, 39 /* Right */, 37 /* Left */, 16 /* Shift */, 17 /* Ctrl */, 18 /* Alt */, 20 /* CapsLock */, 91 /* WindowsKey */, 9 /* Tab */];
-          for (var _i = 0, ignore_1 = ignore; _i < ignore_1.length; _i++) {
-              var key = ignore_1[_i];
-              if (keyCode === key) {
-                  return;
-              }
-          }
-          if (keyCode >= 112 /* F1 */ && keyCode <= 123 /* F12 */) {
-              return;
-          }
-          // the down key is used to open autocomplete
-          if (keyCode === 40 /* Down */ && containerDisplayed()) {
-              return;
-          }
-          startFetch(0 /* Keyboard */);
-      }
-      /**
-       * Automatically move scroll bar if selected item is not visible
-       */
-      function updateScroll() {
-          var elements = container.getElementsByClassName("selected");
-          if (elements.length > 0) {
-              var element = elements[0];
-              // make group visible
-              var previous = element.previousElementSibling;
-              if (previous && previous.className.indexOf("group") !== -1 && !previous.previousElementSibling) {
-                  element = previous;
-              }
-              if (element.offsetTop < container.scrollTop) {
-                  container.scrollTop = element.offsetTop;
-              }
-              else {
-                  var selectBottom = element.offsetTop + element.offsetHeight;
-                  var containerBottom = container.scrollTop + container.offsetHeight;
-                  if (selectBottom > containerBottom) {
-                      container.scrollTop += selectBottom - containerBottom;
-                  }
-              }
-          }
-      }
-      /**
-       * Select the previous item in suggestions
-       */
-      function selectPrev() {
-          if (items.length < 1) {
-              selected = undefined;
-          }
-          else {
-              if (selected === items[0]) {
-                  selected = items[items.length - 1];
-              }
-              else {
-                  for (var i = items.length - 1; i > 0; i--) {
-                      if (selected === items[i] || i === 1) {
-                          selected = items[i - 1];
-                          break;
-                      }
-                  }
-              }
-          }
-      }
-      /**
-       * Select the next item in suggestions
-       */
-      function selectNext() {
-          if (items.length < 1) {
-              selected = undefined;
-          }
-          if (!selected || selected === items[items.length - 1]) {
-              selected = items[0];
-              return;
-          }
-          for (var i = 0; i < (items.length - 1); i++) {
-              if (selected === items[i]) {
-                  selected = items[i + 1];
-                  break;
-              }
-          }
-      }
-      function keydownEventHandler(ev) {
-          var keyCode = ev.which || ev.keyCode || 0;
-          if (keyCode === 38 /* Up */ || keyCode === 40 /* Down */ || keyCode === 27 /* Esc */) {
-              var containerIsDisplayed = containerDisplayed();
-              if (keyCode === 27 /* Esc */) {
-                  clear();
-              }
-              else {
-                  if (!containerDisplayed || items.length < 1) {
-                      return;
-                  }
-                  keyCode === 38 /* Up */
-                      ? selectPrev()
-                      : selectNext();
-                  update();
-              }
-              ev.preventDefault();
-              if (containerIsDisplayed) {
-                  ev.stopPropagation();
-              }
-              return;
-          }
-          if (keyCode === 13 /* Enter */) {
-              if (selected) {
-                  settings.onSelect(selected, input);
-                  clear();
-              }
-              if (preventSubmit) {
-                  ev.preventDefault();
-              }
-          }
-      }
-      function focusEventHandler() {
-          if (showOnFocus) {
-              startFetch(1 /* Focus */);
-          }
-      }
-      function startFetch(trigger) {
-          // if multiple keys were pressed, before we get update from server,
-          // this may cause redrawing our autocomplete multiple times after the last key press.
-          // to avoid this, the number of times keyboard was pressed will be
-          // saved and checked before redraw our autocomplete box.
-          var savedKeypressCounter = ++keypressCounter;
-          var val = input.value;
-          if (val.length >= minLen || trigger === 1 /* Focus */) {
-              clearDebounceTimer();
-              debounceTimer = window.setTimeout(function () {
-                  settings.fetch(val, function (elements) {
-                      if (keypressCounter === savedKeypressCounter && elements) {
-                          items = elements;
-                          inputValue = val;
-                          selected = items.length > 0 ? items[0] : undefined;
-                          update();
-                      }
-                  }, 0 /* Keyboard */);
-              }, trigger === 0 /* Keyboard */ ? debounceWaitMs : 0);
-          }
-          else {
-              clear();
-          }
-      }
-      function blurEventHandler() {
-          // we need to delay clear, because when we click on an item, blur will be called before click and remove items from DOM
-          setTimeout(function () {
-              if (doc.activeElement !== input) {
-                  clear();
-              }
-          }, 200);
-      }
-      /**
-       * Fixes #26: on long clicks focus will be lost and onSelect method will not be called
-       */
-      container.addEventListener("mousedown", function (evt) {
-          evt.stopPropagation();
-          evt.preventDefault();
-      });
-      /**
-       * Fixes #30: autocomplete closes when scrollbar is clicked in IE
-       * See: https://stackoverflow.com/a/9210267/13172349
-       */
-      container.addEventListener("focus", function () { return input.focus(); });
-      /**
-       * This function will remove DOM elements and clear event handlers
-       */
-      function destroy() {
-          input.removeEventListener("focus", focusEventHandler);
-          input.removeEventListener("keydown", keydownEventHandler);
-          input.removeEventListener(keyUpEventName, keyupEventHandler);
-          input.removeEventListener("blur", blurEventHandler);
-          window.removeEventListener("resize", resizeEventHandler);
-          doc.removeEventListener("scroll", scrollEventHandler, true);
-          clearDebounceTimer();
-          clear();
-      }
-      // setup event handlers
-      input.addEventListener("keydown", keydownEventHandler);
-      input.addEventListener(keyUpEventName, keyupEventHandler);
-      input.addEventListener("blur", blurEventHandler);
-      input.addEventListener("focus", focusEventHandler);
-      window.addEventListener("resize", resizeEventHandler);
-      doc.addEventListener("scroll", scrollEventHandler, true);
-      return {
-          destroy: destroy
-      };
+var Autocomplete = (function() {
+  "use strict";
+  function e(e, t) {
+    if (!(e instanceof t))
+      throw new TypeError("Cannot call a class as a function");
   }
-
-  return autocomplete;
-
-}));
+  function t(e, t, n) {
+    return (
+      t in e
+        ? Object.defineProperty(e, t, {
+            value: n,
+            enumerable: !0,
+            configurable: !0,
+            writable: !0
+          })
+        : (e[t] = n),
+      e
+    );
+  }
+  function n(e, t) {
+    var n = Object.keys(e);
+    if (Object.getOwnPropertySymbols) {
+      var s = Object.getOwnPropertySymbols(e);
+      t &&
+        (s = s.filter(function(t) {
+          return Object.getOwnPropertyDescriptor(e, t).enumerable;
+        })),
+        n.push.apply(n, s);
+    }
+    return n;
+  }
+  function s(e) {
+    for (var s = 1; s < arguments.length; s++) {
+      var o = null != arguments[s] ? arguments[s] : {};
+      s % 2
+        ? n(Object(o), !0).forEach(function(n) {
+            t(e, n, o[n]);
+          })
+        : Object.getOwnPropertyDescriptors
+        ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(o))
+        : n(Object(o)).forEach(function(t) {
+            Object.defineProperty(e, t, Object.getOwnPropertyDescriptor(o, t));
+          });
+    }
+    return e;
+  }
+  var o = function(e, t) {
+      return e.matches
+        ? e.matches(t)
+        : e.msMatchesSelector
+        ? e.msMatchesSelector(t)
+        : e.webkitMatchesSelector
+        ? e.webkitMatchesSelector(t)
+        : null;
+    },
+    i = function(e, t) {
+      return e.closest
+        ? e.closest(t)
+        : (function(e, t) {
+            for (var n = e; n && 1 === n.nodeType; ) {
+              if (o(n, t)) return n;
+              n = n.parentNode;
+            }
+            return null;
+          })(e, t);
+    },
+    r = function(e) {
+      return Boolean(e && "function" == typeof e.then);
+    },
+    u = function n() {
+      var s = this,
+        o = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : {},
+        u = o.search,
+        l = o.autoSelect,
+        a = void 0 !== l && l,
+        c = o.setValue,
+        d = void 0 === c ? function() {} : c,
+        h = o.setAttribute,
+        p = void 0 === h ? function() {} : h,
+        f = o.onUpdate,
+        b = void 0 === f ? function() {} : f,
+        v = o.onSubmit,
+        m = void 0 === v ? function() {} : v,
+        g = o.onShow,
+        w = void 0 === g ? function() {} : g,
+        y = o.onHide,
+        x = void 0 === y ? function() {} : y,
+        L = o.onLoading,
+        R = void 0 === L ? function() {} : L,
+        S = o.onLoaded,
+        I = void 0 === S ? function() {} : S;
+      e(this, n),
+        t(this, "value", ""),
+        t(this, "searchCounter", 0),
+        t(this, "results", []),
+        t(this, "selectedIndex", -1),
+        t(this, "handleInput", function(e) {
+          var t = e.target.value;
+          s.updateResults(t), (s.value = t);
+        }),
+        t(this, "handleKeyDown", function(e) {
+          var t = e.key;
+          switch (t) {
+            case "Up":
+            case "Down":
+            case "ArrowUp":
+            case "ArrowDown":
+              var n =
+                "ArrowUp" === t || "Up" === t
+                  ? s.selectedIndex - 1
+                  : s.selectedIndex + 1;
+              e.preventDefault(), s.handleArrows(n);
+              break;
+            case "Tab":
+              s.selectResult();
+              break;
+            case "Enter":
+              var o = s.results[s.selectedIndex];
+              s.selectResult(), s.onSubmit(o);
+              break;
+            case "Esc":
+            case "Escape":
+              s.hideResults(), s.setValue();
+              break;
+            default:
+              return;
+          }
+        }),
+        t(this, "handleFocus", function(e) {
+          var t = e.target.value;
+          s.updateResults(t), (s.value = t);
+        }),
+        t(this, "handleBlur", function() {
+          s.hideResults();
+        }),
+        t(this, "handleResultMouseDown", function(e) {
+          e.preventDefault();
+        }),
+        t(this, "handleResultClick", function(e) {
+          var t = e.target,
+            n = i(t, "[data-result-index]");
+          if (n) {
+            s.selectedIndex = parseInt(n.dataset.resultIndex, 10);
+            var o = s.results[s.selectedIndex];
+            s.selectResult(), s.onSubmit(o);
+          }
+        }),
+        t(this, "handleArrows", function(e) {
+          var t = s.results.length;
+          (s.selectedIndex = ((e % t) + t) % t),
+            s.onUpdate(s.results, s.selectedIndex);
+        }),
+        t(this, "selectResult", function() {
+          var e = s.results[s.selectedIndex];
+          e && s.setValue(e), s.hideResults();
+        }),
+        t(this, "updateResults", function(e) {
+          var t = ++s.searchCounter;
+          s.onLoading(),
+            s.search(e).then(function(e) {
+              t === s.searchCounter &&
+                ((s.results = e),
+                s.onLoaded(),
+                0 !== s.results.length
+                  ? ((s.selectedIndex = s.autoSelect ? 0 : -1),
+                    s.onUpdate(s.results, s.selectedIndex),
+                    s.showResults())
+                  : s.hideResults());
+            });
+        }),
+        t(this, "showResults", function() {
+          s.setAttribute("aria-expanded", !0), s.onShow();
+        }),
+        t(this, "hideResults", function() {
+          (s.selectedIndex = -1),
+            (s.results = []),
+            s.setAttribute("aria-expanded", !1),
+            s.setAttribute("aria-activedescendant", ""),
+            s.onUpdate(s.results, s.selectedIndex),
+            s.onHide();
+        }),
+        t(this, "checkSelectedResultVisible", function(e) {
+          var t = e.querySelector(
+            '[data-result-index="'.concat(s.selectedIndex, '"]')
+          );
+          if (t) {
+            var n = e.getBoundingClientRect(),
+              o = t.getBoundingClientRect();
+            o.top < n.top
+              ? (e.scrollTop -= n.top - o.top)
+              : o.bottom > n.bottom && (e.scrollTop += o.bottom - n.bottom);
+          }
+        }),
+        (this.search = r(u)
+          ? u
+          : function(e) {
+              return Promise.resolve(u(e));
+            }),
+        (this.autoSelect = a),
+        (this.setValue = d),
+        (this.setAttribute = p),
+        (this.onUpdate = b),
+        (this.onSubmit = m),
+        (this.onShow = w),
+        (this.onHide = x),
+        (this.onLoading = R),
+        (this.onLoaded = I);
+    },
+    l = 0,
+    a = function() {
+      var e =
+        arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : "";
+      return "".concat(e).concat(++l);
+    };
+  const c = (function(e, t, n, s, o, i, r, u, l, a) {
+    "boolean" != typeof r && ((l = u), (u = r), (r = !1));
+    const c = "function" == typeof n ? n.options : n;
+    let d;
+    if (
+      (e &&
+        e.render &&
+        ((c.render = e.render),
+        (c.staticRenderFns = e.staticRenderFns),
+        (c._compiled = !0),
+        o && (c.functional = !0)),
+      s && (c._scopeId = s),
+      i
+        ? ((d = function(e) {
+            (e =
+              e ||
+              (this.$vnode && this.$vnode.ssrContext) ||
+              (this.parent &&
+                this.parent.$vnode &&
+                this.parent.$vnode.ssrContext)) ||
+              "undefined" == typeof __VUE_SSR_CONTEXT__ ||
+              (e = __VUE_SSR_CONTEXT__),
+              t && t.call(this, l(e)),
+              e && e._registeredComponents && e._registeredComponents.add(i);
+          }),
+          (c._ssrRegister = d))
+        : t &&
+          (d = r
+            ? function(e) {
+                t.call(this, a(e, this.$root.$options.shadowRoot));
+              }
+            : function(e) {
+                t.call(this, u(e));
+              }),
+      d)
+    )
+      if (c.functional) {
+        const e = c.render;
+        c.render = function(t, n) {
+          return d.call(n), e(t, n);
+        };
+      } else {
+        const e = c.beforeCreate;
+        c.beforeCreate = e ? [].concat(e, d) : [d];
+      }
+    return n;
+  })(
+    {
+      render: function() {
+        var e = this,
+          t = e.$createElement,
+          n = e._self._c || t;
+        return n(
+          "div",
+          { ref: "root" },
+          [
+            e._t(
+              "default",
+              [
+                n("div", e._b({}, "div", e.rootProps, !1), [
+                  n(
+                    "input",
+                    e._g(
+                      e._b(
+                        {
+                          ref: "input",
+                          on: {
+                            input: e.handleInput,
+                            keydown: e.core.handleKeyDown,
+                            focus: e.core.handleFocus,
+                            blur: e.core.handleBlur
+                          }
+                        },
+                        "input",
+                        e.inputProps,
+                        !1
+                      ),
+                      e.$listeners
+                    )
+                  ),
+                  e._v(" "),
+                  n(
+                    "ul",
+                    e._g(
+                      e._b({ ref: "resultList" }, "ul", e.resultListProps, !1),
+                      e.resultListListeners
+                    ),
+                    [
+                      e._l(e.results, function(t, s) {
+                        return [
+                          e._t(
+                            "result",
+                            [
+                              n(
+                                "li",
+                                e._b(
+                                  { key: e.resultProps[s].id },
+                                  "li",
+                                  e.resultProps[s],
+                                  !1
+                                ),
+                                [
+                                  e._v(
+                                    "\n              " +
+                                      e._s(e.getResultValue(t)) +
+                                      "\n            "
+                                  )
+                                ]
+                              )
+                            ],
+                            { result: t, props: e.resultProps[s] }
+                          )
+                        ];
+                      })
+                    ],
+                    2
+                  )
+                ])
+              ],
+              {
+                rootProps: e.rootProps,
+                inputProps: e.inputProps,
+                inputListeners: e.inputListeners,
+                resultListProps: e.resultListProps,
+                resultListListeners: e.resultListListeners,
+                results: e.results,
+                resultProps: e.resultProps
+              }
+            )
+          ],
+          2
+        );
+      },
+      staticRenderFns: []
+    },
+    void 0,
+    {
+      name: "Autocomplete",
+      inheritAttrs: !1,
+      props: {
+        search: { type: Function, required: !0 },
+        baseClass: { type: String, default: "autocomplete" },
+        autoSelect: { type: Boolean, default: !1 },
+        getResultValue: {
+          type: Function,
+          default: function(e) {
+            return e;
+          }
+        },
+        defaultValue: { type: String, default: "" },
+        debounceTime: { type: Number, default: 0 }
+      },
+      data: function() {
+        var e,
+          t,
+          n,
+          s,
+          o = new u({
+            search: this.search,
+            autoSelect: this.autoSelect,
+            setValue: this.setValue,
+            onUpdate: this.handleUpdate,
+            onSubmit: this.handleSubmit,
+            onShow: this.handleShow,
+            onHide: this.handleHide,
+            onLoading: this.handleLoading,
+            onLoaded: this.handleLoaded
+          });
+        return (
+          this.debounceTime > 0 &&
+            (o.handleInput =
+              ((e = o.handleInput),
+              (t = this.debounceTime),
+              function() {
+                var o = this,
+                  i = arguments,
+                  r = function() {
+                    (s = null), n || e.apply(o, i);
+                  },
+                  u = n && !s;
+                clearTimeout(s), (s = setTimeout(r, t)), u && e.apply(o, i);
+              })),
+          {
+            core: o,
+            value: this.defaultValue,
+            resultListId: a("".concat(this.baseClass, "-result-list-")),
+            results: [],
+            selectedIndex: -1,
+            expanded: !1,
+            loading: !1,
+            position: "below",
+            resetPosition: !0
+          }
+        );
+      },
+      computed: {
+        rootProps: function() {
+          return {
+            class: this.baseClass,
+            style: { position: "relative" },
+            "data-expanded": this.expanded,
+            "data-loading": this.loading,
+            "data-position": this.position
+          };
+        },
+        inputProps: function() {
+          return s(
+            {
+              class: "".concat(this.baseClass, "-input", " form-control"),
+              value: this.value,
+              role: "combobox",
+              autocomplete: "off",
+              autocapitalize: "off",
+              autocorrect: "off",
+              spellcheck: "false",
+              "aria-autocomplete": "list",
+              "aria-haspopup": "listbox",
+              "aria-owns": this.resultListId,
+              "aria-expanded": this.expanded ? "true" : "false",
+              "aria-activedescendant":
+                this.selectedIndex > -1
+                  ? this.resultProps[this.selectedIndex].id
+                  : ""
+            },
+            this.$attrs
+          );
+        },
+        inputListeners: function() {
+          return {
+            input: this.handleInput,
+            keydown: this.core.handleKeyDown,
+            focus: this.core.handleFocus,
+            blur: this.core.handleBlur
+          };
+        },
+        resultListProps: function() {
+          var e = "below" === this.position ? "top" : "bottom";
+          return {
+            id: this.resultListId,
+            class: "".concat(this.baseClass, "-result-list"),
+            role: "listbox",
+            style: t(
+              {
+                position: "absolute",
+                zIndex: 1,
+                width: "100%",
+                visibility: this.expanded ? "visible" : "hidden",
+                pointerEvents: this.expanded ? "auto" : "none"
+              },
+              e,
+              "100%"
+            )
+          };
+        },
+        resultListListeners: function() {
+          return {
+            mousedown: this.core.handleResultMouseDown,
+            click: this.core.handleResultClick
+          };
+        },
+        resultProps: function() {
+          var e = this;
+          return this.results.map(function(t, n) {
+            return s(
+              {
+                id: "".concat(e.baseClass, "-result-").concat(n),
+                class: "".concat(e.baseClass, "-result"),
+                "data-result-index": n,
+                role: "option"
+              },
+              e.selectedIndex === n ? { "aria-selected": "true" } : {}
+            );
+          });
+        }
+      },
+      mounted: function() {
+        document.body.addEventListener("click", this.handleDocumentClick);
+      },
+      beforeDestroy: function() {
+        document.body.removeEventListener("click", this.handleDocumentClick);
+      },
+      updated: function() {
+        var e, t, n, s;
+        this.$refs.input &&
+          this.$refs.resultList &&
+          (this.resetPosition &&
+            this.results.length > 0 &&
+            ((this.resetPosition = !1),
+            (this.position =
+              ((e = this.$refs.input),
+              (t = this.$refs.resultList),
+              (n = e.getBoundingClientRect()),
+              (s = t.getBoundingClientRect()),
+              n.bottom + s.height > window.innerHeight &&
+              window.innerHeight - n.bottom < n.top &&
+              window.pageYOffset + n.top - s.height > 0
+                ? "above"
+                : "below"))),
+          this.core.checkSelectedResultVisible(this.$refs.resultList));
+      },
+      methods: {
+        setValue: function(e) {
+          this.value = e ? this.getResultValue(e) : "";
+        },
+        handleUpdate: function(e, t) {
+          (this.results = e),
+            (this.selectedIndex = t),
+            this.$emit("update", e, t);
+        },
+        handleShow: function() {
+          this.expanded = !0;
+        },
+        handleHide: function() {
+          (this.expanded = !1), (this.resetPosition = !0);
+        },
+        handleLoading: function() {
+          this.loading = !0;
+        },
+        handleLoaded: function() {
+          this.loading = !1;
+        },
+        handleInput: function(e) {
+          (this.value = e.target.value), this.core.handleInput(e);
+        },
+        handleSubmit: function(e) {
+          this.$emit("submit", e);
+        },
+        handleDocumentClick: function(e) {
+          this.$refs.root.contains(e.target) || this.core.hideResults();
+        }
+      }
+    },
+    void 0,
+    !1,
+    void 0,
+    !1,
+    void 0,
+    void 0,
+    void 0
+  );
+  function d(e) {
+    d.installed || ((d.installed = !0), e.component("Autocomplete", c));
+  }
+  var h,
+    p = { install: d };
+  return (
+    "undefined" != typeof window
+      ? (h = window.Vue)
+      : "undefined" != typeof global && (h = global.Vue),
+    h && h.use(p),
+    (c.install = d),
+    c
+  );
+})();
