@@ -1,0 +1,43 @@
+<div ##{uploadId}>
+  <form method=post v-on:submit.prevent="submit" v-on:reset.prevent="clear">
+    <div .form-group .required>
+      <div .form-row>
+        <div .form-group .col-md-10>
+          <label for="work-title">Work Title
+          <!-- Ref set to clear autocomplete input -->
+          <!-- See https://github.com/trevoreyre/autocomplete/issues/64 -->
+          <autocomplete
+            #work-title
+            @submit="autocompleteSubmit"
+            @update="update"
+            default-value=""
+            placeholder="Work"
+            ref="autocomplete"
+            v-bind:auto-select="true"
+            v-bind:debounce-time="300"
+            v-bind:get-result-value="getResultValue"
+            v-bind:search="search"
+            >
+          <small for="work-title">Type the composer then the piece name, ex. beethoven violin concerto
+        <div .form-group .col-md-2>
+          <label for="start-measure">Starting Measure
+          <input #start-measure .form-control
+            type="number"
+            v-model.number="start_measure">
+      <div v-if="show_add_work_link">
+        <p>Could not find this work in the database. <a href=@{AddWorkR}>Please enter the piece data manually.</a>
+      <b-form-row>
+        <b-col md="auto" v-show="movements.length > 1">
+          <b-form-group label="Movements">
+            <b-form-radio-group v-model="movement_id" v-bind:options="movements"
+              buttons button-variant="outline-primary" stacked #movements-select>
+        <b-col md="auto" v-show="parts.length > 0">
+          <b-form-group label="Parts">
+            <b-form-radio-group v-model=part v-bind:options="parts"
+              buttons button-variant="outline-primary">
+      <div .form-group>
+        <b-form-file v-model="xml_file" accept=".musicxml">
+      <div .form-group>
+        <button .btn .btn-primary type="submit">Submit
+        <button .btn .btn-secondary type="reset">Clear
+<div ##{renderId}>

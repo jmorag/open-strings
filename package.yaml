@@ -14,8 +14,10 @@ dependencies:
   - data-default
   - dhall
   - directory >=1.1 && <1.4
+  - esqueleto
   - fast-logger >=2.2 && <3.1
   - file-embed
+  - flow
   - foreign-store
   - generic-lens
   - hjsmin >=0.1 && <0.3
@@ -26,6 +28,7 @@ dependencies:
   - language-javascript
   - lens
   - lens-aeson
+  - lens-regex-pcre
   - monad-control >=0.3 && <1.1
   - monad-logger >=0.3 && <0.4
   - persistent >=2.9 && <2.11
@@ -39,6 +42,7 @@ dependencies:
   - text >=0.11 && <2.0
   - time
   - unordered-containers
+  - validation-selective
   - vector
   - wai
   - wai-extra >=3.0 && <3.1

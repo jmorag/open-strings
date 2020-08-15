@@ -1,7 +1,6 @@
 const vue = new Vue({
   el: "##{rawJS uploadId}",
   data: {
-    existing_work: false, //true,
     show_add_work_link: false,
     work_id: 0,
     movement_id: 0,
@@ -11,22 +10,16 @@ const vue = new Vue({
     part: "",
     xml_file: null,
     editor: new FingeringEditor(#{renderId}),
-    // Data for adding work form
-    url: "",
-    title: "",
-    composer: "",
-    instrumentation: [],
-    work_movements: [],
   },
   components: { Autocomplete },
   methods: {
     async search(input) {
-      console.log("Called search", input);
       if (input.length < 2) {
         return [];
       }
       const data = await fetch(`@{WorksR}?term=${input}`);
       const suggestions = await data.json();
+      console.log(suggestions);
       return suggestions;
     },
     update(results, selectedIndex) {
@@ -47,7 +40,7 @@ const vue = new Vue({
     async autocompleteSubmit({ value }) {
       console.log("Called autocomplete submit", value);
       this.work_id = value;
-      const data = await fetch(`@{MovementsR}?work-id=${value}`);
+      const data = await fetch(`/api/movements/${value}`);
       const json = await data.json();
       this.movements = json.movements;
       this.movement_id = json.movements[0].value;
@@ -68,33 +61,11 @@ const vue = new Vue({
       this.start_measure = 1;
       this.movements = [];
       this.xml_file = null;
-      this.existing_work && (this.$refs.autocomplete.value = "");
-      this.existing_work = true;
+      this.$refs.autocomplete.value = "";
       this.show_add_work_link = false;
     },
-    validatePart(part) {
-      const regex = /^(?:(?:(solo|tutti)\s*)?(?:(violin|viola|cello|bass))(\s+[1-9]\d*)?|strings|quartet)$/;
-      return part.match(regex);
-    },
-    add_work(e) {
-      console.log(e, "Clicked Add work to db");
-    },
-  },
-  computed: {
-    tooltipWidth: function() {
-      return this.$refs.instrumentationInput?.$el?.offsetWidth
-    }
   },
   watch: {
-    url: async function(url) {
-      if (!url.includes("imslp.org")) return;
-      const data = await fetch(`/imslp/${encodeURIComponent(url)}`);
-      const json = await data.json();
-      this.title = json.title;
-      this.composer = json.composer;
-      this.instrumentation = json.instrumentation.filter(this.validatePart);
-      this.work_movements = json.movements;
-    },
     xml_file: async function(file) {
       if (file) {
         const reader = new FileReader();

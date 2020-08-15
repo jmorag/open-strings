@@ -1,0 +1,70 @@
+<div ##{addWorkId}>
+  <form v-on:submit.prevent="add_work" v-on:reset.prevent="reset">
+    <b-form-group .required>
+      <b-form-group>
+        <label for="piece-url">URL
+        <b-form-input type="url" #piece-url v-model="url" placeholder="URL" autofocus
+          autocomplete="on" v-bind:formatter="decodeURI" autofocus>
+        <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter it's url. If not, a Wikipedia or composer page will do.
+      <b-form-group v-bind:disabled="!url">
+        <b-form-row>
+          <b-form-group .col>
+            <label for="piece-title">Title
+            <b-form-input type="text" #piece-title v-model="title" placeholder="Title">
+          <b-form-group .col>
+            <label for="piece-composer">Composer
+            <autocomplete
+              ref="autocomplete"
+              #piece-composer
+              @submit="autocompleteSubmit"
+              @update="update"
+              placeholder="Composer"
+              auto-select
+              v-bind:debounce-time="300"
+              v-bind:get-result-value="getResultValue"
+              v-bind:search="search"
+              >
+            <small for="piece-composer" v-if="show_composer_url">Please enter the composer as <em>last-name</em>, <em>first-name</em> <em>middle-name</em>.
+        <b-form-group v-if="show_composer_url">
+          <label for="composer-url">Composer not found in the database. Please add a link to their website or wikipedia page.
+          <b-form-input type="url" #composer-url v-model="composer_url"
+            v-bind:formatter="decodeURI">
+        <b-form-row>
+          <b-form-group .col>
+            <label for="piece-movements">Movements
+            <b-input-group v-for="(movement, i) in work_movements" v-bind:key="i" v-bind:prepend="`${i+1}`" #piece-movements>
+              <b-form-input v-model="work_movements[i]" autofocus>
+              <b-input-group-append>
+                <b-button variant="outline-secondary" @click="work_movements.splice(i, 1)">x
+            <b-button @click="work_movements.splice(work_movements.length, 0, '')"
+              block size="sm" variant="outline-secondary">Add movement
+          <b-form-group .col>
+            <label #instrumentation-label for="piece-instrumentation">Instrumentation <span style='color: #007bff'>(?)</span>
+            <b-form-tags
+              ref="instrumentationInput"
+              v-model="instrumentation"
+              input-id="piece-instrumentation"
+              placeholder=""
+              remove-on-delete
+              separator=",;"
+              v-bind:tag-validator="validatePart"
+              invalid-tag-text="Unsupported part"
+              duplicate-tag-text="Part already entered"
+              >
+            <b-popover #instrumentation-info triggers="hover" noninteractive target="instrumentation-label">
+                <template v-slot:title>
+                Enter string parts separated by commas, ex. #
+                <kbd>violin, violin 1, tutti violin 2, viola, cello, bass
+                \. Instruments not preceded by a #
+                <kbd>solo
+                \ or #
+                <kbd>tutti
+                \ default to solo parts. For convenience, you can use #
+                <kbd>strings
+                \ to refer to a standard orchestral string section and #
+                <kbd>quartet
+                \ for a string quartet.
+      <b-form-group>
+        <b-button v-bind:disabled="!url || !title || !composer || !instrumentation"
+          variant="primary" type="submit">Add work to database
+        <b-button variant="secondary" type="reset" v-bind:disabled="!url">Clear

@@ -1,0 +1,73 @@
+const vue = new Vue({
+  el: "##{rawJS addWorkId}",
+  data: {
+    url: "",
+    title: "",
+    composer: "",
+    composer_id: 0,
+    instrumentation: [],
+    work_movements: [],
+    imslp: true,
+    composer_url: "",
+    show_composer_url: false
+  },
+  components: { Autocomplete },
+  methods: {
+    async search(input) {
+      if (input.length < 2) {
+        return [];
+      }
+      const data = await fetch(`@{ComposersR}?term=${input}`);
+      const suggestions = await data.json();
+      if (suggestions.length === 0) {
+        this.composer = input;
+      }
+      return suggestions;
+    },
+    update(results, selectedIndex) {
+      const input_len = this.$refs.autocomplete.value.length;
+      this.show_composer_url =
+        !this.imslp && results.length === 0 && !this.composer_id && input_len >= 2;
+    },
+    getResultValue(result) {
+      return result.label;
+    },
+    autocompleteSubmit(e) {
+      this.composer = e.label;
+      this.composer_id = e.value;
+    },
+    validatePart(part) {
+      const regex = /^(?:(?:(solo|tutti)\s*)?(?:(violin|viola|cello|bass))(\s+[1-9]\d*)?|strings|quartet)$/;
+      return part.match(regex);
+    },
+    add_work(e) {
+      console.log(e, "Clicked Add work to db");
+    },
+    clear(e) {
+      this.title = "";
+      this.$refs.autocomplete.value = this.composer = "";
+      this.instrumentation = [];
+      this.work_movements = [];
+      this.imslp = true;
+    },
+    reset(e) {
+      this.clear();
+      this.url = "";
+    }
+  },
+  watch: {
+    url: async function(url) {
+      this.clear();
+      if (!url.includes("imslp.org")) {
+        this.imslp = false;
+        return;
+      }
+      const data = await fetch(`/api/imslp/${encodeURIComponent(url)}`);
+      const json = await data.json();
+      this.title = json.title;
+      this.$refs.autocomplete.value = this.composer = json.composer;
+      this.instrumentation = json.instrumentation.filter(this.validatePart);
+      this.work_movements = json.movements;
+    }
+  }
+});

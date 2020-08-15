@@ -1,7 +1,0 @@
-#movements-select > label {
-  text-align: left;
-}
-
-/* #instrumentation-info > .tooltip-inner { */
-/*   max-width: 350px; */
-/* } */
