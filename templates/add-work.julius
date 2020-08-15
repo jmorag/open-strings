@@ -4,12 +4,16 @@ const vue = new Vue({
     url: "",
     title: "",
     composer: "",
-    composer_id: 0,
+    composer_id: 0, // TODO: this isn't doing anything here...
     instrumentation: [],
     work_movements: [],
     imslp: true,
     composer_url: "",
-    show_composer_url: false
+    show_composer_url: false,
+    show_alert: false,
+    alert_message: "",
+    loading: false,
+    show_success: false,
   },
   components: { Autocomplete },
   methods: {
@@ -27,7 +31,10 @@ const vue = new Vue({
     update(results, selectedIndex) {
       const input_len = this.$refs.autocomplete.value.length;
       this.show_composer_url =
-        !this.imslp && results.length === 0 && !this.composer_id && input_len >= 2;
+        !this.imslp &&
+        results.length === 0 &&
+        !this.composer_id &&
+        input_len >= 2;
     },
     getResultValue(result) {
       return result.label;
@@ -40,8 +47,29 @@ const vue = new Vue({
       const regex = /^(?:(?:(solo|tutti)\s*)?(?:(violin|viola|cello|bass))(\s+[1-9]\d*)?|strings|quartet)$/;
       return part.match(regex);
     },
-    add_work(e) {
-      console.log(e, "Clicked Add work to db");
+    async add_work(e) {
+      const body = {
+        work_url: this.url.trim(),
+        work_title: this.title.trim(),
+        work_composer: this.composer.trim(),
+        work_instrumentation: this.instrumentation,
+        work_movements: this.work_movements.map(m => m.trim()),
+        composer_url: this.composer_url || null
+      };
+      this.loading = true;
+      const resp = await fetch("@{AddWorkR}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      this.loading = false;
+      if (json.error) {
+          this.show_alert = true
+          this.alert_message = json.error
+          return
+      }
+      this.show_success = true;
     },
     clear(e) {
       this.title = "";
@@ -49,6 +77,7 @@ const vue = new Vue({
       this.instrumentation = [];
       this.work_movements = [];
       this.imslp = true;
+      this.show_alert = this.show_success = false;
     },
     reset(e) {
       this.clear();
@@ -66,6 +95,7 @@ const vue = new Vue({
       const json = await data.json();
       this.title = json.title;
       this.$refs.autocomplete.value = this.composer = json.composer;
+      this.composer_url = json.composer;
       this.instrumentation = json.instrumentation.filter(this.validatePart);
       this.work_movements = json.movements;
     }

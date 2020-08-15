@@ -1,4 +1,6 @@
 <div ##{addWorkId}>
+  <b-alert v-bind:show="show_alert" variant="danger" dismissible @dismissed="reset">
+    {{ alert_message }}
   <form v-on:submit.prevent="add_work" v-on:reset.prevent="reset">
     <b-form-group .required>
       <b-form-group>
@@ -65,6 +67,8 @@
                 <kbd>quartet
                 \ for a string quartet.
       <b-form-group>
-        <b-button v-bind:disabled="!url || !title || !composer || !instrumentation"
-          variant="primary" type="submit">Add work to database
-        <b-button variant="secondary" type="reset" v-bind:disabled="!url">Clear
+        <b-overlay v-bind:show="loading" rounded="sm">
+          <b-button v-bind:disabled="!url || !title || !composer || !instrumentation"
+            variant="primary" type="submit">Add work to database
+          <b-button variant="secondary" type="reset" v-bind:disabled="!url">Clear
+  <b-alert v-bind:show="show_success" variant="success" dismissible @dismissed="reset">Successfully added work!
