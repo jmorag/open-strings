@@ -2,6 +2,7 @@ module Handler.IMSLP where
 
 import Control.Lens hiding ((.=))
 import Control.Lens.Regex.Text
+import Data.Char
 import qualified Data.Text as T
 import Import
 import Network.HTTP.Simple
@@ -20,7 +21,7 @@ findMovements doc =
       . failing (deep (el "li" . text)) (deep (el "dd" . text))
       . to (dropKeys . dropRomanNumerals . T.strip . fixSpaces)
   where
-    fixSpaces = T.map \case '\160' -> ' '; c -> c
+    fixSpaces = T.map \c -> if isSpace c then ' ' else c
     dropRomanNumerals = T.dropWhile (`elem` ("IVX." :: [Char]))
     dropKeys = set ([regex|\s\([A-G][^\s]*\s(minor|major)\)|] . match) ""
 

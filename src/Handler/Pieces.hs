@@ -1,45 +1,70 @@
 module Handler.Pieces where
 
-import Control.Lens ((&))
+import Data.Aeson.Types (emptyArray)
 import qualified Data.Text as T
-import qualified Data.Vector as V
-import Database.Persist.Sql
-import Import
+import Database.Esqueleto hiding (Value)
+import qualified Database.Esqueleto as E
+import Import hiding ((==.))
 
 getComposersR :: Handler Value
 getComposersR = do
-  term <- fromMaybe "" <$> lookupGetParam "term"
-  composers <- runDB $ mkQuery (words term)
-  composers & map String & V.fromList & Array & pure
+  query <- fromMaybe "" <$> lookupGetParam "term"
+  composers <- runDB do
+    select $ from \c -> do
+      forM_ (T.words query) \q -> where_ $ c ^. ComposerName `ilike` (fuzzy q)
+      pure (c ^. ComposerId, c ^. ComposerName)
+  pure . array $ map composerObject composers
+  where
+    composerObject (E.Value key, E.Value comp) =
+      object
+        ["label" .= replaceUnderscores comp, "value" .= key]
 
-mkQuery :: (MonadUnliftIO m) => [Text] -> ReaderT SqlBackend m [Text]
-mkQuery [] = pure []
-mkQuery names =
-  map unSingle
-    <$> rawSql
-      ( "select full_name from composers where "
-          <> T.intercalate " AND " (map (\_ -> "full_name ILIKE ?") names)
-      )
-      (map (PersistText . fuzzy) names)
-
-fuzzy :: Text -> Text
-fuzzy s = "%" <> s <> "%"
+replaceUnderscores :: Text -> Text
+replaceUnderscores = T.map \case '_' -> ' '; c -> c
 
 getWorksR :: Handler Value
 getWorksR = do
-  composer <- fromMaybe "" <$> lookupGetParam "composer"
-  composerKey <- runDB $ getBy (UniqueComposerName composer)
-  case composerKey of
-    Nothing -> pure (Array (V.fromList []))
-    Just cKey -> do
-      works <- runDB (selectList [WorkComposerId ==. entityKey cKey] [Asc WorkWork_id])
-      pure . Array . V.fromList . map (String . workWork_id . entityVal) $ works
+  query <- fromMaybe "" <$> lookupGetParam "term"
+  allWorks <- runDB . select $ from \(composer `InnerJoin` work) -> do
+    E.on (work ^. WorkComposerId ==. composer ^. ComposerId)
+    forM_ (T.words (T.filter (/= ':') query)) \q ->
+      let q' = fuzzy q
+       in where_ $
+            (composer ^. ComposerName `ilike` q')
+              E.||. (work ^. WorkTitle `ilike` q')
+    pure (composer ^. ComposerName, work ^. WorkId, work ^. WorkTitle)
+  pure $ array (map formatWork allWorks)
 
-getMovementsR :: Handler Value
-getMovementsR = do
-  work <- fromMaybe "" <$> lookupGetParam "work"
-  ws <- runDB $ selectList [WorkWork_id ==. work] []
-  print ws
-  pure . Array . V.fromList
-    . concatMap (\(Entity _ w) -> map String (workMovements w))
-    $ ws
+formatWork :: (E.Value Text, E.Value WorkId, E.Value Text) -> Value
+formatWork (E.Value composer, E.Value workKey, E.Value title) =
+  object
+    [ "label" .= replaceUnderscores (composer <> ": " <> title),
+      "value" .= workKey
+    ]
+
+fuzzy :: Text -> SqlExpr (E.Value Text)
+fuzzy t = (%) ++. val t ++. (%)
+
+getMovementsR :: Int64 -> Handler Value
+getMovementsR workId = do
+  (work :: Maybe Work, movements) <-
+    runDB $
+      liftA2
+        (,)
+        ( get (fromBackendKey (SqlBackendKey workId))
+        )
+        ( select $
+            from $ \(work `InnerJoin` movement) -> do
+              E.on (work ^. WorkId ==. movement ^. MovementWorkId)
+              where_ (work ^. WorkId ==. valkey workId)
+              orderBy [asc (movement ^. MovementNumber)]
+              pure (movement ^. MovementId, movement ^. MovementNumber, movement ^. MovementName)
+        )
+  pure $
+    object
+      [ "parts" .= maybe emptyArray (toJSON . workInstrumentation) work,
+        "movements" .= array (map jsonMovement movements)
+      ]
+  where
+    jsonMovement (E.Value key, E.Value i, E.Value movement) =
+      object ["text" .= (tshow i <> ". " <> movement), "value" .= key]
