@@ -7,7 +7,10 @@ in    c
         [ c.concerto
             Types.violin
             "Violin_Concerto_No.1,_Op.19"
-            [ "Andantino", "Scerzo. Vivacissimo", "Moderato. Allegro moderato" ]
+            [ "Andantino"
+            , "Scherzo. Vivacissimo"
+            , "Moderato. Allegro moderato"
+            ]
         , c.concerto
             Types.violin
             "Violin_Concerto_No.2,_Op.63"
