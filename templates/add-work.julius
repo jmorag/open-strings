@@ -69,7 +69,7 @@ const vue = new Vue({
           this.alert_message = json.error
           return
       }
-      this.show_success = true;
+      this.show_success = 2;
     },
     clear(e) {
       this.title = "";

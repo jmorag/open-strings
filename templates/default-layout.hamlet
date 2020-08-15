@@ -1,6 +1,6 @@
 <!-- Static navbar -->
 <div ##{layoutId}>
-  <b-navbar toggleable="lg" type="dark" variant="dark" fixed="top">
+  <b-navbar toggleable="sm" type="dark" variant="dark" fixed="top">
     <b-navbar-toggle target="navbar-collapse">
     <b-collapse #navbar-collapse is-nav>
       <b-navbar-nav>

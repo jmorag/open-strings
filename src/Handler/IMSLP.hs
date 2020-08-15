@@ -3,6 +3,7 @@ module Handler.IMSLP where
 import Control.Lens hiding ((.=))
 import Control.Lens.Regex.Text
 import Data.Char
+import Data.Data.Lens
 import qualified Data.Text as T
 import Import
 import Network.HTTP.Simple
@@ -19,7 +20,7 @@ findMovements doc =
       . deep (el "tr")
       . taking 1 (filtered (\tr -> Just "Movements/Sections" == tr ^? deep (el "span" . text)))
       . failing (deep (el "li" . text)) (deep (el "dd" . text))
-      . to (dropKeys . dropRomanNumerals . T.strip . fixSpaces)
+      . to (T.strip . dropKeys . dropRomanNumerals . T.strip . fixSpaces)
   where
     fixSpaces = T.map \c -> if isSpace c then ' ' else c
     dropRomanNumerals = T.dropWhile (`elem` ("IVX." :: [Char]))
@@ -27,13 +28,19 @@ findMovements doc =
 
 findInstrumentation :: Document -> [Text]
 findInstrumentation doc =
-  maybe [] (T.splitOn ", ") $
-    doc
-      ^? root
-        . deep (el "tr")
-        . filtered (\tr -> tr ^? deep (el "th" . text) . to T.strip == Just "Instrumentation")
-        . deep (el "td" . text)
-        . to T.strip
+  doc
+    ^.. root
+      . deep (el "tr")
+      . filtered (\tr -> tr ^? deep (el "th" . text) . to T.strip == Just "Instrumentation")
+      . deep (el "td")
+      -- Biplate is deeply magical.
+      -- Gets all of the text like things from the td element
+      . biplate
+      . [regex|((solo|tutti)\s*)?\b(violin|viola|cello|double\sbass)\b(\s+[1-9]\d*)?|strings|quartet|]
+      . match
+      -- There are a lot of non-string instruments with bass in their names, but we only
+      -- care about string double basses
+      . to (\case "double bass" -> "bass"; instr -> instr)
 
 getIMSLPR :: (MonadThrow m, MonadUnliftIO m) => String -> m Value
 getIMSLPR imslp = do
@@ -44,7 +51,7 @@ getIMSLPR imslp = do
         decodeUrl
           . T.strip
           . T.map (\case '_' -> ' '; c -> c)
-          . T.takeWhileEnd (/= '/')
+          . T.drop (T.length "https://imslp.org/wiki/")
           . T.dropEnd 1
           . T.dropWhileEnd (/= '(')
           $ imslp'

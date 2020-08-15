@@ -35,9 +35,9 @@
           <b-form-group .col>
             <label for="piece-movements">Movements
             <b-input-group v-for="(movement, i) in work_movements" v-bind:key="i" v-bind:prepend="`${i+1}`" #piece-movements>
-              <b-form-input v-model="work_movements[i]" autofocus>
+              <b-form-input v-model.trim="work_movements[i]" v-bind:spellcheck="false" autofocus autocomplete="off">
               <b-input-group-append>
-                <b-button variant="outline-secondary" @click="work_movements.splice(i, 1)">x
+                <b-button tabindex="-1" variant="outline-secondary" @click="work_movements.splice(i, 1)">x
             <b-button @click="work_movements.splice(work_movements.length, 0, '')"
               block size="sm" variant="outline-secondary">Add movement
           <b-form-group .col>
