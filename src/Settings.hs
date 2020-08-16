@@ -27,82 +27,92 @@ import Network.Wai.Handler.Warp (HostPreference)
 import Yesod.Default.Config2 (applyEnvValue, configSettingsYml)
 import Yesod.Default.Util
   ( WidgetFileSettings (..),
-    defaultTemplateLanguages,
-    tlExtension,
     widgetFileNoReload,
     widgetFileReload,
   )
-import Text.Hamlet (defaultHamletSettings)
 
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
 -- theoretically even a database.
 data AppSettings = AppSettings
-    { appStaticDir              :: String
-    -- ^ Directory from which to serve static files.
-    , appDatabaseConf           :: PostgresConf
-    -- ^ Configuration settings for accessing the database.
-    , appRoot                   :: Maybe Text
-    -- ^ Base for all generated URLs. If @Nothing@, determined
+  { -- | Directory from which to serve static files.
+    appStaticDir :: String,
+    -- | Configuration settings for accessing the database.
+    appDatabaseConf :: PostgresConf,
+    -- | Base for all generated URLs. If @Nothing@, determined
     -- from the request headers.
-    , appHost                   :: HostPreference
-    -- ^ Host/interface the server should bind to.
-    , appPort                   :: Int
-    -- ^ Port to listen on
-    , appIpFromHeader           :: Bool
-    -- ^ Get the IP address from the header when logging. Useful when sitting
+    appRoot :: Maybe Text,
+    -- | Host/interface the server should bind to.
+    appHost :: HostPreference,
+    -- | Port to listen on
+    appPort :: Int,
+    -- | Get the IP address from the header when logging. Useful when sitting
     -- behind a reverse proxy.
-
-    , appDetailedRequestLogging :: Bool
-    -- ^ Use detailed request logging system
-    , appShouldLogAll           :: Bool
-    -- ^ Should all log messages be displayed?
-    , appReloadTemplates        :: Bool
-    -- ^ Use the reload version of templates
-    , appMutableStatic          :: Bool
-    -- ^ Assume that files in the static dir may change after compilation
-    , appSkipCombining          :: Bool
-    -- ^ Perform no stylesheet/script combining
-
+    appIpFromHeader :: Bool,
+    -- | Use detailed request logging system
+    appDetailedRequestLogging :: Bool,
+    -- | Should all log messages be displayed?
+    appShouldLogAll :: Bool,
+    -- | Use the reload version of templates
+    appReloadTemplates :: Bool,
+    -- | Assume that files in the static dir may change after compilation
+    appMutableStatic :: Bool,
+    -- | Perform no stylesheet/script combining
+    appSkipCombining :: Bool,
+    -- | Use development version of Vue
+    appVueDevel :: Bool,
     -- Example app-specific configuration values.
-    , appCopyright              :: Text
-    -- ^ Copyright text to appear in the footer of the page
-    , appAnalytics              :: Maybe Text
-    -- ^ Google Analytics code
 
-    , appAuthDummyLogin         :: Bool
-    -- ^ Indicate if auth dummy login should be enabled.
-    }
+    -- | Copyright text to appear in the footer of the page
+    appCopyright :: Text,
+    -- | Google Analytics code
+    appAnalytics :: Maybe Text,
+    -- | Indicate if auth dummy login should be enabled.
+    appAuthDummyLogin :: Bool,
+    -- | Google oauth2 params
+    appGoogleOauthClientId :: Text,
+    appGoogleOauthClientSecret :: Text,
+    appGithubOauthClientId :: Text,
+    appGithubOauthClientSecret :: Text
+  }
+
 
 instance FromJSON AppSettings where
-    parseJSON = withObject "AppSettings" $ \o -> do
-        let defaultDev =
+  parseJSON = withObject "AppSettings" $ \o -> do
+    let defaultDev =
 #ifdef DEVELOPMENT
-                True
+          True
 #else
-                False
+          False
 #endif
-        appStaticDir              <- o .: "static-dir"
-        appDatabaseConf           <- o .: "database"
-        appRoot                   <- o .:? "approot"
-        appHost                   <- fromString <$> o .: "host"
-        appPort                   <- o .: "port"
-        appIpFromHeader           <- o .: "ip-from-header"
+    appStaticDir <- o .: "static-dir"
+    appDatabaseConf <- o .: "database"
+    appRoot <- o .:? "approot"
+    appHost <- fromString <$> o .: "host"
+    appPort <- o .: "port"
+    appIpFromHeader <- o .: "ip-from-header"
 
-        dev                       <- o .:? "development"      .!= defaultDev
+    dev <- o .:? "development" .!= defaultDev
 
-        appDetailedRequestLogging <- o .:? "detailed-logging" .!= dev
-        appShouldLogAll           <- o .:? "should-log-all"   .!= dev
-        appReloadTemplates        <- o .:? "reload-templates" .!= dev
-        appMutableStatic          <- o .:? "mutable-static"   .!= dev
-        appSkipCombining          <- o .:? "skip-combining"   .!= dev
+    appDetailedRequestLogging <- o .:? "detailed-logging" .!= dev
+    appShouldLogAll <- o .:? "should-log-all" .!= dev
+    appReloadTemplates <- o .:? "reload-templates" .!= dev
+    appMutableStatic <- o .:? "mutable-static" .!= dev
+    appSkipCombining <- o .:? "skip-combining" .!= dev
+    appVueDevel <- o .:? "vue-devel" .!= dev
 
-        appCopyright              <- o .:  "copyright"
-        appAnalytics              <- o .:? "analytics"
+    appCopyright <- o .: "copyright"
+    appAnalytics <- o .:? "analytics"
 
-        appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= dev
+    appAuthDummyLogin <- o .:? "auth-dummy-login" .!= dev
 
-        return AppSettings {..}
+    appGoogleOauthClientId <- o .: "google-oauth2-client-id"
+    appGoogleOauthClientSecret <- o .: "google-oauth2-client-secret"
+    appGithubOauthClientId <- o .: "github-oauth2-client-id"
+    appGithubOauthClientSecret <- o .: "github-oauth2-client-secret"
+
+    return AppSettings {..}
+
 
 -- | Settings for 'widgetFile', such as which template languages to support and
 -- default Hamlet settings.

@@ -32,7 +32,7 @@ getWorksR = do
        in where_ $
             (composer ^. ComposerName `ilike` q')
               E.||. (work ^. WorkTitle `ilike` q')
-    orderBy [asc (work ^. WorkTitle)]
+    orderBy [asc (composer ^. ComposerName), asc (work ^. WorkTitle)]
     pure (composer ^. ComposerName, work ^. WorkId, work ^. WorkTitle)
   pure $ array (map formatWork allWorks)
 

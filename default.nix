@@ -21,11 +21,15 @@ let
                 # shakespeare =
                 #   super.callCabal2nix "shakespeare" ../yesodweb/shakespeare { };
                 # yesod = super.callCabal2nix "yesod" ../yesodweb/yesod/yesod { };
+                # yesod-auth-oauth2 =
+                #   pkgs.haskell.lib.doJailbreak super.yesod-auth-oauth2;
+                hoauth2 = super.callHackage "hoauth2" "1.8.9" {};
               };
             };
         };
       };
     };
+    allowBroken = true;
   };
   compiler = pkgs.haskell.packages."${compilerVersion}";
   pkg = compiler.developPackage {

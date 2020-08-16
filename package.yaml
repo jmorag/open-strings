@@ -53,6 +53,7 @@ dependencies:
   - yaml >=0.11 && <0.12
   - yesod >=1.6 && <1.7
   - yesod-auth >=1.6 && <1.7
+  - yesod-auth-oauth2
   - yesod-core >=1.6 && <1.7
   - yesod-form >=1.6 && <1.7
   - yesod-static >=1.6 && <1.7
