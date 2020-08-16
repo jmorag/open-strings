@@ -1,6 +1,6 @@
 class FingeringEditor {
   constructor(nodeId) {
-    this.nodeId = nodeId;
+    this.dom_node = document.getElementById(nodeId);
     this.xml = null;
     this.index = 0;
     this.svg_fingerings = null;
@@ -14,6 +14,7 @@ class FingeringEditor {
       const svg = document.querySelector("svg");
       this.set_noteheads(svg);
       this.set_fingerings(svg);
+      this.dom_node.scrollIntoView()
     });
   }
 
@@ -182,7 +183,7 @@ class FingeringEditor {
 
   clear() {
     this.observer.disconnect();
-    document.querySelector(`#${this.nodeId}`).innerHTML = "";
+    this.dom_node.innerHTML = "";
   }
 
   async render(xml_string, enable_editing = true) {
@@ -190,7 +191,7 @@ class FingeringEditor {
     this.xml = this.constructor.parse_xml(xml_string);
     window.removeEventListener("keydown", this.handleKeypress);
     window.removeEventListener("mouseup", this.handleClick);
-    const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(this.nodeId, {
+    const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(this.dom_node, {
       autoResize: true,
       backend: "svg",
       drawingParameters: "compact",
@@ -206,8 +207,7 @@ class FingeringEditor {
     await osmd.load(this.xml);
     osmd.render();
     if (enable_editing) {
-      const target = document.getElementById(this.nodeId);
-      this.observer.observe(target, { childList: true });
+      this.observer.observe(this.dom_node, { childList: true });
       window.addEventListener("keydown", this.handleKeypress);
       window.addEventListener("mouseup", this.handleClick);
     }
