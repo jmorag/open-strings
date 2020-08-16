@@ -39,21 +39,32 @@ instance Ord Part where
       <> compare (part_num p1) (part_num p2)
 
 instance ToJSON Part where
-  toJSON Part {..} =
-    String $
-      case solo of Solo -> ""; Tutti -> "Tutti "
-        <> tshow instrument
-        <> case part_num of 0 -> ""; _ -> " " <> tshow part_num
+  toJSON = String . showPart
+
+showPart :: Part -> Text
+showPart Part {..} =
+  case solo of Solo -> ""; Tutti -> "Tutti "
+    <> tshow instrument
+    <> case part_num of 0 -> ""; _ -> " " <> tshow part_num
 
 -- Used only in upload-fingerings form
 instance FromJSON Part where
-  parseJSON = withText "Part" (partP . T.words)
-    where
-      partP =
-        maybe (parseFail "Unable to parse part") pure . \case
-          [instr, n] -> Part <$> readMay instr <*> pure Solo <*> readMay n
-          ["Tutti", instr, n] -> Part <$> readMay instr <*> pure Tutti <*> readMay n
-          _ -> Nothing
+  parseJSON =
+    withText
+      "Part"
+      (maybe (parseFail "Unable to parse part") pure . readPart)
+
+instance PathPiece Part where
+  fromPathPiece = readPart
+  toPathPiece = showPart
+
+readPart :: Text -> Maybe Part
+readPart p = case T.words p of
+  [instr] -> readMay instr <&> (\i -> Part i Solo 0)
+  ["Tutti", instr] -> readMay instr <&> (\i -> Part i Tutti 0)
+  [instr, n] -> Part <$> readMay instr <*> pure Solo <*> readMay n
+  ["Tutti", instr, n] -> Part <$> readMay instr <*> pure Tutti <*> readMay n
+  _ -> Nothing
 
 -- Used only in add-work form
 instance {-# OVERLAPS #-} FromJSON (Set Part) where

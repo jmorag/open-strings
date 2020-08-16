@@ -1,11 +1,11 @@
 <div ##{uploadId}>
+  <b-alert v-bind:show="show_alert" variant="danger">
+    {{ alert_message }}
   <form method=post v-on:submit.prevent="submit" v-on:reset.prevent="clear">
     <div .form-group .required>
       <div .form-row>
         <div .form-group .col-md-10>
           <label for="work-title">Work Title
-          <!-- Ref set to clear autocomplete input -->
-          <!-- See https://github.com/trevoreyre/autocomplete/issues/64 -->
           <autocomplete
             #work-title
             @submit="autocompleteSubmit"
@@ -36,8 +36,16 @@
             <b-form-radio-group v-model=part v-bind:options="parts"
               buttons button-variant="outline-primary">
       <div .form-group>
+        <b-list-group>
+          <b-list-group-item v-for="e in entries">
+            Measures {{ `${e.measure_start} - ${e.measure_end}` }} uploaded by {{ e.user }} on {{ new Date(e.createdAt).toDateString() }}.
         <b-form-file v-model="xml_file" accept=".musicxml">
       <div .form-group>
-        <button .btn .btn-primary type="submit">Submit
-        <button .btn .btn-secondary type="reset">Clear
+        $maybe _ <- user_id
+          <b-overlay v-bind:show="loading" rounded="sm">
+            <b-button variant=primary type="submit" #submit v-bind:disabled="disable_submit">Upload
+            <b-button variant=secondary type="reset">Clear
+        $nothing
+          <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+  <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
 <div ##{renderId}>

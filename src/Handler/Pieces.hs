@@ -5,6 +5,7 @@ import qualified Data.Text as T
 import Database.Esqueleto hiding (Value)
 import qualified Database.Esqueleto as E
 import Import hiding ((==.))
+import Model.Parts
 
 getComposersR :: Handler Value
 getComposersR = do
@@ -69,3 +70,29 @@ getMovementsR workId = do
   where
     jsonMovement (E.Value key, E.Value i, E.Value movement) =
       object ["text" .= (tshow i <> ". " <> movement), "value" .= key]
+
+getEntriesR :: Int64 -> Part -> Handler Value
+getEntriesR movementId part = runDB do
+  entries <- select $
+    from $ \(user `InnerJoin` entry) -> do
+      E.on (entry ^. EntryUploadedBy ==. user ^. UserId)
+      where_ (entry ^. EntryMovementId ==. valkey movementId)
+      where_ (entry ^. EntryPart ==. val part)
+      orderBy [asc (entry ^. EntryMeasure_start)]
+      pure
+        ( entry ^. EntryMeasure_start,
+          entry ^. EntryMeasure_end,
+          user ^. UserName,
+          entry ^. EntryCreatedAt
+        )
+  pure . array $
+    map
+      ( \(E.Value start, E.Value end, E.Value user, E.Value time) ->
+          object
+            [ "measure_start" .= start,
+              "measure_end" .= end,
+              "user" .= user,
+              "createdAt" .= time
+            ]
+      )
+      entries

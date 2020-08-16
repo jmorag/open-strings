@@ -22,3 +22,5 @@
 /api/movements/#Int64 MovementsR GET
 
 /api/imslp/#String IMSLPR GET
+
+/api/entries/#Int64/#Part EntriesR GET

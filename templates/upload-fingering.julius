@@ -9,7 +9,13 @@ const vue = new Vue({
     parts: [],
     part: "",
     xml_file: null,
+    entries: [],
     editor: new FingeringEditor(#{renderId}),
+    loading: false,
+    show_alert: false,
+    alert_message: "",
+    show_success: false,
+    disable_submit: true
   },
   components: { Autocomplete },
   methods: {
@@ -19,11 +25,9 @@ const vue = new Vue({
       }
       const data = await fetch(`@{WorksR}?term=${input}`);
       const suggestions = await data.json();
-      console.log(suggestions);
       return suggestions;
     },
     update(results, selectedIndex) {
-      console.log(results, selectedIndex);
       if (this.$refs.autocomplete.value.length < 2) {
         this.work_id = 0;
         this.movements = [];
@@ -38,7 +42,7 @@ const vue = new Vue({
       return result.label;
     },
     async autocompleteSubmit({ value }) {
-      console.log("Called autocomplete submit", value);
+      this.show_add_work_link = false;
       this.work_id = value;
       const data = await fetch(`/api/movements/${value}`);
       const json = await data.json();
@@ -47,8 +51,32 @@ const vue = new Vue({
       this.parts = json.parts;
       this.part = json.parts[0];
     },
-    submit(e) {
-      console.log("Called form submit", e);
+    async submit(e) {
+      const s = new XMLSerializer();
+      const body = {
+        movement_id: this.movement_id,
+        part: this.part,
+        start_measure: this.start_measure,
+        xml: s.serializeToString(this.editor.musicxml)
+      };
+      console.log(body);
+      this.loading = true;
+      const resp = await fetch("@{UploadR}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      this.loading = false;
+      if (json.error) {
+        this.alert_message = json.error;
+        this.show_alert = true;
+        return;
+      }
+      if (json.success) {
+        this.show_success = 3;
+        return;
+      }
     },
     async renderXml({ target }) {
       const reader = new FileReader();
@@ -64,14 +92,24 @@ const vue = new Vue({
       this.$refs.autocomplete.value = "";
       this.show_add_work_link = false;
     },
+    async fetchEntries() {
+      const resp = await fetch(`/api/entries/${this.movement_id}/${this.part}`)
+      this.entries = await resp.json()
+    },
   },
   watch: {
+    movement_id: async function() {this.fetchEntries()},
+    part: async function() {this.fetchEntries()},
     xml_file: async function(file) {
       if (file) {
         const reader = new FileReader();
         reader.readAsText(file);
-        reader.onload = ({ target: { result } }) => this.editor.render(result);
+        reader.onload = ({ target: { result } }) => {
+          this.editor.render(result);
+          this.disable_submit = false;
+        };
       } else {
+        this.disable_submit = true;
         this.editor.clear();
       }
     }

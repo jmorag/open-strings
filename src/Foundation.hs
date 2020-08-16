@@ -17,10 +17,12 @@ import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
+-- Used only when in "auth-dummy-login" setting is enabled.
+
+import Model.Parts
 import Text.Hamlet (hamletFile)
 import Text.Jasmine (minifym)
 import Text.Julius (RawJS (rawJS))
--- Used only when in "auth-dummy-login" setting is enabled.
 import Yesod.Auth.Dummy
 import Yesod.Auth.OAuth2
 import Yesod.Auth.OAuth2.GitHub

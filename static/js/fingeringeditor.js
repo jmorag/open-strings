@@ -12,6 +12,9 @@ class FingeringEditor {
   }
 
   get musicxml() {
+    if (this.xml === null) {
+        return null
+    }
     const xml = this.xml.cloneNode(true);
     xml.querySelectorAll("fingering").forEach(function(fingering) {
       if (fingering.textContent === "-1") {
