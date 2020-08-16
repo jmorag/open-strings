@@ -9,11 +9,17 @@ class FingeringEditor {
     this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
     this.handleClick = this.handleClick.bind(this);
+    // Defined here so that we can disconnect it when calling clear
+    this.observer = new MutationObserver(_ => {
+      const svg = document.querySelector("svg");
+      this.set_noteheads(svg);
+      this.set_fingerings(svg);
+    });
   }
 
   get musicxml() {
     if (this.xml === null) {
-        return null
+      return null;
     }
     const xml = this.xml.cloneNode(true);
     xml.querySelectorAll("fingering").forEach(function(fingering) {
@@ -117,6 +123,16 @@ class FingeringEditor {
     this.next();
   }
 
+  resetFingerings() {
+    this.svg_fingerings.forEach(finger => {
+      finger.textContent = "-1";
+      finger.removeAttribute("visibility");
+    });
+    this.xml.querySelectorAll("fingering").forEach(finger => {
+      finger.textContent = "-1";
+    });
+  }
+
   handleKeypress(e) {
     let finger = this.svg_fingerings[this.index];
     switch (e.key) {
@@ -165,10 +181,11 @@ class FingeringEditor {
   }
 
   clear() {
-    document.querySelector(`#${this.nodeId}`).innerHTML = ""
+    this.observer.disconnect();
+    document.querySelector(`#${this.nodeId}`).innerHTML = "";
   }
 
-  async render(xml_string) {
+  async render(xml_string, enable_editing = true) {
     this.index = 0;
     this.xml = this.constructor.parse_xml(xml_string);
     window.removeEventListener("keydown", this.handleKeypress);
@@ -182,19 +199,17 @@ class FingeringEditor {
       drawFingerings: true,
       fingeringPosition: "left",
       setWantedStemDirectionByXml: true,
-      drawMeasureNumbers: false,
+      drawMeasureNumbers: true,
       autoBeam: false,
       pageFormat: "Endless"
     });
     await osmd.load(this.xml);
     osmd.render();
-    const observer = new MutationObserver(_ => {
-      const svg = document.querySelector("svg");
-      this.set_noteheads(svg);
-      this.set_fingerings(svg);
-    });
-    observer.observe(document.getElementById(this.nodeId), { childList: true });
-    window.addEventListener("keydown", this.handleKeypress);
-    window.addEventListener("mouseup", this.handleClick);
+    if (enable_editing) {
+      const target = document.getElementById(this.nodeId);
+      this.observer.observe(target, { childList: true });
+      window.addEventListener("keydown", this.handleKeypress);
+      window.addEventListener("mouseup", this.handleClick);
+    }
   }
 }
