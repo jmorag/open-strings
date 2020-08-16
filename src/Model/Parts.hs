@@ -9,6 +9,7 @@ import Data.Aeson
 import Data.Aeson.Types
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Set as Set
+import qualified Data.Text as T
 import Dhall (FromDhall, Natural)
 import Validation
 
@@ -44,6 +45,17 @@ instance ToJSON Part where
         <> tshow instrument
         <> case part_num of 0 -> ""; _ -> " " <> tshow part_num
 
+-- Used only in upload-fingerings form
+instance FromJSON Part where
+  parseJSON = withText "Part" (partP . T.words)
+    where
+      partP =
+        maybe (parseFail "Unable to parse part") pure . \case
+          [instr, n] -> Part <$> readMay instr <*> pure Solo <*> readMay n
+          ["Tutti", instr, n] -> Part <$> readMay instr <*> pure Tutti <*> readMay n
+          _ -> Nothing
+
+-- Used only in add-work form
 instance {-# OVERLAPS #-} FromJSON (Set Part) where
   parseJSON =
     withArray "Set Part" $
@@ -52,13 +64,13 @@ instance {-# OVERLAPS #-} FromJSON (Set Part) where
         . ( hoistValidation
               . traverse
                 ( \case
-                    (String p) -> parsePart p
+                    (String p) -> parseParts p
                     invalid -> failure ("Expected String, got " <> show invalid)
                 )
           )
 
-parsePart :: Text -> Validation (NonEmpty String) [Part]
-parsePart p = case fmap (over (ix 0) charToUpper) (words p) of
+parseParts :: Text -> Validation (NonEmpty String) [Part]
+parseParts p = case fmap (over (ix 0) charToUpper) (words p) of
   ["Quartet"] ->
     pure
       [ Part Violin Solo 1,
@@ -73,19 +85,23 @@ parsePart p = case fmap (over (ix 0) charToUpper) (words p) of
         Part Viola Tutti 0,
         Part Cello Tutti 0
       ]
+  single -> (: []) <$> parsePart single
+
+parsePart :: [Text] -> Validation (NonEmpty String) Part
+parsePart = \case
   ["Tutti", instrument] -> part Tutti instrument "0"
   ["Tutti", instrument, num] -> part Tutti instrument num
   ["Solo", instrument] -> part Solo instrument "0"
   ["Solo", instrument, num] -> part Solo instrument num
   [instrument] -> part Solo instrument "0"
   [instrument, num] -> part Solo instrument num
-  _ -> failure ("Unable to parse part " <> unpack p)
+  other -> failure ("Unable to parse part " <> T.unpack (T.unwords other))
   where
-    part :: Solo -> Text -> Text -> Validation (NonEmpty String) [Part]
+    part :: Solo -> Text -> Text -> Validation (NonEmpty String) Part
     part solo instr num = do
       i <- parseInstrument instr
       n <- parsePartNum num
-      pure [Part i solo n]
+      pure $ Part i solo n
       where
         validateRead fn_err x = maybeToSuccess (fn_err x :| []) (readMay x)
         parsePartNum = validateRead (\n -> "Unknown part number " <> show n)
