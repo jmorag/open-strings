@@ -14,7 +14,6 @@ class FingeringEditor {
       const svg = document.querySelector("svg");
       this.set_noteheads(svg);
       this.set_fingerings(svg);
-      this.dom_node.scrollIntoView()
     });
   }
 
@@ -98,7 +97,6 @@ class FingeringEditor {
           svg_noteheads.push(note);
         })
     );
-    svg_noteheads[0].setAttribute("fill", this.focused);
     this.svg_noteheads = svg_noteheads;
   }
 
@@ -135,6 +133,7 @@ class FingeringEditor {
   }
 
   handleKeypress(e) {
+    if (document.activeElement.tagName !== "svg") return;
     let finger = this.svg_fingerings[this.index];
     switch (e.key) {
       case "ArrowRight":
@@ -173,6 +172,7 @@ class FingeringEditor {
   }
 
   handleClick({ target }) {
+    if (document.activeElement.tagName !== "svg") return;
     let target_ix = parseInt(target?.getAttribute("index"));
     if (!isNaN(target_ix)) {
       this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
@@ -186,30 +186,39 @@ class FingeringEditor {
     this.dom_node.innerHTML = "";
   }
 
-  async render(xml_string, enable_editing = true) {
+  enable() {
+    const svg = document.querySelector("svg");
+    // Allow the svg container to be focused
+    svg.setAttribute("tabindex", "0");
+    svg.focus({ preventScroll: true });
+    this.svg_noteheads[0].setAttribute("fill", this.focused);
+    window.addEventListener("keydown", this.handleKeypress);
+    window.addEventListener("mouseup", this.handleClick);
+  }
+
+  async render(xml_string) {
     this.index = 0;
     this.xml = this.constructor.parse_xml(xml_string);
     window.removeEventListener("keydown", this.handleKeypress);
     window.removeEventListener("mouseup", this.handleClick);
-    const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(this.dom_node, {
-      autoResize: true,
-      backend: "svg",
-      drawingParameters: "compact",
-      drawPartNames: false,
-      drawTitle: true,
-      drawFingerings: true,
-      fingeringPosition: "left",
-      setWantedStemDirectionByXml: true,
-      drawMeasureNumbers: true,
-      autoBeam: false,
-      pageFormat: "Endless"
-    });
+    const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(
+      this.dom_node,
+      {
+        autoResize: true,
+        backend: "svg",
+        drawingParameters: "compact",
+        drawPartNames: false,
+        drawTitle: false,
+        drawFingerings: true,
+        fingeringPosition: "left",
+        setWantedStemDirectionByXml: true,
+        drawMeasureNumbers: false,
+        autoBeam: false,
+        pageFormat: "Endless"
+      }
+    );
     await osmd.load(this.xml);
     osmd.render();
-    if (enable_editing) {
-      this.observer.observe(this.dom_node, { childList: true });
-      window.addEventListener("keydown", this.handleKeypress);
-      window.addEventListener("mouseup", this.handleClick);
-    }
+    this.observer.observe(this.dom_node, { childList: true });
   }
 }
