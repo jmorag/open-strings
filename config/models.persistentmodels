@@ -7,6 +7,7 @@ User
   picture Text Maybe
   name Text Maybe
   email Text Maybe
+  createdAt UTCTime
   UniqueUser ident
   deriving Typeable
   deriving Show
@@ -43,8 +44,9 @@ Entry sql=entries
   measure_start Int
   measure_end Int
   part Part
-  musicxml ByteString
+  musicxml LText
   uploadedBy UserId
   movementId MovementId
   createdAt UTCTime
+  description Text
   deriving Show

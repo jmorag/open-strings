@@ -23,4 +23,6 @@
 
 /api/imslp/#String IMSLPR GET
 
-/api/entries/#Int64/#Part EntriesR GET
+/api/entries/#Int64 EntriesR GET
+
+/api/musicxml/#Int64 MusicXMLR GET

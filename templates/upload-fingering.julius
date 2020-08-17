@@ -4,18 +4,34 @@ const vue = new Vue({
     show_add_work_link: false,
     work_id: 0,
     movement_id: 0,
-    start_measure: 1,
+    start_measure: "", // usually a number, but should be displayed as empty on paint
     movements: [],
     parts: [],
     part: "",
     xml_file: null,
+    table_fields: [
+      "movement",
+      "part",
+      "measures",
+      "description",
+      {
+        key: "uploaded_by",
+        formatter: ({ user, time }) => {
+          const d = new Date(time);
+          return `${user} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`;
+        }
+      }
+    ],
     entries: [],
     editor: new FingeringEditor(#{renderId}),
+    description: "",
     loading: false,
     show_alert: false,
     alert_message: "",
     show_success: false,
-    disable_submit: true
+    disable_submit: true,
+    show_editor: false,
+    show_instructions: false,
   },
   components: { Autocomplete },
   methods: {
@@ -27,7 +43,7 @@ const vue = new Vue({
       const suggestions = await data.json();
       return suggestions;
     },
-    update(results, selectedIndex) {
+    update(results, _selectedIndex) {
       if (this.$refs.autocomplete.value.length < 2) {
         this.work_id = 0;
         this.movements = [];
@@ -57,9 +73,9 @@ const vue = new Vue({
         movement_id: this.movement_id,
         part: this.part,
         start_measure: this.start_measure,
-        xml: s.serializeToString(this.editor.musicxml)
+        xml: s.serializeToString(this.editor.musicxml),
+        description: this.description
       };
-      console.log(body);
       this.loading = true;
       const resp = await fetch("@{UploadR}", {
         method: "POST",
@@ -74,14 +90,38 @@ const vue = new Vue({
         return;
       }
       if (json.success) {
-        this.show_success = 3;
+        this.show_success = true;
+        await this.fetchEntries() // update table
         return;
       }
     },
-    async renderXml({ target }) {
-      const reader = new FileReader();
-      reader.readAsText(target.files[0]);
-      reader.onload = ({ target: { result } }) => this.editor.render(result);
+    async fetchXml(item, _index, _event) {
+      this.movement_id = item.movement_id;
+      this.part = item.part;
+      this.start_measure = item.start_measure;
+      this.description = item.description
+      const resp = await fetch(`/api/musicxml/${item.entry_id}`);
+      if (resp.status === 404) {
+        this.alert_message = "Error retrieving MusicXML";
+        this.show_alert = true;
+        return;
+      }
+      const blob = await resp.blob();
+      this.renderXml(blob);
+    },
+    renderXml(file) {
+      if (file) {
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = async ({ target: { result } }) => {
+          await this.editor.render(result);
+          this.show_editor = true;
+          this.disable_submit = false;
+        };
+      } else {
+        this.disable_submit = true;
+        this.editor.clear();
+      }
     },
     clear() {
       this.work_id = 0;
@@ -91,27 +131,20 @@ const vue = new Vue({
       this.xml_file = null;
       this.$refs.autocomplete.value = "";
       this.show_add_work_link = false;
+      this.show_editor = false;
+      this.editor.clear();
     },
     async fetchEntries() {
-      const resp = await fetch(`/api/entries/${this.movement_id}/${this.part}`)
-      this.entries = await resp.json()
-    },
+      const resp = await fetch(`/api/entries/${this.work_id}`);
+      this.entries = await resp.json();
+    }
   },
   watch: {
-    movement_id: async function() {this.fetchEntries()},
-    part: async function() {this.fetchEntries()},
-    xml_file: async function(file) {
-      if (file) {
-        const reader = new FileReader();
-        reader.readAsText(file);
-        reader.onload = ({ target: { result } }) => {
-          this.editor.render(result);
-          this.disable_submit = false;
-        };
-      } else {
-        this.disable_submit = true;
-        this.editor.clear();
-      }
+    movement_id: async function() {
+      await this.fetchEntries();
+    },
+    part: async function() {
+      await this.fetchEntries();
     }
   }
 });

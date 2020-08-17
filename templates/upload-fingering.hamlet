@@ -1,51 +1,74 @@
 <div ##{uploadId}>
-  <b-alert v-bind:show="show_alert" variant="danger">
-    {{ alert_message }}
+  <b-alert v-bind:show="show_alert" variant="danger"> {{ alert_message }}
+  <h2 style="text-align: center">Search for fingerings or upload your own
   <form method=post v-on:submit.prevent="submit" v-on:reset.prevent="clear">
-    <div .form-group .required>
-      <div .form-row>
-        <div .form-group .col-md-10>
-          <label for="work-title">Work Title
-          <autocomplete
-            #work-title
-            @submit="autocompleteSubmit"
-            @update="update"
-            default-value=""
-            placeholder="Work"
-            ref="autocomplete"
-            v-bind:auto-select="true"
-            v-bind:debounce-time="300"
-            v-bind:get-result-value="getResultValue"
-            v-bind:search="search"
-            >
-          <small for="work-title">Type the composer then the piece name, ex. beethoven violin concerto
-        <div .form-group .col-md-2>
-          <label for="start-measure">Starting Measure
-          <input #start-measure .form-control
-            type="number"
-            v-model.number="start_measure">
-      <div v-if="show_add_work_link">
+    <b-form-group .required>
+      <b-form-group>
+        <!-- Work search bar -->
+        <label for="work-title">Work Title
+        <autocomplete
+          #work-title
+          @submit="autocompleteSubmit"
+          @update="update"
+          default-value=""
+          placeholder="Work"
+          ref="autocomplete"
+          v-bind:auto-select="true"
+          v-bind:debounce-time="300"
+          v-bind:get-result-value="getResultValue"
+          v-bind:search="search"
+          >
+        <small for="work-title">Search by composer name and title, ex. beethoven violin concerto
+      <!-- Add work link -->
+      <div v-show="show_add_work_link">
         <p>Could not find this work in the database. <a href=@{AddWorkR}>Please enter the piece data manually.</a>
-      <b-form-row>
-        <b-col md="auto" v-show="movements.length > 1">
-          <b-form-group label="Movements">
-            <b-form-radio-group v-model="movement_id" v-bind:options="movements"
-              buttons button-variant="outline-primary" stacked #movements-select>
-        <b-col md="auto" v-show="parts.length > 0">
-          <b-form-group label="Parts">
-            <b-form-radio-group v-model=part v-bind:options="parts"
-              buttons button-variant="outline-primary">
-      <div .form-group>
-        <b-list-group>
-          <b-list-group-item v-for="e in entries">
-            Measures {{ `${e.measure_start} - ${e.measure_end}` }} uploaded by {{ e.user }} on {{ new Date(e.createdAt).toDateString() }}.
-        <b-form-file v-model="xml_file" accept=".musicxml">
-      <div .form-group>
-        $maybe _ <- user_id
+      <!-- Existing uploads table -->
+      <b-form-group v-show="work_id">
+        <b-table
+          selectable
+          select-mode="single"
+          show-empty
+          small
+          empty-text="No fingerings uploaded for this work yet"
+          caption="View a fingering or add your own below"
+          hover
+          outlined
+          no-local-sorting
+          v-bind:fields="table_fields"
+          v-bind:items="entries"
+          v-bind:primary_key="'entry_id'"
+          @row-clicked="fetchXml"
+          >
+      <!-- Radios for movements and part select -->
+      <b-form-group v-show="work_id !== 0">
+        <b-form-row>
+          <b-col md="auto" v-show="movements.length > 1">
+            <b-form-group label="Movements">
+              <b-form-radio-group v-model="movement_id" v-bind:options="movements"
+                stacked buttons button-variant="outline-primary"  #movements-select>
+          <b-col md="auto" v-show="parts.length > 0">
+            <b-form-group label="Parts">
+              <b-form-radio-group v-model=part v-bind:options="parts"
+                buttons button-variant="outline-primary">
+          <b-col cols="2" .ml-auto>
+            <label for="start-measure">Starting Measure
+            <b-form-input #start-measure type="number" v-model.number="start_measure" min=1>
+        <b-form-file v-model="xml_file" @input="renderXml" accept=".musicxml" v-bind:disabled="!start_measure">
+      <!-- Submission and reset buttons -->
+      <b-form-group v-show="work_id">
           <b-overlay v-bind:show="loading" rounded="sm">
-            <b-button variant=primary type="submit" #submit v-bind:disabled="disable_submit">Upload
             <b-button variant=secondary type="reset">Clear
-        $nothing
-          <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>
-  <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
+    <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
+    <div #editor v-show="show_editor">
+      $maybe _ <- user_id
+        <b-form-group>
+          <b-button variant=primary type="submit" #submit
+            v-bind:disabled="disable_submit || !work_id || !movement_id || !start_measure || !description">Upload
+          <b-button variant="info" @click="editor.enable(); show_instructions = true">Edit fingerings
+        <b-form-group>
+          <b-form-textarea v-model="description" placeholder="Add a description" max-rows=2>
+        <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note.<br>The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
+      $nothing
+        <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+
 <div ##{renderId}>

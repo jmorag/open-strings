@@ -19,7 +19,8 @@ data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64,
     part :: !Part,
     start_measure :: !Int,
-    xml :: LText
+    xml :: !LText,
+    description :: !Text
   }
   deriving (Show, Generic)
 
@@ -33,7 +34,7 @@ postUploadR =
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
         let musicxml' = adjustMeasures start_measure musicxml
-            end_measure = lengthOf (root . measureNumbers) musicxml
+            end_measure = start_measure + lengthOf (root . measureNumbers) musicxml - 1
         user_id <- requireAuthId
         now <- liftIO getCurrentTime
         runDB . insert_ $
@@ -41,11 +42,11 @@ postUploadR =
             start_measure
             end_measure
             part
-            -- TODO: look into streaming this to the db
-            (toStrict $ renderLBS def musicxml')
+            (renderText def musicxml')
             user_id
             (toSqlKey movement_id)
             now
+            description
         pure $ object ["success" .= True]
 
 getUploadR :: Handler Html

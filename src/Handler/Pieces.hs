@@ -71,28 +71,52 @@ getMovementsR workId = do
     jsonMovement (E.Value key, E.Value i, E.Value movement) =
       object ["text" .= (tshow i <> ". " <> movement), "value" .= key]
 
-getEntriesR :: Int64 -> Part -> Handler Value
-getEntriesR movementId part = runDB do
-  entries <- select $
-    from $ \(user `InnerJoin` entry) -> do
-      E.on (entry ^. EntryUploadedBy ==. user ^. UserId)
-      where_ (entry ^. EntryMovementId ==. valkey movementId)
-      where_ (entry ^. EntryPart ==. val part)
-      orderBy [asc (entry ^. EntryMeasure_start)]
-      pure
-        ( entry ^. EntryMeasure_start,
-          entry ^. EntryMeasure_end,
-          user ^. UserName,
-          entry ^. EntryCreatedAt
-        )
+getEntriesR :: Int64 -> Handler Value
+getEntriesR workId = do
+  entries <- runDB $
+    select $
+      from $ \(user `InnerJoin` entry `InnerJoin` movement) -> do
+        E.on (entry ^. EntryUploadedBy ==. user ^. UserId)
+        E.on (entry ^. EntryMovementId ==. movement ^. MovementId)
+        where_ (movement ^. MovementWorkId ==. valkey workId)
+        orderBy [asc (entry ^. EntryMeasure_start)]
+        pure
+          ( movement ^. MovementNumber,
+            movement ^. MovementName,
+            movement ^. MovementId,
+            entry ^. EntryPart,
+            entry ^. EntryMeasure_start,
+            entry ^. EntryMeasure_end,
+            entry ^. EntryDescription,
+            user ^. UserName,
+            entry ^. EntryCreatedAt,
+            entry ^. EntryId
+          )
   pure . array $
     map
-      ( \(E.Value start, E.Value end, E.Value user, E.Value time) ->
-          object
-            [ "measure_start" .= start,
-              "measure_end" .= end,
-              "user" .= user,
-              "createdAt" .= time
-            ]
+      ( \( E.Value movementNum,
+           E.Value movement,
+           E.Value movementId,
+           E.Value part,
+           E.Value start,
+           E.Value end,
+           E.Value description,
+           E.Value user,
+           E.Value time,
+           E.Value entryId
+           ) ->
+            object
+              [ "movement" .= (tshow movementNum <> ". " <> movement),
+                "part" .= part,
+                "measures" .= (tshow start <> " - " <> tshow end),
+                "start_measure" .= start,
+                "description" .= description,
+                "uploaded_by" .= object ["user" .= user, "time" .= time],
+                "movement_id" .= movementId,
+                "entry_id" .= entryId
+              ]
       )
       entries
+
+getMusicXMLR :: Int64 -> Handler LText
+getMusicXMLR entryId = entryMusicxml <$> runDB (get404 (toSqlKey entryId))
