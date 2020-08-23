@@ -30,6 +30,7 @@ let
       };
     };
     allowBroken = true;
+    allowUnfree = true;
   };
   compiler = pkgs.haskell.packages."${compilerVersion}";
   pkg = compiler.developPackage {
@@ -49,6 +50,6 @@ let
         dhall-lsp-server
       ]);
   };
-  buildInputs = [ pkgs.libpqxx ];
+  buildInputs = [ pkgs.libpqxx pkgs.ngrok ];
 in pkg.overrideAttrs
 (attrs: { buildInputs = attrs.buildInputs ++ buildInputs; })
