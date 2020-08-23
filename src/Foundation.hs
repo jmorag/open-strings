@@ -17,8 +17,6 @@ import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
--- Used only when in "auth-dummy-login" setting is enabled.
-
 import Model.Parts
 import Text.Hamlet (hamletFile)
 import Text.Jasmine (minifym)
@@ -276,6 +274,7 @@ instance YesodAuth App where
       case x of
         Just (Entity uid _) -> return $ Authenticated uid
         Nothing -> do
+          now <- liftIO getCurrentTime
           let extract traversal =
                 getUserResponseJSON @Value creds ^? _Right . traversal . _String
           Authenticated
@@ -285,7 +284,8 @@ instance YesodAuth App where
                   userPassword = Nothing,
                   userEmail = extract (key "email"),
                   userName = extract (key "name"),
-                  userPicture = extract $ failing (key "picture") (key "avatar_url")
+                  userPicture = extract $ failing (key "picture") (key "avatar_url"),
+                  userCreatedAt = now
                 }
 
   -- You can add other plugins like Google Email, email or OAuth here

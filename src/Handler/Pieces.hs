@@ -4,6 +4,7 @@ import Data.Aeson.Types (emptyArray)
 import qualified Data.Text as T
 import Database.Esqueleto hiding (Value)
 import qualified Database.Esqueleto as E
+import Database.Esqueleto.Internal.Sql (unsafeSqlFunction)
 import Import hiding ((==.))
 import Model.Parts
 
@@ -12,7 +13,7 @@ getComposersR = do
   query <- fromMaybe "" <$> lookupGetParam "term"
   composers <- runDB do
     select $ from \c -> do
-      forM_ (T.words query) \q -> where_ $ c ^. ComposerName `ilike` (fuzzy q)
+      forM_ (T.words query) \q -> where_ $ unaccent (c ^. ComposerName) `ilike` (fuzzy q)
       pure (c ^. ComposerId, c ^. ComposerName)
   pure . array $ map composerObject composers
   where
@@ -31,8 +32,8 @@ getWorksR = do
     forM_ (T.words (T.filter (/= ':') query)) \q ->
       let q' = fuzzy q
        in where_ $
-            (composer ^. ComposerName `ilike` q')
-              E.||. (work ^. WorkTitle `ilike` q')
+            (unaccent (composer ^. ComposerName) `ilike` q')
+              E.||. (unaccent (work ^. WorkTitle) `ilike` q')
     orderBy [asc (composer ^. ComposerName), asc (work ^. WorkTitle)]
     pure (composer ^. ComposerName, work ^. WorkId, work ^. WorkTitle)
   pure $ array (map formatWork allWorks)
@@ -46,6 +47,10 @@ formatWork (E.Value composer, E.Value workKey, E.Value title) =
 
 fuzzy :: Text -> SqlExpr (E.Value Text)
 fuzzy t = (%) ++. val t ++. (%)
+
+-- See https://stackoverflow.com/questions/3051762/comparing-strings-in-postgresql
+unaccent :: SqlString s => SqlExpr (E.Value s) -> SqlExpr (E.Value s)
+unaccent = unsafeSqlFunction "unaccent_string"
 
 getMovementsR :: Int64 -> Handler Value
 getMovementsR workId = do
