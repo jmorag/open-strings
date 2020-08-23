@@ -50,21 +50,21 @@
             <b-form-group label="Parts">
               <b-form-radio-group v-model=part v-bind:options="parts"
                 buttons button-variant="outline-primary">
-          <b-col cols="2" .ml-auto>
+          <b-col .ml-auto>
             <label for="start-measure">Starting Measure
             <b-form-input #start-measure type="number" v-model.number="start_measure" min=1>
         <b-form-file v-model="xml_file" @input="renderXml" accept=".musicxml" v-bind:disabled="!start_measure">
       <!-- Submission and reset buttons -->
       <b-form-group v-show="work_id">
-          <b-overlay v-bind:show="loading" rounded="sm">
-            <b-button variant=secondary type="reset">Clear
+        <b-button variant=secondary type="reset">Clear
     <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
     <div #editor v-show="show_editor">
       $maybe _ <- user_id
-        <b-form-group>
-          <b-button variant=primary type="submit" #submit
-            v-bind:disabled="disable_submit || !work_id || !movement_id || !start_measure || !description">Upload
-          <b-button variant="info" @click="editor.enable(); show_instructions = true">Edit fingerings
+        <b-overlay v-bind:show="loading" rounded="sm">
+          <b-form-group>
+            <b-button variant=primary type="submit" #submit
+              v-bind:disabled="disable_submit || !work_id || !movement_id || !start_measure || !description">Upload
+            <b-button variant="info" @click="editor.enable(); show_instructions = true">Edit fingerings
         <b-form-group>
           <b-form-textarea v-model="description" placeholder="Add a description" max-rows=2>
         <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note.<br>The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
