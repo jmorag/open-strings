@@ -81,13 +81,13 @@ authenticateAs (Entity _ u) = do
 -- checking is switched off in wipeDB for those database backends which need it.
 createUser :: Text -> YesodExample App (Entity User)
 createUser ident = runDB $ do
+    now <- liftIO getCurrentTime
     user <- insertEntity User
         { userIdent = ident
         , userPassword = Nothing
+        , userPicture = Nothing
+        , userName = Nothing
+        , userEmail = Nothing
+        , userCreatedAt = now
         }
-    _ <- insert Email
-        { emailEmail = ident
-        , emailUserId = Just $ entityKey user
-        , emailVerkey = Nothing
-        }
-    return user
+    pure user
