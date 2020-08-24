@@ -1,3 +1,31 @@
+const arabicToRoman = n => {
+  switch (n) {
+    case "1":
+      return "I";
+    case "2":
+      return "II";
+    case "3":
+      return "III";
+    case "4":
+      return "IV";
+  }
+  return "NOSTRING";
+};
+
+const romanToArabic = n => {
+  switch (n) {
+    case "I":
+      return "1";
+    case "II":
+      return "2";
+    case "III":
+      return "3";
+    case "IV":
+      return "4";
+  }
+  return n;
+};
+
 class FingeringEditor {
   constructor(nodeId) {
     this.dom_node = document.getElementById(nodeId);
@@ -5,6 +33,7 @@ class FingeringEditor {
     this.index = 0;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
+    this.svg_strings = null;
     this.unfocused = "#000000";
     this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
@@ -14,6 +43,7 @@ class FingeringEditor {
       const svg = document.querySelector("svg");
       this.set_noteheads(svg);
       this.set_fingerings(svg);
+      this.set_strings(svg);
     });
   }
 
@@ -22,7 +52,29 @@ class FingeringEditor {
       return null;
     }
     const xml = this.xml.cloneNode(true);
-    xml.querySelectorAll("fingering").forEach(function(fingering) {
+    // Move strings from lyrics to string element inside notations>technical
+    xml.querySelectorAll("lyric.string").forEach(string_lyric => {
+      const n = romanToArabic(string_lyric.firstElementChild.textContent);
+      if (n !== "NOSTRING") {
+        let string_node = string_lyric.parentNode.querySelector(
+          "notations>technical>string"
+        );
+        if (string_node) {
+          string_node.textContent = n;
+        } else {
+          string_node = xml.createElement("string");
+          string_node.textContent = n;
+          string_lyric.parentNode
+            .querySelector("notations>technical")
+            .appendChild(string_node);
+        }
+        console.log("Set string in xml to ", n);
+      }
+      string_lyric.parentNode.removeChild(string_lyric);
+    });
+
+    // Remove empty fingerings
+    xml.querySelectorAll("fingering").forEach(fingering => {
       if (fingering.textContent === "-1") {
         const technical = fingering.parentNode;
         const notations = technical.parentNode;
@@ -42,10 +94,22 @@ class FingeringEditor {
   static parse_xml(xml_string) {
     const parser = new DOMParser();
     const xml = parser.parseFromString(xml_string, "application/xml");
-    xml.querySelectorAll("note").forEach(function(note) {
+    xml.querySelectorAll("note").forEach(note => {
       if (note.querySelector("rest")) {
         return;
       }
+      // OSMD doesn't display string numbers so we display them as lyrics instead
+      const lyric = xml.createElement("lyric");
+      lyric.setAttribute("class", "string");
+      const text = xml.createElement("text");
+      lyric.appendChild(text);
+
+      text.textContent = arabicToRoman(
+        note.querySelector("notations>technical>string")?.textContent
+      );
+      note.appendChild(lyric);
+
+      // add -1 fingerings to unfingered notes
       if (note.querySelector("notations") === null) {
         let notations = xml.createElement("notations");
         let technical = xml.createElement("technical");
@@ -71,22 +135,33 @@ class FingeringEditor {
 
   set_fingerings(svg) {
     let i = 0;
-    let svg_fingerings = [];
+    this.svg_fingerings = [];
     svg.querySelectorAll("g.vf-stavenote>g.vf-modifiers").forEach(m =>
       m.querySelectorAll("text").forEach(f => {
         f.setAttribute("index", i);
         i++;
         // hide bogus fingerings
         f.textContent === "-1" && f.setAttribute("visibility", "hidden");
-        svg_fingerings.push(f);
+        this.svg_fingerings.push(f);
       })
     );
-    this.svg_fingerings = svg_fingerings;
+  }
+
+  set_strings(svg) {
+    let i = 0;
+    this.svg_strings = [];
+    svg.querySelectorAll("svg>text").forEach(s => {
+      if (["I", "II", "III", "IV", "NOSTRING"].contains(s.textContent)) {
+        s.setAttribute("index", i);
+        s.textContent === "NOSTRING" && s.setAttribute("visibility", "hidden");
+        this.svg_strings.push(s);
+      }
+    });
   }
 
   set_noteheads(svg) {
     let i = 0;
-    let svg_noteheads = [];
+    this.svg_noteheads = [];
     svg.querySelectorAll("g.vf-stavenote").forEach(
       n =>
         // filter rests
@@ -94,10 +169,9 @@ class FingeringEditor {
         n.querySelectorAll("g.vf-notehead>path").forEach(note => {
           note.setAttribute("index", i);
           i++;
-          svg_noteheads.push(note);
+          this.svg_noteheads.push(note);
         })
     );
-    this.svg_noteheads = svg_noteheads;
   }
 
   next() {
@@ -118,7 +192,27 @@ class FingeringEditor {
     let finger = this.svg_fingerings[this.index];
     finger.textContent = n;
     this.xml.querySelectorAll("fingering")[this.index].textContent = n;
-    finger.removeAttribute("visibility");
+    if (n === "-1") {
+      finger.setAttribute("visibility", "hidden");
+    } else {
+      finger.removeAttribute("visibility");
+    }
+    this.next();
+  }
+
+  setString(n) {
+    let string = this.svg_strings[this.index];
+    string.textContent = n;
+    let string_num = romanToArabic(n);
+    this.xml.querySelectorAll("lyric.string>text")[
+      this.index
+    ].textContent = string_num;
+
+    if (n === "NOSTRING") {
+      string.setAttribute("visibility", "hidden");
+    } else {
+      string.removeAttribute("visibility");
+    }
     this.next();
   }
 
@@ -134,7 +228,6 @@ class FingeringEditor {
 
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
-    let finger = this.svg_fingerings[this.index];
     switch (e.key) {
       case "ArrowRight":
         this.next();
@@ -163,8 +256,21 @@ class FingeringEditor {
         break;
       case "Backspace":
         this.setFinger("-1");
-        finger.setAttribute("visibility", "hidden");
         this.prev();
+        this.setString("NOSTRING");
+        this.prev();
+        break;
+      case "!":
+        this.setString("I");
+        break;
+      case "@":
+        this.setString("II");
+        break;
+      case "#":
+        this.setString("III");
+        break;
+      case "$":
+        this.setString("IV");
         break;
       case "Enter":
         break;
