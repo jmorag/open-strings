@@ -6,9 +6,6 @@ cradle:
     - path: "app/main.hs"
       component: "fingerdb:exe:fingerdb"
 
-    - path: "scrape-imslp/main.hs"
-      component: "fingerdb:exe:scrape-imslp"
-
     - path: "dhall-to-db/main.hs"
       component: "fingerdb:exe:dhall-to-db"
 
