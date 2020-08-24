@@ -65,6 +65,7 @@
             <b-button variant=primary type="submit" #submit
               v-bind:disabled="disable_submit || !work_id || !movement_id || !start_measure || !description">Upload
             <b-button variant="info" @click="editor.enable(); show_instructions = true">Edit fingerings
+            <b-button variant="info" @click="editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
         <b-form-group>
           <b-form-textarea v-model="description" placeholder="Add a description" max-rows=2>
         <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note.<br>The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.

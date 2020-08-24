@@ -1,31 +1,3 @@
-const arabicToRoman = n => {
-  switch (n) {
-    case "1":
-      return "I";
-    case "2":
-      return "II";
-    case "3":
-      return "III";
-    case "4":
-      return "IV";
-  }
-  return "NOSTRING";
-};
-
-const romanToArabic = n => {
-  switch (n) {
-    case "I":
-      return "1";
-    case "II":
-      return "2";
-    case "III":
-      return "3";
-    case "IV":
-      return "4";
-  }
-  return n;
-};
-
 class FingeringEditor {
   constructor(nodeId) {
     this.dom_node = document.getElementById(nodeId);
@@ -47,6 +19,34 @@ class FingeringEditor {
     });
   }
 
+  static arabicToRoman(n) {
+    switch (n) {
+      case "1":
+        return "I";
+      case "2":
+        return "II";
+      case "3":
+        return "III";
+      case "4":
+        return "IV";
+    }
+    return "NOSTRING";
+  }
+
+  static romanToArabic(n) {
+    switch (n) {
+      case "I":
+        return "1";
+      case "II":
+        return "2";
+      case "III":
+        return "3";
+      case "IV":
+        return "4";
+    }
+    return n;
+  }
+
   get musicxml() {
     if (this.xml === null) {
       return null;
@@ -54,7 +54,9 @@ class FingeringEditor {
     const xml = this.xml.cloneNode(true);
     // Move strings from lyrics to string element inside notations>technical
     xml.querySelectorAll("lyric.string").forEach(string_lyric => {
-      const n = romanToArabic(string_lyric.firstElementChild.textContent);
+      const n = this.constructor.romanToArabic(
+        string_lyric.firstElementChild.textContent
+      );
       if (n !== "NOSTRING") {
         let string_node = string_lyric.parentNode.querySelector(
           "notations>technical>string"
@@ -74,7 +76,7 @@ class FingeringEditor {
     });
 
     // Remove empty fingerings
-    xml.querySelectorAll("fingering").forEach(fingering => {
+    xml.querySelectorAll("notations>technical>fingering").forEach(fingering => {
       if (fingering.textContent === "-1") {
         const technical = fingering.parentNode;
         const notations = technical.parentNode;
@@ -104,7 +106,7 @@ class FingeringEditor {
       const text = xml.createElement("text");
       lyric.appendChild(text);
 
-      text.textContent = arabicToRoman(
+      text.textContent = this.arabicToRoman(
         note.querySelector("notations>technical>string")?.textContent
       );
       note.appendChild(lyric);
@@ -197,13 +199,12 @@ class FingeringEditor {
     } else {
       finger.removeAttribute("visibility");
     }
-    this.next();
   }
 
   setString(n) {
     let string = this.svg_strings[this.index];
     string.textContent = n;
-    let string_num = romanToArabic(n);
+    let string_num = this.constructor.romanToArabic(n);
     this.xml.querySelectorAll("lyric.string>text")[
       this.index
     ].textContent = string_num;
@@ -213,17 +214,26 @@ class FingeringEditor {
     } else {
       string.removeAttribute("visibility");
     }
-    this.next();
   }
 
   resetFingerings() {
     this.svg_fingerings.forEach(finger => {
       finger.textContent = "-1";
-      finger.removeAttribute("visibility");
+      finger.setAttribute("visibility", "hidden");
+    });
+    this.svg_strings.forEach(string => {
+      string.textContent = "-1";
+      string.setAttribute("visibility", "hidden");
     });
     this.xml.querySelectorAll("fingering").forEach(finger => {
       finger.textContent = "-1";
     });
+    this.xml.querySelectorAll("lyric.string>text").forEach(string_lyric => {
+      string_lyric.textContent = "NOSTRING";
+    });
+    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[0].setAttribute("fill", this.focused);
+    this.index = 0;
   }
 
   handleKeypress(e) {
@@ -238,39 +248,47 @@ class FingeringEditor {
       // lies conveniently to the left of 1 on most keyboards
       case "`":
         this.setFinger("0");
+        this.next();
         break;
       case "0":
         this.setFinger("0");
+        this.next();
         break;
       case "1":
         this.setFinger("1");
+        this.next();
         break;
       case "2":
         this.setFinger("2");
+        this.next();
         break;
       case "3":
         this.setFinger("3");
+        this.next();
         break;
       case "4":
         this.setFinger("4");
+        this.next();
         break;
       case "Backspace":
         this.setFinger("-1");
-        this.prev();
         this.setString("NOSTRING");
-        this.prev();
         break;
       case "!":
         this.setString("I");
+        this.next();
         break;
       case "@":
         this.setString("II");
+        this.next();
         break;
       case "#":
         this.setString("III");
+        this.next();
         break;
       case "$":
         this.setString("IV");
+        this.next();
         break;
       case "Enter":
         break;
