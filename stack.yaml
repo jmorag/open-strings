@@ -1,0 +1,4 @@
+resolver: lts-16.10
+extra-deps:
+  - lens-regex-pcre-1.1.0.0@sha256:a6053fefae59f6b53b4741e5a75c5fae350af80dbf62e8673b565e1c3f34f8b9,2209
+  - yesod-auth-oauth2-0.6.1.3@sha256:55cffff1fab531ee25fc711d35c437add6a5ce7b2a71c4277e33e86f29ef2579,2949
