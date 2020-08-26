@@ -8,7 +8,7 @@ stanzas:
 
     # Name of your executable. You are unlikely to need to change this.
     # Note that all file paths are relative to the keter.yml file.
-    exec: ../fingerdb
+    exec: ../bin/fingerdb
 
     # Command line options passed to your application.
     args: []
@@ -17,6 +17,7 @@ stanzas:
       # You can specify one or more hostnames for your application to respond
       # to. The primary hostname will be used for generating your application
       # root.
+      - fingerdb-env.eba-ww2wtpym.us-east-1.elasticbeanstalk.com
       - www.fingerdb.com
 
     # Enable to force Keter to redirect to https
