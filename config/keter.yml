@@ -1,7 +1,3 @@
-# After you've edited this file, remove the following line to allow
-# `yesod keter` to build your bundle.
-user-edited: false
-
 # A Keter app is composed of 1 or more stanzas. The main stanza will define our
 # web application. See the Keter documentation for more information on
 # available stanzas.
@@ -12,11 +8,7 @@ stanzas:
 
     # Name of your executable. You are unlikely to need to change this.
     # Note that all file paths are relative to the keter.yml file.
-    #
-    # The path given is for Stack projects. If you're still using cabal, change
-    # to
-    # exec: ../dist/build/fingerdb/fingerdb
-    exec: ../dist/bin/fingerdb
+    exec: ../fingerdb
 
     # Command line options passed to your application.
     args: []
