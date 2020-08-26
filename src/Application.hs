@@ -188,6 +188,7 @@ appMain = do
       [configSettingsYmlValue]
       -- allow environment variables to override
       useEnv
+  print $ "BINDING TO PORT " <> tshow (appPort settings)
   -- Generate the foundation from the settings
   foundation <- makeFoundation settings
   -- Generate a WAI Application from the foundation
