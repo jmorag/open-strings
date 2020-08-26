@@ -1,4 +1,4 @@
-with (import ./overrides.nix);
+with (import ./nix/overrides.nix);
 let
   pkg = compiler.developPackage {
     root = ./.;
@@ -18,6 +18,6 @@ let
         yesod-bin
       ]);
   };
-  buildInputs = with pkgs; [ libpqxx ngrok ];
+  buildInputs = with pkgs; [ ngrok ];
 in pkg.overrideAttrs
 (attrs: { buildInputs = attrs.buildInputs ++ buildInputs; })

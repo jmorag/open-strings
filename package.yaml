@@ -149,7 +149,7 @@ executables:
     dependencies:
       - fingerdb
     when:
-      - condition: flag(library-only)
+      - condition: (flag(library-only)) || (flag(server-only))
         buildable: false
 
 
@@ -169,6 +169,10 @@ tests:
 flags:
   library-only:
     description: Build for use with "yesod devel"
+    manual: false
+    default: false
+  server-only:
+    description: Build for static deployment with "nix-build"
     manual: false
     default: false
   dev:
