@@ -1,1 +1,1 @@
-web: bin/fingerdb
+web: fingerdb

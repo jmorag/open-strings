@@ -42,6 +42,7 @@ dependencies:
   - text >=0.11 && <2.0
   - time
   - unordered-containers
+  - uri-bytestring
   - validation-selective
   - vector
   - wai

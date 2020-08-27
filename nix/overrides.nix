@@ -29,7 +29,8 @@ let
                   owner = "tolysz";
                   repo = "keter";
                   rev = "db6a104aa252f49f98ee79a1d88b3fb343f4f635";
-                  sha256 = "003ypqmmdbxz9k0ygmm4v0ij8mj8x93a6cjsc054rz6hrrvm488q";
+                  sha256 =
+                    "003ypqmmdbxz9k0ygmm4v0ij8mj8x93a6cjsc054rz6hrrvm488q";
                 }) { };
                 # depends on cryptonite instead of deprecated cipher-aes
                 clientsession = super.callCabal2nix "clientsession"

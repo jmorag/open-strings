@@ -22,6 +22,7 @@ import Data.Aeson
 import Data.FileEmbed (embedFile)
 import Data.Yaml (decodeEither')
 import Database.Persist.Postgresql (PostgresConf)
+import Database.Persist.URL
 import Language.Haskell.TH.Syntax (Exp, Name, Q)
 import Network.Wai.Handler.Warp (HostPreference)
 import Yesod.Default.Config2 (applyEnvValue, configSettingsYml)
@@ -86,7 +87,10 @@ instance FromJSON AppSettings where
           False
 #endif
     appStaticDir <- o .: "static-dir"
-    appDatabaseConf <- o .: "database"
+    appDatabaseConf <- do
+      pool <- o .: "database-pool-size"
+      url <- o .: "database-url"
+      fromDatabaseUrl pool (url :: Text)
     appRoot <- o .:? "approot"
     appHost <- fromString <$> o .: "host"
     appPort <- o .: "port"
