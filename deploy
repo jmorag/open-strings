@@ -3,4 +3,4 @@ rm -f bin/fingerdb
 nix-build -A fingerdb
 cp result/bin/fingerdb bin/
 rm result
-git push (git branch --show-current) heroku
+git push heroku (git branch --show-current)
