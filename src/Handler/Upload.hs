@@ -92,7 +92,7 @@ postAddWorkR =
     Error e -> pure $ object ["error" .= e]
     Success AddWorkParams {..} -> runDB do
       composerId <-
-        insertBy $ (Composer (addUnderscores work_composer) composer_url)
+        insertBy $ Composer (addUnderscores work_composer) (addUnderscores <$> composer_url)
       work <-
         insertUnique $
           Work

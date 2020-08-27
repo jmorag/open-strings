@@ -67,7 +67,7 @@ getIMSLPR imslp = do
       [ "instrumentation" .= findInstrumentation doc,
         "movements" .= findMovements doc,
         "composer" .= composer,
-        "composer_url" .= ("https://imslp.org.wiki/Category:" <> composer),
+        "composer_url" .= ("https://imslp.org/wiki/Category:" <> composer),
         "title" .= title
       ]
   where

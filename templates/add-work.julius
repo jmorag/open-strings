@@ -95,7 +95,7 @@ const vue = new Vue({
       const json = await data.json();
       this.title = json.title;
       this.$refs.autocomplete.value = this.composer = json.composer;
-      this.composer_url = json.composer;
+      this.composer_url = json.composer_url;
       this.instrumentation = json.instrumentation.filter(this.validatePart);
       this.work_movements = json.movements;
     }
