@@ -1,0 +1,6 @@
+#!/usr/bin/env fish
+rm -f bin/fingerdb
+nix-build -A fingerdb
+cp result/bin/fingerdb bin/
+rm result
+git push (git branch --show-current) heroku
