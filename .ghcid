@@ -1,1 +1,1 @@
---command=cabal repl --warnings --test=appMain --restart templates/ --restart config/
+--command="cabal repl -fdev" --warnings --test=appMain --restart templates/ --restart config/

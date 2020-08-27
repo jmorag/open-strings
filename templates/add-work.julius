@@ -5,15 +5,15 @@ const vue = new Vue({
     title: "",
     composer: "",
     composer_id: 0, // TODO: this isn't doing anything here...
+    composer_url: null,
     instrumentation: [],
     work_movements: [],
     imslp: true,
-    composer_url: "",
-    show_composer_url: false,
     show_alert: false,
     alert_message: "",
     loading: false,
     show_success: false,
+    validated: false,
   },
   components: { Autocomplete },
   methods: {
@@ -28,17 +28,6 @@ const vue = new Vue({
       }
       return suggestions;
     },
-    update(results, selectedIndex) {
-      const input_len = this.$refs.autocomplete.value.length;
-      this.show_composer_url =
-        !this.imslp &&
-        results.length === 0 &&
-        !this.composer_id &&
-        input_len >= 2;
-    },
-    getResultValue(result) {
-      return result.label;
-    },
     autocompleteSubmit(e) {
       this.composer = e.label;
       this.composer_id = e.value;
@@ -48,26 +37,30 @@ const vue = new Vue({
       return part.match(regex);
     },
     async add_work(e) {
+      if (!this.instrumentation || !this.composer || !this.title) {
+        this.validated = true;
+        return;
+      }
       const body = {
-        work_url: this.url.trim(),
+        work_url: this.url.trim() || null,
         work_title: this.title.trim(),
         work_composer: this.composer.trim(),
         work_instrumentation: this.instrumentation,
-        work_movements: this.work_movements.map(m => m.trim()),
-        composer_url: this.composer_url || null
+        work_movements: this.work_movements.map((m) => m.trim()),
+        composer_url: this.composer_url,
       };
       this.loading = true;
       const resp = await fetch("@{AddWorkR}", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
       const json = await resp.json();
       this.loading = false;
       if (json.error) {
-          this.show_alert = true
-          this.alert_message = json.error
-          return
+        this.show_alert = true;
+        this.alert_message = json.error;
+        return;
       }
       this.show_success = 2;
     },
@@ -78,14 +71,15 @@ const vue = new Vue({
       this.work_movements = [];
       this.imslp = true;
       this.show_alert = this.show_success = false;
+      this.validated = false;
     },
     reset(e) {
       this.clear();
       this.url = "";
-    }
+    },
   },
   watch: {
-    url: async function(url) {
+    url: async function (url) {
       this.clear();
       if (!url.includes("imslp.org")) {
         this.imslp = false;
@@ -98,6 +92,6 @@ const vue = new Vue({
       this.composer_url = json.composer_url;
       this.instrumentation = json.instrumentation.filter(this.validatePart);
       this.work_movements = json.movements;
-    }
-  }
+    },
+  },
 });

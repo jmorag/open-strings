@@ -1,36 +1,32 @@
 <div ##{addWorkId}>
   <b-alert v-bind:show="show_alert" variant="danger" dismissible @dismissed="reset">
     {{ alert_message }}
-  <form v-on:submit.prevent="add_work" v-on:reset.prevent="reset">
-    <b-form-group .required>
+  <b-form v-on:submit.prevent="add_work" v-on:reset.prevent="reset" novalidate>
+    <b-form-group>
       <b-form-group>
         <label for="piece-url">URL
         <b-form-input type="url" #piece-url v-model="url" placeholder="URL" autofocus
-          autocomplete="on" v-bind:formatter="decodeURI" autofocus>
-        <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter it's url. If not, a Wikipedia or composer page will do.
-      <b-form-group v-bind:disabled="!url">
+          autocomplete="on" v-bind:formatter="decodeURI" >
+        <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. If not, leave this blank.
+      <b-form-group v-bind:validated="validated">
         <b-form-row>
           <b-form-group .col>
             <label for="piece-title">Title
-            <b-form-input type="text" #piece-title v-model="title" placeholder="Title">
+            <b-form-input type="text" autocomplete="off" #piece-title v-model="title" placeholder="Title" required>
           <b-form-group .col>
             <label for="piece-composer">Composer
             <autocomplete
+              required
               ref="autocomplete"
               #piece-composer
               @submit="autocompleteSubmit"
-              @update="update"
               placeholder="Composer"
               auto-select
               v-bind:debounce-time="300"
-              v-bind:get-result-value="getResultValue"
+              v-bind:get-result-value="result => result.label"
               v-bind:search="search"
               >
-            <small for="piece-composer" v-if="show_composer_url">Please enter the composer as <em>last-name</em>, <em>first-name</em> <em>middle-name</em>.
-        <b-form-group v-if="show_composer_url">
-          <label for="composer-url">Composer not found in the database. Please add a link to their website or wikipedia page.
-          <b-form-input type="url" #composer-url v-model="composer_url"
-            v-bind:formatter="decodeURI">
+            <small for="piece-composer">Enter the composer as <em>last-name</em>, <em>first-name</em> <em>middle-name</em>.
         <b-form-row>
           <b-form-group .col>
             <label for="piece-movements">Movements
@@ -43,6 +39,7 @@
           <b-form-group .col>
             <label #instrumentation-label for="piece-instrumentation">Instrumentation <span style='color: #007bff'>(?)</span>
             <b-form-tags
+              v-bind:state="validated ? instrumentation.length > 0 : null"
               ref="instrumentationInput"
               v-model="instrumentation"
               input-id="piece-instrumentation"
@@ -53,6 +50,7 @@
               invalid-tag-text="Unsupported part"
               duplicate-tag-text="Part already entered"
               >
+            <b-form-invalid-feedback>Piece must have at least one part
             <b-popover #instrumentation-info triggers="hover" noninteractive target="instrumentation-label">
                 <template v-slot:title>
                 Enter string parts separated by commas, ex. #
@@ -68,7 +66,6 @@
                 \ for a string quartet.
       <b-form-group>
         <b-overlay v-bind:show="loading" rounded="sm">
-          <b-button v-bind:disabled="!url || !title || !composer || !instrumentation"
-            variant="primary" type="submit">Add work to database
-          <b-button variant="secondary" type="reset" v-bind:disabled="!url">Clear
+          <b-button variant="primary" type="submit">Add work to database
+          <b-button variant="secondary" type="reset">Clear
   <b-alert v-bind:show="show_success" variant="success" dismissible @dismissed="reset">Successfully added work!

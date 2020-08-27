@@ -72,7 +72,7 @@ getAddWorkR = defaultLayout do
   $(widgetFile "add-work")
 
 data AddWorkParams = AddWorkParams
-  { work_url :: !Text,
+  { work_url :: !(Maybe Text),
     work_title :: !Text,
     work_composer :: !Text,
     work_instrumentation :: !(Set Part),
@@ -97,7 +97,7 @@ postAddWorkR =
         insertUnique $
           Work
             (addUnderscores work_title)
-            (Just work_url)
+            work_url
             work_instrumentation
             (either entityKey id composerId)
       case work of

@@ -113,8 +113,8 @@ LANGUAGE SQL
 AS $$
 SELECT translate(
     $1,
-    'àáâãäåāăąÁÂÃÄÅĀĂĄçÇèééêëēĕėęěĒĔĖĘĚìíîïìĩīĭÌÍÎÏÌĨĪĬñÑóòôõöōŏőÒÓÔÕÖŌŎŐřùúûüũūŭůÙÚÛÜŨŪŬŮýÿŷȳẏÝŸŶȲẎźżžŹŻŽ',
-    'aaaaaaaaaaaaaaaaacceeeeeeeeeeeeeeeiiiiiiiiiiiiiiiinnooooooooooooooooruuuuuuuuuuuuuuuuyyyyyyyyyyzzzzzz'
+    'àáâãäåāăąÁÂÃÄÅĀĂĄçÇèééêëēĕėęěĒĔĖĘĚìíîïìĩīĭÌÍÎÏÌĨĪĬłŁñÑóòôõöōŏőÒÓÔÕÖŌŎŐřùúûüũūŭůÙÚÛÜŨŪŬŮýÿŷȳẏÝŸŶȲẎźżžŹŻŽ',
+    'aaaaaaaaaaaaaaaaacceeeeeeeeeeeeeeeiiiiiiiiiiiiiiiillnnooooooooooooooooruuuuuuuuuuuuuuuuyyyyyyyyyyzzzzzz'
 );
 $$; |]
         []
