@@ -4,12 +4,10 @@ module Database.Persist.URL
 where
 
 import ClassyPrelude hiding (uncons)
-import Control.Monad (unless)
 import Control.Monad.Fail (MonadFail, fail)
 import Data.Aeson.Types (Parser)
-import Data.ByteString (ByteString, uncons)
+import Data.ByteString (uncons)
 import qualified Data.ByteString.Char8 as Char8
-import Data.Monoid ((<>))
 import Data.String.Conversions (ConvertibleStrings (..))
 import Data.String.Conversions.Monomorphic (toStrictByteString)
 import Database.Persist.Postgresql (PostgresConf (..))
