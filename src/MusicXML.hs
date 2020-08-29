@@ -46,15 +46,16 @@ isFingering e = (e ^? _Element . name) `elem` [Just "fingering", Just "string"]
 
 -- | Shift measure numbers to start at the given point
 adjustMeasures :: Int -> Document -> Document
-adjustMeasures beg = over (root . measureNumbers) (+ (beg - 1))
+adjustMeasures beg = iset (root . measureNumbers) (+ beg)
 
-measureNumbers :: Traversal' Element Int
+measureNumbers :: IndexedTraversal' Int Element Int
 measureNumbers =
-  deep (el "measure")
-    . filtered (\measure -> measure ^? attr "implicit" /= Just "yes")
-    . attr "number"
-    . unpacked
-    . _Show
+  indexing $
+    deep (el "measure")
+      . filtered (\measure -> measure ^? attr "implicit" /= Just "yes")
+      . attr "number"
+      . unpacked
+      . _Show
 
 --------------------------------------------------------------------------------
 -- repl utils

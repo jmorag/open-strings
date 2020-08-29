@@ -114,7 +114,7 @@ const vue = new Vue({
         const reader = new FileReader();
         reader.readAsText(file);
         reader.onload = async ({ target: { result } }) => {
-          await this.editor.render(result);
+          await this.editor.render(result, this.start_measure);
           this.show_editor = true;
           this.disable_submit = false;
         };

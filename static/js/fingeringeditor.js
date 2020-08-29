@@ -30,7 +30,7 @@ class FingeringEditor {
       case "4":
         return "IV";
     }
-    return "NOSTRING";
+    return "X";
   }
 
   static romanToArabic(n) {
@@ -57,7 +57,7 @@ class FingeringEditor {
       const n = this.constructor.romanToArabic(
         string_lyric.firstElementChild.textContent
       );
-      if (n !== "NOSTRING") {
+      if (n !== "X") {
         let string_node = string_lyric.parentNode.querySelector(
           "notations>technical>string"
         );
@@ -93,12 +93,22 @@ class FingeringEditor {
     return xml;
   }
 
-  static parse_xml(xml_string) {
+  static parse_xml(xml_string, offset) {
     const parser = new DOMParser();
     const xml = parser.parseFromString(xml_string, "application/xml");
-    xml.querySelectorAll("note").forEach(note => {
+    // adjust measure numbers
+    xml.querySelectorAll("measure").forEach((measure, i) => {
+      if (measure.getAttribute("implicit") !== "yes") {
+        measure.setAttribute("number", offset + i + 1);
+      }
+    });
+
+    const notes = xml.querySelectorAll("note");
+    let lyric_level = 1;
+    for (let i = notes.length - 1; i >= 0; i--) {
+      let note = notes[i];
       if (note.querySelector("rest")) {
-        return;
+        continue;
       }
       // OSMD doesn't display string numbers so we display them as lyrics instead
       const lyric = xml.createElement("lyric");
@@ -110,6 +120,12 @@ class FingeringEditor {
         note.querySelector("notations>technical>string")?.textContent
       );
       note.appendChild(lyric);
+      lyric.setAttribute("number", lyric_level);
+      if (!!note.querySelector("chord")) {
+        lyric_level++;
+      } else {
+        lyric_level = 1;
+      }
 
       // add -1 fingerings to unfingered notes
       if (note.querySelector("notations") === null) {
@@ -131,7 +147,7 @@ class FingeringEditor {
         fingering.appendChild(xml.createTextNode("-1"));
         note.querySelector("notations>technical").appendChild(fingering);
       }
-    });
+    }
     return xml;
   }
 
@@ -153,14 +169,13 @@ class FingeringEditor {
     let i = 0;
     this.svg_strings = [];
     svg.querySelectorAll("svg>text").forEach(s => {
-      if (["I", "II", "III", "IV", "NOSTRING"].contains(s.textContent)) {
+      if (["I", "II", "III", "IV", "X"].contains(s.textContent)) {
         s.setAttribute("index", i);
-        s.textContent === "NOSTRING" && s.setAttribute("visibility", "hidden");
+        s.textContent === "X" && s.setAttribute("visibility", "hidden");
         this.svg_strings.push(s);
       }
     });
   }
-
   set_noteheads(svg) {
     let i = 0;
     this.svg_noteheads = [];
@@ -191,6 +206,7 @@ class FingeringEditor {
   }
 
   setFinger(n) {
+    console.log("Setting finger ", this.index, " to ", n);
     let finger = this.svg_fingerings[this.index];
     finger.textContent = n;
     this.xml.querySelectorAll("fingering")[this.index].textContent = n;
@@ -209,7 +225,7 @@ class FingeringEditor {
       this.index
     ].textContent = string_num;
 
-    if (n === "NOSTRING") {
+    if (n === "X") {
       string.setAttribute("visibility", "hidden");
     } else {
       string.removeAttribute("visibility");
@@ -229,7 +245,7 @@ class FingeringEditor {
       finger.textContent = "-1";
     });
     this.xml.querySelectorAll("lyric.string>text").forEach(string_lyric => {
-      string_lyric.textContent = "NOSTRING";
+      string_lyric.textContent = "X";
     });
     this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
     this.svg_noteheads[0].setAttribute("fill", this.focused);
@@ -238,6 +254,7 @@ class FingeringEditor {
 
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
+    console.log(e);
     switch (e.key) {
       case "ArrowRight":
         this.next();
@@ -272,7 +289,7 @@ class FingeringEditor {
         break;
       case "Backspace":
         this.setFinger("-1");
-        this.setString("NOSTRING");
+        this.setString("X");
         break;
       case "!":
         this.setString("I");
@@ -320,9 +337,10 @@ class FingeringEditor {
     window.addEventListener("mouseup", this.handleClick);
   }
 
-  async render(xml_string) {
+  async render(xml_string, start_measure) {
     this.index = 0;
-    this.xml = this.constructor.parse_xml(xml_string);
+    const offset = parseInt(start_measure, 10) - 1 || 0;
+    this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);
     window.removeEventListener("mouseup", this.handleClick);
     const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(
@@ -330,13 +348,14 @@ class FingeringEditor {
       {
         autoResize: true,
         backend: "svg",
-        drawingParameters: "compact",
+        drawingParameters: "compacttight",
         drawPartNames: false,
         drawTitle: false,
         drawFingerings: true,
         fingeringPosition: "left",
         setWantedStemDirectionByXml: true,
-        drawMeasureNumbers: false,
+        drawMeasureNumbers: true,
+        useXMLMeasureNumbers: true,
         autoBeam: false,
         pageFormat: "Endless"
       }

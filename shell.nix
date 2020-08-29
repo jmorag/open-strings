@@ -9,7 +9,7 @@ let
         dhall
         dhall-lsp-server
         ghcid
-        haskell-language-server
+        ghcide
         hlint
         hoogle
         implicit-hie
