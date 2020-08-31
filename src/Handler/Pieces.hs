@@ -93,7 +93,7 @@ getEntriesR workId = do
             entry ^. EntryMeasure_start,
             entry ^. EntryMeasure_end,
             entry ^. EntryDescription,
-            user ^. UserName,
+            user ^. UserIdent,
             entry ^. EntryCreatedAt,
             entry ^. EntryId
           )

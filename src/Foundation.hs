@@ -19,6 +19,7 @@ import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
 import Model.UserType
 import Network.Mail.Mime
+import Network.Mail.Mime.SES
 import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Hamlet (hamletFile)
 import Text.Jasmine (minifym)
@@ -362,10 +363,21 @@ instance YesodAuthEmail App where
     -- debugging.
     liftIO $ putStrLn $ "Copy/ Paste this URL in your browser:" ++ verurl
 
+    settings <- appSettings <$> getYesod
+
     -- Send email.
     liftIO $
-      renderSendMail
-        (emptyMail $ Address Nothing "noreply")
+      renderSendMailSESGlobal
+        ( SES
+            { sesFrom = "sefim96@gmail.com",
+              sesTo = [encodeUtf8 email],
+              sesAccessKey = appAwsAccessKey settings,
+              sesSecretKey = appAwsSecretKey settings,
+              sesSessionToken = Nothing,
+              sesRegion = usEast1
+            }
+        )
+        (emptyMail $ Address Nothing "sefim96@gmail.com")
           { mailTo = [Address Nothing email],
             mailHeaders =
               [ ("Subject", "Verify your email address")
@@ -382,12 +394,12 @@ instance YesodAuthEmail App where
               PartContent $
                 encodeUtf8
                   [stext|
-                    Please confirm your email address by clicking on the link below.
+Thank you for siging up for Mignolo! Please confirm your email address by clicking on the link below.
 
-                    #{verurl}
+#{verurl}
 
-                    Thank you
-                |],
+Thank you
+|],
             partHeaders = []
           }
       htmlPart =
@@ -399,7 +411,7 @@ instance YesodAuthEmail App where
               PartContent $
                 renderHtml
                   [shamlet|
-                    <p>Please confirm your email address by clicking on the link below.
+                    <p>Thank you for siging up for Mignolo! Please confirm your email address by clicking on the link below.
                     <p>
                         <a href=#{verurl}>#{verurl}
                     <p>Thank you

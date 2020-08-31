@@ -73,8 +73,12 @@ data AppSettings = AppSettings
     -- | Google oauth2 params
     appGoogleOauthClientId :: Text,
     appGoogleOauthClientSecret :: Text,
+    -- | Github oauth2 params
     appGithubOauthClientId :: Text,
-    appGithubOauthClientSecret :: Text
+    appGithubOauthClientSecret :: Text,
+    -- | AWS Keys
+    appAwsAccessKey :: ByteString,
+    appAwsSecretKey :: ByteString
   }
 
 
@@ -114,6 +118,8 @@ instance FromJSON AppSettings where
     appGoogleOauthClientSecret <- o .: "google-oauth2-client-secret"
     appGithubOauthClientId <- o .: "github-oauth2-client-id"
     appGithubOauthClientSecret <- o .: "github-oauth2-client-secret"
+    appAwsAccessKey <- encodeUtf8 <$> o .: "aws-access-key"
+    appAwsSecretKey <- encodeUtf8 <$> o .: "aws-secret-key"
 
     return AppSettings {..}
 
