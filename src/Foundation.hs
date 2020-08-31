@@ -17,11 +17,15 @@ import qualified Data.CaseInsensitive as CI
 import qualified Data.Text.Encoding as TE
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
-import Model.Parts
+import Model.UserType
+import Network.Mail.Mime
+import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
 import Text.Hamlet (hamletFile)
 import Text.Jasmine (minifym)
 import Text.Julius (RawJS (rawJS))
+import Text.Shakespeare.Text (stext)
 import Yesod.Auth.Dummy
+import Yesod.Auth.Email
 import Yesod.Auth.OAuth2
 import Yesod.Auth.OAuth2.GitHub
 import Yesod.Auth.OAuth2.Google
@@ -101,7 +105,7 @@ instance Yesod App where
   -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
   -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
   yesodMiddleware :: ToTypedContent res => Handler res -> Handler res
-  yesodMiddleware = defaultYesodMiddleware
+  yesodMiddleware = defaultCsrfMiddleware . defaultYesodMiddleware
 
   defaultLayout :: Widget -> Handler Html
   defaultLayout widget = do
@@ -138,6 +142,12 @@ instance Yesod App where
               MenuItem
                 { menuItemLabel = "Login",
                   menuItemRoute = AuthR LoginR,
+                  menuItemAccessCallback = isNothing muser
+                },
+            NavbarRight $
+              MenuItem
+                { menuItemLabel = "Reset Password",
+                  menuItemRoute = AuthR forgotPasswordR,
                   menuItemAccessCallback = isNothing muser
                 },
             NavbarRight $
@@ -270,6 +280,7 @@ instance YesodAuth App where
     (MonadHandler m, HandlerSite m ~ App) => Creds App -> m (AuthenticationResult App)
   authenticate creds = liftHandler $ do
     runDB $ do
+      print creds
       x <- getBy $ UniqueUser $ credsIdent creds
       case x of
         Just (Entity uid _) -> return $ Authenticated uid
@@ -277,16 +288,25 @@ instance YesodAuth App where
           now <- liftIO getCurrentTime
           let extract traversal =
                 getUserResponseJSON @Value creds ^? _Right . traversal . _String
-          Authenticated
-            <$> insert
-              User
-                { userIdent = credsIdent creds,
-                  userPassword = Nothing,
-                  userEmail = extract (key "email"),
-                  userName = extract (key "name"),
-                  userPicture = extract $ failing (key "picture") (key "avatar_url"),
-                  userCreatedAt = now
-                }
+          uid <- insert $ User (credsIdent creds) (if credsPlugin creds == "email-verify" then Email else OAuth) now
+          case credsPlugin creds of
+            "email-verify" ->
+              Authenticated uid
+                <$ insert_
+                  (EmailUser Nothing Nothing False uid)
+            oauth ->
+              Authenticated uid
+                <$ insert_
+                  OAuthUser
+                    { oAuthUserUserId = uid,
+                      oAuthUserEmail = extract (key "email"),
+                      oAuthUserName = extract (key "name"),
+                      oAuthUserPicture = extract $
+                        key $ case oauth of
+                          "google" -> "picture"
+                          "github" -> "avatar_url"
+                          _ -> error "Unknown oauth plugin"
+                    }
 
   -- You can add other plugins like Google Email, email or OAuth here
   authPlugins :: App -> [AuthPlugin App]
@@ -295,14 +315,17 @@ instance YesodAuth App where
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
         (appGoogleOauthClientSecret (appSettings app)),
-      oauth2GitHub
-        (appGithubOauthClientId (appSettings app))
-        (appGithubOauthClientSecret (appSettings app))
+      -- oauth2GitHub
+      --   (appGithubOauthClientId (appSettings app))
+      --   (appGithubOauthClientSecret (appSettings app)),
+      authEmail
     ]
-      ++ extraAuthPlugins
     where
-      -- Enable authDummy login if enabled.
-      extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+
+-- ++ extraAuthPlugins
+
+-- Enable authDummy login if enabled.
+-- extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
 
 -- | Access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
@@ -313,6 +336,123 @@ isAuthenticated = do
     Just _ -> Authorized
 
 instance YesodAuthPersist App
+
+instance YesodAuthEmail App where
+  type AuthEmailId App = UserId
+  afterPasswordRoute _ = HomeR
+
+  addUnverified email verkey =
+    liftIO getCurrentTime >>= \now -> liftHandler $ runDB do
+      uid <- insert $ User email Email now
+      insert_ $
+        EmailUser
+          { emailUserUserId = uid,
+            emailUserPassword = Nothing,
+            emailUserVerkey = Just verkey,
+            emailUserVerified = False
+          }
+      pure uid
+
+  checkPasswordSecurity _ x =
+    pure $
+      if length x >= 10 then Right () else Left "Password must be at least ten characters"
+
+  sendVerifyEmail email _ verurl = do
+    -- Print out to the console the verification email, for easier
+    -- debugging.
+    liftIO $ putStrLn $ "Copy/ Paste this URL in your browser:" ++ verurl
+
+    -- Send email.
+    liftIO $
+      renderSendMail
+        (emptyMail $ Address Nothing "noreply")
+          { mailTo = [Address Nothing email],
+            mailHeaders =
+              [ ("Subject", "Verify your email address")
+              ],
+            mailParts = [[textPart, htmlPart]]
+          }
+    where
+      textPart =
+        Part
+          { partType = "text/plain; charset=utf-8",
+            partEncoding = None,
+            partDisposition = DefaultDisposition,
+            partContent =
+              PartContent $
+                encodeUtf8
+                  [stext|
+                    Please confirm your email address by clicking on the link below.
+
+                    #{verurl}
+
+                    Thank you
+                |],
+            partHeaders = []
+          }
+      htmlPart =
+        Part
+          { partType = "text/html; charset=utf-8",
+            partEncoding = None,
+            partDisposition = DefaultDisposition,
+            partContent =
+              PartContent $
+                renderHtml
+                  [shamlet|
+                    <p>Please confirm your email address by clicking on the link below.
+                    <p>
+                        <a href=#{verurl}>#{verurl}
+                    <p>Thank you
+                |],
+            partHeaders = []
+          }
+  getVerifyKey =
+    liftHandler . runDB
+      . fmap
+        (join . fmap (emailUserVerkey . entityVal))
+      . getBy
+      . UniqueEmailUserId
+
+  setVerifyKey uid key = liftHandler $ runDB do
+    emailUser <- getBy404 (UniqueEmailUserId uid)
+    update (entityKey emailUser) [EmailUserVerkey =. Just key]
+
+  verifyAccount uid = liftHandler $
+    runDB $ do
+      mu <- getBy (UniqueEmailUserId uid)
+      case mu of
+        Nothing -> return Nothing
+        Just u -> do
+          update (entityKey u) [EmailUserVerified =. True, EmailUserVerkey =. Nothing]
+          return $ Just uid
+
+  getPassword =
+    liftHandler . runDB
+      . fmap
+        (join . fmap (emailUserPassword . entityVal))
+      . getBy
+      . UniqueEmailUserId
+  setPassword uid pass = liftHandler . runDB $ do
+    emailUser <- getBy404 (UniqueEmailUserId uid)
+    update (entityKey emailUser) [EmailUserPassword =. Just pass]
+
+  getEmailCreds email = liftHandler $
+    runDB $ do
+      mu <- getBy $ UniqueUser email
+      case mu of
+        Nothing -> return Nothing
+        Just (Entity uid _) -> do
+          (Entity _ u) <- getBy404 (UniqueEmailUserId uid)
+          return $
+            Just
+              EmailCreds
+                { emailCredsId = uid,
+                  emailCredsAuthId = Just uid,
+                  emailCredsStatus = isJust $ emailUserPassword u,
+                  emailCredsVerkey = emailUserVerkey u,
+                  emailCredsEmail = email
+                }
+  getEmail = liftHandler . runDB . fmap (fmap userIdent) . get
 
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.

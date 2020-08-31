@@ -4,6 +4,7 @@ version: "0.0.0"
 dependencies:
   - aeson >=1.4 && <1.5
   - base >=4.9.1.0 && <5
+  - blaze-html
   - bytestring >=0.10 && <0.11
   - case-insensitive
   - classy-prelude >=1.5 && <1.6
@@ -29,6 +30,7 @@ dependencies:
   - lens
   - lens-aeson
   - lens-regex-pcre
+  - mime-mail
   - monad-control >=0.3 && <1.1
   - monad-logger >=0.3 && <0.4
   - persistent >=2.9 && <2.11

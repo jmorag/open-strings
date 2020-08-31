@@ -1,14 +1,29 @@
 -- By default this file is used by `persistFileWith` in Model.hs (which is imported by Foundation.hs)
 -- Syntax for this file here: https://github.com/yesodweb/persistent/blob/master/docs/Persistent-entity-syntax.md
 
-User
-  ident Text
-  password Text Maybe
+User sql=users
+  ident Text -- identifier if OAuthUser and email if EmailUser
+  type UserType
+  UniqueUser ident
+  createdAt UTCTime
+  deriving Typeable
+  deriving Show
+
+OAuthUser
   picture Text Maybe
   name Text Maybe
   email Text Maybe
-  createdAt UTCTime
-  UniqueUser ident
+  userId UserId
+  UniqueOAuthUserId userId
+  deriving Typeable
+  deriving Show
+
+EmailUser
+  password Text Maybe
+  verkey Text Maybe
+  verified Bool
+  userId UserId
+  UniqueEmailUserId userId
   deriving Typeable
   deriving Show
 
