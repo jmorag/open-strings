@@ -127,22 +127,16 @@ instance Yesod App where
                   menuItemRoute = HomeR,
                   menuItemAccessCallback = True
                 },
-            NavbarLeft $
-              MenuItem
-                { menuItemLabel = "Fingerings",
-                  menuItemRoute = UploadR,
-                  menuItemAccessCallback = True
-                },
-            NavbarLeft $
-              MenuItem
-                { menuItemLabel = "Add work",
-                  menuItemRoute = AddWorkR,
-                  menuItemAccessCallback = True
-                },
             NavbarRight $
               MenuItem
                 { menuItemLabel = "Login",
                   menuItemRoute = AuthR LoginR,
+                  menuItemAccessCallback = isNothing muser
+                },
+            NavbarRight $
+              MenuItem
+                { menuItemLabel = "Sign Up",
+                  menuItemRoute = AuthR registerR,
                   menuItemAccessCallback = isNothing muser
                 },
             NavbarRight $
@@ -201,7 +195,6 @@ instance Yesod App where
   isAuthorized (AuthR _) _ = return Authorized
   isAuthorized ComposersR _ = return Authorized
   isAuthorized WorksR _ = return Authorized
-  isAuthorized (MovementsR _) _ = return Authorized
   isAuthorized HomeR _ = return Authorized
   isAuthorized FaviconR _ = return Authorized
   isAuthorized RobotsR _ = return Authorized

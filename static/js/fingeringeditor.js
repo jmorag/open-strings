@@ -97,12 +97,13 @@ class FingeringEditor {
     const parser = new DOMParser();
     const xml = parser.parseFromString(xml_string, "application/xml");
     // adjust measure numbers
-    xml.querySelectorAll("measure").forEach((measure, i) => {
-      if (measure.getAttribute("implicit") !== "yes") {
-        measure.setAttribute("number", offset + i + 1);
-      }
-    });
-
+    if (offset) {
+      xml.querySelectorAll("measure").forEach((measure, i) => {
+        if (measure.getAttribute("implicit") !== "yes") {
+          measure.setAttribute("number", offset + i + 1);
+        }
+      });
+    }
     const notes = xml.querySelectorAll("note");
     let lyric_level = 1;
     for (let i = notes.length - 1; i >= 0; i--) {
@@ -339,7 +340,7 @@ class FingeringEditor {
 
   async render(xml_string, start_measure) {
     this.index = 0;
-    const offset = parseInt(start_measure, 10) - 1 || 0;
+    const offset = parseInt(start_measure, 10) - 1;
     this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);
     window.removeEventListener("mouseup", this.handleClick);
@@ -354,8 +355,8 @@ class FingeringEditor {
         drawFingerings: true,
         fingeringPosition: "left",
         setWantedStemDirectionByXml: true,
-        drawMeasureNumbers: true,
-        useXMLMeasureNumbers: true,
+        drawMeasureNumbers: !!start_measure,
+        useXMLMeasureNumbers: !!start_measure,
         autoBeam: false,
         pageFormat: "Endless"
       }

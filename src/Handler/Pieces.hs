@@ -6,7 +6,7 @@ import Database.Esqueleto hiding (Value)
 import qualified Database.Esqueleto as E
 import Database.Esqueleto.Internal.Sql (unsafeSqlFunction)
 import Import hiding ((==.))
-import Model.Parts
+import Model.UserType
 
 getComposersR :: Handler Value
 getComposersR = do
@@ -20,9 +20,6 @@ getComposersR = do
     composerObject (E.Value key, E.Value comp) =
       object
         ["label" .= replaceUnderscores comp, "value" .= key]
-
-replaceUnderscores :: Text -> Text
-replaceUnderscores = T.map \case '_' -> ' '; c -> c
 
 getWorksR :: Handler Value
 getWorksR = do
@@ -52,39 +49,42 @@ fuzzy t = (%) ++. val t ++. (%)
 unaccent :: SqlString s => SqlExpr (E.Value s) -> SqlExpr (E.Value s)
 unaccent = unsafeSqlFunction "unaccent_string"
 
-getMovementsR :: Int64 -> Handler Value
-getMovementsR workId = do
-  (work :: Maybe Work, movements) <-
+workData :: Int64 -> Handler (Value, Value)
+workData workId = do
+  (work, movements) <-
     runDB $
       liftA2
         (,)
-        ( get (fromBackendKey (SqlBackendKey workId))
-        )
+        (get (fromBackendKey (SqlBackendKey workId)))
         ( select $
             from $ \(work `InnerJoin` movement) -> do
               E.on (work ^. WorkId ==. movement ^. MovementWorkId)
               where_ (work ^. WorkId ==. valkey workId)
               orderBy [asc (movement ^. MovementNumber)]
-              pure (movement ^. MovementId, movement ^. MovementNumber, movement ^. MovementName)
+              pure movement
         )
-  pure $
-    object
-      [ "parts" .= maybe emptyArray (toJSON . workInstrumentation) work,
-        "movements" .= array (map jsonMovement movements)
-      ]
+  pure
+    ( maybe emptyArray (toJSON . workInstrumentation) work,
+      array (map jsonMovement movements)
+    )
   where
-    jsonMovement (E.Value key, E.Value i, E.Value movement) =
-      object ["text" .= (tshow i <> ". " <> movement), "value" .= key]
+    jsonMovement (Entity key Movement {..}) =
+      object ["text" .= (tshow movementNumber <> ". " <> movementName), "value" .= key]
 
 getEntriesR :: Int64 -> Handler Value
 getEntriesR workId = do
   entries <- runDB $
     select $
-      from $ \(user `InnerJoin` entry `InnerJoin` movement) -> do
+      from $ \(user `InnerJoin` entry `InnerJoin` movement `InnerJoin` oauth) -> do
         E.on (entry ^. EntryUploadedBy ==. user ^. UserId)
         E.on (entry ^. EntryMovementId ==. movement ^. MovementId)
+        E.on (oauth ^. OAuthUserUserId ==. user ^. UserId)
         where_ (movement ^. MovementWorkId ==. valkey workId)
-        orderBy [asc (entry ^. EntryMeasure_start)]
+        orderBy
+          [ asc (movement ^. MovementNumber),
+            asc (entry ^. EntryPart),
+            asc (entry ^. EntryMeasure_start)
+          ]
         pure
           ( movement ^. MovementNumber,
             movement ^. MovementName,
@@ -93,7 +93,8 @@ getEntriesR workId = do
             entry ^. EntryMeasure_start,
             entry ^. EntryMeasure_end,
             entry ^. EntryDescription,
-            user ^. UserIdent,
+            user,
+            oauth ^. OAuthUserName,
             entry ^. EntryCreatedAt,
             entry ^. EntryId
           )
@@ -106,20 +107,24 @@ getEntriesR workId = do
            E.Value start,
            E.Value end,
            E.Value description,
-           E.Value user,
+           (Entity _ user),
+           E.Value oauth,
            E.Value time,
            E.Value entryId
            ) ->
-            object
-              [ "movement" .= (tshow movementNum <> ". " <> movement),
-                "part" .= part,
-                "measures" .= (tshow start <> " - " <> tshow end),
-                "start_measure" .= start,
-                "description" .= description,
-                "uploaded_by" .= object ["user" .= user, "time" .= time],
-                "movement_id" .= movementId,
-                "entry_id" .= entryId
-              ]
+            let u = case userType user of
+                  Email -> takeWhile (/= '@') $ userIdent user
+                  OAuth -> fromMaybe "Anonymous" oauth
+             in object
+                  [ "movement" .= (tshow movementNum <> ". " <> movement),
+                    "part" .= part,
+                    "measures" .= (tshow start <> " - " <> tshow end),
+                    "start_measure" .= start,
+                    "description" .= description,
+                    "uploaded_by" .= object ["user" .= u, "time" .= time],
+                    "movement_id" .= movementId,
+                    "entry_id" .= entryId
+                  ]
       )
       entries
 

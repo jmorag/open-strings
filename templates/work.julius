@@ -1,13 +1,12 @@
 const vue = new Vue({
-  el: "##{rawJS uploadId}",
+  el: "##{rawJS wId}",
   data: {
-    show_add_work_link: false,
-    work_id: 0,
-    movement_id: 0,
+    work_id: #{jsWorkId},
     start_measure: "", // usually a number, but should be displayed as empty on paint
-    movements: [],
-    parts: [],
-    part: "",
+    movements: #{movements},
+    movement_id: (#{movements})[0].value,
+    parts: #{parts},
+    part: (#{parts})[0],
     xml_file: null,
     table_fields: [
       "movement",
@@ -22,52 +21,25 @@ const vue = new Vue({
         }
       }
     ],
-    entries: [],
+    entries: #{entries},
     editor: new FingeringEditor(#{renderId}),
     description: "",
     loading: false,
     show_alert: false,
     alert_message: "",
     show_success: false,
+    disable_change_start: false,
     disable_submit: true,
     show_editor: false,
     show_instructions: false,
+    validated: false,
   },
-  components: { Autocomplete },
   methods: {
-    async search(input) {
-      if (input.length < 2) {
-        return [];
-      }
-      const data = await fetch(`@{WorksR}?term=${input}`);
-      const suggestions = await data.json();
-      return suggestions;
-    },
-    update(results, _selectedIndex) {
-      if (this.$refs.autocomplete.value.length < 2) {
-        this.work_id = 0;
-        this.movements = [];
-        this.parts = [];
-      }
-      this.show_add_work_link =
-        results.length === 0 &&
-        !this.work_id &&
-        this.$refs.autocomplete.value.length >= 2;
-    },
-    getResultValue(result) {
-      return result.label;
-    },
-    async autocompleteSubmit({ value }) {
-      this.show_add_work_link = false;
-      this.work_id = value;
-      const data = await fetch(`/api/movements/${value}`);
-      const json = await data.json();
-      this.movements = json.movements;
-      this.movement_id = json.movements[0].value;
-      this.parts = json.parts;
-      this.part = json.parts[0];
-    },
     async submit(e) {
+      if (!this.start_measure || !this.description) {
+        this.validated = true;
+        return
+      }
       const s = new XMLSerializer();
       const body = {
         movement_id: this.movement_id,
@@ -79,7 +51,7 @@ const vue = new Vue({
       this.loading = true;
       const resp = await fetch("@{UploadR}", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
         body: JSON.stringify(body)
       });
       const json = await resp.json();
@@ -96,6 +68,7 @@ const vue = new Vue({
       }
     },
     async fetchXml(item, _index, _event) {
+      this.xml_file = null
       this.movement_id = item.movement_id;
       this.part = item.part;
       this.start_measure = item.start_measure;
@@ -124,27 +97,21 @@ const vue = new Vue({
       }
     },
     clear() {
-      this.work_id = 0;
-      this.movement_id = 0;
-      this.start_measure = 1;
-      this.movements = [];
+      this.start_measure = "";
       this.xml_file = null;
-      this.$refs.autocomplete.value = "";
-      this.show_add_work_link = false;
       this.show_editor = false;
       this.editor.clear();
+      this.$refs.table.clearSelected();
     },
     async fetchEntries() {
-      const resp = await fetch(`/api/entries/${this.work_id}`);
+      const resp = await fetch("@{EntriesR work_key}");
       this.entries = await resp.json();
     }
   },
   watch: {
-    movement_id: async function() {
-      await this.fetchEntries();
+    xml_file: function (val) {
+      this.$refs.table.clearSelected();
+      this.renderXml(val);
     },
-    part: async function() {
-      await this.fetchEntries();
-    }
   }
 });

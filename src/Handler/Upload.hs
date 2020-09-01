@@ -4,10 +4,8 @@ module Handler.Upload where
 
 import Control.Lens hiding ((.=))
 import Data.Aeson.Types
-import Data.Char
-import qualified Data.Text as T
-import Database.Esqueleto hiding (Value)
-import qualified Database.Esqueleto as E
+import Database.Esqueleto (fromSqlKey, toSqlKey)
+import Handler.Pieces
 import Import
 import Model.Parts
 import MusicXML
@@ -49,24 +47,9 @@ postUploadR =
             description
         pure $ object ["success" .= True]
 
-getUploadR :: Handler Html
-getUploadR = do
-  user_id <- maybeAuthId
-  defaultLayout do
-    addScript (StaticR js_opensheetmusicdisplay_min_js)
-    addScript (StaticR js_fingeringeditor_js)
-    addAutocomplete
-    uploadId <- newIdent
-    renderId <- newIdent
-    $(widgetFile "upload-fingering")
-
-addAutocomplete :: WidgetFor App ()
-addAutocomplete = do
-  addScript (StaticR js_autocomplete_js)
-  addStylesheet (StaticR css_autocomplete_css)
-
 getAddWorkR :: Handler Html
 getAddWorkR = defaultLayout do
+  csrf <- fromMaybe "" . reqToken <$> getRequest
   addAutocomplete
   addWorkId <- newIdent
   $(widgetFile "add-work")
@@ -83,9 +66,6 @@ data AddWorkParams = AddWorkParams
 
 instance FromJSON AddWorkParams
 
-addUnderscores :: Text -> Text
-addUnderscores = T.map \c -> if isSpace c then '_' else c
-
 postAddWorkR :: Handler Value
 postAddWorkR =
   parseCheckJsonBody >>= \case
@@ -94,17 +74,43 @@ postAddWorkR =
       composerId <-
         insertBy $ Composer (addUnderscores work_composer) (addUnderscores <$> composer_url)
       work <-
-        insertUnique $
+        insertBy $
           Work
             (addUnderscores work_title)
             work_url
             work_instrumentation
             (either entityKey id composerId)
       case work of
-        Nothing -> pure $ object ["error" .= ("Work already in database" :: Text)]
-        Just workId -> do
+        Left (Entity workId _) ->
+          pure $
+            object
+              [ "error" .= ("Work already in database" :: Text),
+                "work_id" .= fromSqlKey workId
+              ]
+        Right workId -> do
           case work_movements of
             [] -> insert_ $ Movement 0 "" workId
             [m] -> insert_ $ Movement 0 m workId
             ms -> insertMany_ $ zipWith (\i m -> Movement i m workId) [1 ..] ms
-          pure $ object ["success" .= True]
+          pure $ object ["work_id" .= fromSqlKey workId]
+
+getWorkR :: Int64 -> Handler Html
+getWorkR work_key = do
+  let workId = toSqlKey work_key
+      jsWorkId = toJSON work_key
+  work <- runDB $ get404 workId
+  composer <- runDB $ get404 (workComposerId work)
+  entries <- getEntriesR work_key
+  csrf <- fromMaybe "" . reqToken <$> getRequest
+  let title =
+        takeWhile (/= ',') (composerName composer) <> ": "
+          <> replaceUnderscores (workTitle work)
+  (parts, movements) <- workData work_key
+  user_id <- maybeAuthId
+  defaultLayout do
+    setTitle (toHtml title)
+    addScript (StaticR js_opensheetmusicdisplay_min_js)
+    addScript (StaticR js_fingeringeditor_js)
+    wId <- newIdent
+    renderId <- newIdent
+    $(widgetFile "work")
