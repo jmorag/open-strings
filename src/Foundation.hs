@@ -356,7 +356,7 @@ instance YesodAuthEmail App where
     liftIO $
       renderSendMailSESGlobal
         ( SES
-            { sesFrom = "sefim96@gmail.com",
+            { sesFrom = "noreply.mignolo@gmail.com",
               sesTo = [encodeUtf8 email],
               sesAccessKey = appAwsAccessKey settings,
               sesSecretKey = appAwsSecretKey settings,
@@ -364,7 +364,7 @@ instance YesodAuthEmail App where
               sesRegion = usEast1
             }
         )
-        (emptyMail $ Address Nothing "sefim96@gmail.com")
+        (emptyMail $ Address Nothing "noreply.mignolo@gmail.com")
           { mailTo = [Address Nothing email],
             mailHeaders =
               [ ("Subject", "Verify your email address")
