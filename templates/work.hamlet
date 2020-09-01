@@ -43,8 +43,8 @@
             <b-form-textarea v-model="description" placeholder="Add a description" max-rows=2 required v-bind:validated="validated">
           <b-form-group>
             <b-button variant="primary" type="submit" #submit>Upload
-            <b-button variant="secondary" @click="editor.enable(); show_instructions = true">Edit fingerings
-            <b-button variant="info" @click="editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
+            <b-button variant="secondary" @click="description = ''; editor.enable(); show_instructions = true">Edit fingerings
+            <b-button variant="info" @click="description = ''; editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
         <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note.<br>The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
       $nothing
         <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>

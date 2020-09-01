@@ -141,12 +141,6 @@ instance Yesod App where
                 },
             NavbarRight $
               MenuItem
-                { menuItemLabel = "Reset Password",
-                  menuItemRoute = AuthR forgotPasswordR,
-                  menuItemAccessCallback = isNothing muser
-                },
-            NavbarRight $
-              MenuItem
                 { menuItemLabel = "Logout",
                   menuItemRoute = AuthR LogoutR,
                   menuItemAccessCallback = isJust muser
