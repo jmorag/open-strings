@@ -174,12 +174,11 @@ instance Yesod App where
     layoutId <- newIdent
     pc <- widgetToPageContent $ do
       addStylesheet $ StaticR css_bootstrap_css
-      addStylesheetRemote "//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css"
       (addScript . StaticR)
         if (appVueDevel (appSettings master))
           then js_vue_js
           else js_vue_min_js
-      addScriptRemote "//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js"
+      addScript (StaticR js_bootstrapvue_min_js)
       -- TODO: uncomment if icons necessary
       -- addScriptRemote "//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"
       $(widgetFile "default-layout")
