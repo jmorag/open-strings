@@ -4,7 +4,6 @@ const vue = new Vue({
     url: "",
     title: "",
     composer: "",
-    composer_id: 0, // TODO: this isn't doing anything here...
     composer_url: null,
     instrumentation: [],
     work_movements: [],
@@ -13,6 +12,7 @@ const vue = new Vue({
     alert_message: "",
     loading: false,
     show_success: false,
+    work_id: 0,
     validated: false,
   },
   components: { Autocomplete },
@@ -30,7 +30,6 @@ const vue = new Vue({
     },
     autocompleteSubmit(e) {
       this.composer = e.label;
-      this.composer_id = e.value;
     },
     validatePart(part) {
       const regex = /^(?:(?:(solo|tutti)\s*)?(?:(violin|viola|cello|bass))(\s+[1-9]\d*)?|strings|quartet)$/;
@@ -52,17 +51,19 @@ const vue = new Vue({
       this.loading = true;
       const resp = await fetch("@{AddWorkR}", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
         body: JSON.stringify(body),
       });
       const json = await resp.json();
       this.loading = false;
       if (json.error) {
+        this.work_id = json.work_id;
         this.show_alert = true;
         this.alert_message = json.error;
         return;
       }
-      this.show_success = 2;
+      this.work_id = json.work_id;
+      this.show_success = true;
     },
     clear(e) {
       this.title = "";

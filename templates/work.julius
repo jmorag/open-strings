@@ -1,0 +1,117 @@
+const vue = new Vue({
+  el: "##{rawJS wId}",
+  data: {
+    work_id: #{jsWorkId},
+    start_measure: "", // usually a number, but should be displayed as empty on paint
+    movements: #{movements},
+    movement_id: (#{movements})[0].value,
+    parts: #{parts},
+    part: (#{parts})[0],
+    xml_file: null,
+    table_fields: [
+      "movement",
+      "part",
+      "measures",
+      "description",
+      {
+        key: "uploaded_by",
+        formatter: ({ user, time }) => {
+          const d = new Date(time);
+          return `${user} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`;
+        }
+      }
+    ],
+    entries: #{entries},
+    editor: new FingeringEditor(#{renderId}),
+    description: "",
+    loading: false,
+    show_alert: false,
+    alert_message: "",
+    show_success: false,
+    disable_change_start: false,
+    disable_submit: true,
+    show_editor: false,
+    show_instructions: false,
+    validated: false,
+  },
+  methods: {
+    async submit(e) {
+      if (!this.start_measure || !this.description) {
+        this.validated = true;
+        return
+      }
+      const s = new XMLSerializer();
+      const body = {
+        movement_id: this.movement_id,
+        part: this.part,
+        start_measure: this.start_measure,
+        xml: s.serializeToString(this.editor.musicxml),
+        description: this.description
+      };
+      this.loading = true;
+      const resp = await fetch("@{UploadR}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      this.loading = false;
+      if (json.error) {
+        this.alert_message = json.error;
+        this.show_alert = true;
+        return;
+      }
+      if (json.success) {
+        this.show_success = true;
+        await this.fetchEntries() // update table
+        return;
+      }
+    },
+    async fetchXml(item, _index, _event) {
+      this.xml_file = null
+      this.movement_id = item.movement_id;
+      this.part = item.part;
+      this.start_measure = item.start_measure;
+      this.description = item.description
+      const resp = await fetch(`/api/musicxml/${item.entry_id}`);
+      if (resp.status === 404) {
+        this.alert_message = "Error retrieving MusicXML";
+        this.show_alert = true;
+        return;
+      }
+      const blob = await resp.blob();
+      this.renderXml(blob);
+    },
+    renderXml(file) {
+      if (file) {
+        const reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = async ({ target: { result } }) => {
+          await this.editor.render(result, this.start_measure);
+          this.show_editor = true;
+          this.disable_submit = false;
+        };
+      } else {
+        this.disable_submit = true;
+        this.editor.clear();
+      }
+    },
+    clear() {
+      this.start_measure = "";
+      this.xml_file = null;
+      this.show_editor = false;
+      this.editor.clear();
+      this.$refs.table.clearSelected();
+    },
+    async fetchEntries() {
+      const resp = await fetch("@{EntriesR work_key}");
+      this.entries = await resp.json();
+    }
+  },
+  watch: {
+    xml_file: function (val) {
+      this.$refs.table.clearSelected();
+      this.renderXml(val);
+    },
+  }
+});

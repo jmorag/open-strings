@@ -1,5 +1,24 @@
-<div .title>
-    <h1>
-        Mignolo
-    <p .lead>
-        A platform for string players to share and view fingerings
+<div>
+  <h1 .centered>Mignolo
+  <p .lead .centered>A platform for string players to share and view fingerings
+  <p>Use your favorite scorewriter — Finale, Sibelius, MuseScore, Denemo, Lilypond, or anything that exports MusicXML — to engrave a passage. Then, upload it and add in your fingerings to share with the community. Get started by searching for existing works below.
+<div ##{searchId}>
+  <b-form-group .required>
+    <b-form-group>
+      <autocomplete
+        autofocus
+        #work-title
+        @submit="autocompleteSubmit"
+        @update="update"
+        default-value=""
+        placeholder="Work"
+        ref="autocomplete"
+        v-bind:auto-select="true"
+        v-bind:debounce-time="300"
+        v-bind:get-result-value="getResultValue"
+        v-bind:search="search"
+        >
+      <small for="work-title">Search by composer name and title, ex. beethoven violin concerto
+    <!-- Add work link -->
+    <div v-show="show_add_work_link">
+      <p>Could not find this work in the database. <a href=@{AddWorkR}>Please enter the piece data manually.</a>

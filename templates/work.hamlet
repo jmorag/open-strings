@@ -1,0 +1,52 @@
+<div ##{wId}>
+  <b-alert v-bind:show="show_alert" variant="danger"> {{ alert_message }}
+  <h2 style="text-align: center">#{title}
+  <b-form v-on:submit.prevent="submit" novalidate>
+    <!-- Existing uploads table -->
+    <b-form-group>
+      <b-table
+        selectable
+        select-mode="single"
+        ref=table
+        show-empty
+        small
+        empty-text="No fingerings uploaded for this work yet"
+        caption="View a fingering or add your own below"
+        hover
+        outlined
+        no-local-sorting
+        v-bind:fields="table_fields"
+        v-bind:items="entries"
+        v-bind:primary_key="'entry_id'"
+        @row-clicked="fetchXml">
+      <b-form-file v-model="xml_file" accept=".musicxml">
+    <!-- Radios for movements and part select -->
+    <b-form-group v-bind:validated="validated">
+      <b-form-row>
+        <b-col md="auto" v-show="movements.length > 1">
+          <b-form-group label="Movements">
+            <b-form-radio-group v-model="movement_id" v-bind:options="movements"
+              stacked buttons button-variant="outline-primary" #movements-select>
+        <b-col md="auto" v-show="parts.length > 0">
+          <b-form-group label="Parts">
+            <b-form-radio-group v-model=part v-bind:options="parts"
+              buttons button-variant="outline-primary">
+        <b-col .ml-auto>
+          <label for="start-measure">Starting Measure
+          <b-form-input #start-measure type="number" v-model.number="start_measure" min=1 autocomplete="off" required>
+    <!-- Submission and reset buttons -->
+    <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
+    <div #editor v-show="show_editor">
+      $maybe _ <- user_id
+        <b-overlay v-bind:show="loading" rounded="sm">
+          <b-form-group v-bind:validated="validated">
+            <b-form-textarea v-model="description" placeholder="Add a description" max-rows=2 required v-bind:validated="validated">
+          <b-form-group>
+            <b-button variant="primary" type="submit" #submit>Upload
+            <b-button variant="secondary" @click="description = ''; editor.enable(); show_instructions = true">Edit fingerings
+            <b-button variant="info" @click="description = ''; editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
+        <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note.<br>The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
+      $nothing
+        <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+
+<div ##{renderId}>

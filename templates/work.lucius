@@ -1,0 +1,3 @@
+#movements-select > label {
+  text-align: left;
+}

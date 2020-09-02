@@ -9,17 +9,17 @@
 
 / HomeR GET
 
-/upload-fingering UploadR GET POST
+/upload-fingering UploadR POST
 
 /add-work AddWorkR GET POST
+
+/work/#Int64 WorkR GET
 
 -- API routes not returning html
 
 /api/composers ComposersR GET
 
 /api/works WorksR GET
-
-/api/movements/#Int64 MovementsR GET
 
 /api/imslp/#String IMSLPR GET
 

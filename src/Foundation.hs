@@ -127,18 +127,6 @@ instance Yesod App where
                   menuItemRoute = HomeR,
                   menuItemAccessCallback = True
                 },
-            NavbarLeft $
-              MenuItem
-                { menuItemLabel = "Fingerings",
-                  menuItemRoute = UploadR,
-                  menuItemAccessCallback = True
-                },
-            NavbarLeft $
-              MenuItem
-                { menuItemLabel = "Add work",
-                  menuItemRoute = AddWorkR,
-                  menuItemAccessCallback = True
-                },
             NavbarRight $
               MenuItem
                 { menuItemLabel = "Login",
@@ -147,8 +135,8 @@ instance Yesod App where
                 },
             NavbarRight $
               MenuItem
-                { menuItemLabel = "Reset Password",
-                  menuItemRoute = AuthR forgotPasswordR,
+                { menuItemLabel = "Sign Up",
+                  menuItemRoute = AuthR registerR,
                   menuItemAccessCallback = isNothing muser
                 },
             NavbarRight $
@@ -200,7 +188,6 @@ instance Yesod App where
   isAuthorized (AuthR _) _ = return Authorized
   isAuthorized ComposersR _ = return Authorized
   isAuthorized WorksR _ = return Authorized
-  isAuthorized (MovementsR _) _ = return Authorized
   isAuthorized HomeR _ = return Authorized
   isAuthorized FaviconR _ = return Authorized
   isAuthorized RobotsR _ = return Authorized
@@ -368,7 +355,7 @@ instance YesodAuthEmail App where
     liftIO $
       renderSendMailSESGlobal
         ( SES
-            { sesFrom = "sefim96@gmail.com",
+            { sesFrom = "noreply.mignolo@gmail.com",
               sesTo = [encodeUtf8 email],
               sesAccessKey = appAwsAccessKey settings,
               sesSecretKey = appAwsSecretKey settings,
@@ -376,7 +363,7 @@ instance YesodAuthEmail App where
               sesRegion = usEast1
             }
         )
-        (emptyMail $ Address Nothing "sefim96@gmail.com")
+        (emptyMail $ Address Nothing "noreply.mignolo@gmail.com")
           { mailTo = [Address Nothing email],
             mailHeaders =
               [ ("Subject", "Verify your email address")
