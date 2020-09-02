@@ -48,6 +48,7 @@ import Network.Wai.Handler.Warp
     setOnException,
     setPort,
   )
+import Network.Wai.Middleware.ForceSSL
 import Network.Wai.Middleware.RequestLogger
   ( Destination (Logger),
     IPAddrSource (..),
@@ -126,7 +127,7 @@ makeApplication foundation = do
   logWare <- makeLogWare foundation
   -- Create the WAI application and apply middlewares
   appPlain <- toWaiAppPlain foundation
-  return $ logWare $ defaultMiddlewaresNoLogging appPlain
+  return $ forceSSL $ logWare $ defaultMiddlewaresNoLogging appPlain
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
