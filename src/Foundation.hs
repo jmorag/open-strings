@@ -307,12 +307,10 @@ instance YesodAuth App where
       --   (appGithubOauthClientSecret (appSettings app)),
       authEmail
     ]
+      ++ extraAuthPlugins
     where
-
--- ++ extraAuthPlugins
-
--- Enable authDummy login if enabled.
--- extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+      -- Enable authDummy login if enabled.
+      extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
 
 -- | Access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
