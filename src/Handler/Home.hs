@@ -18,7 +18,7 @@ import Text.Julius
 -- inclined, or create a single monolithic file.
 getHomeR :: Handler Html
 getHomeR = defaultLayout do
-  setTitle "Welcome To Fingrado!"
+  setTitle "Welcome To OpenStrings!"
   addAutocomplete
   searchId <- newIdent
   $(widgetFile "homepage")

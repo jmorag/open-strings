@@ -378,7 +378,7 @@ instance YesodAuthEmail App where
               PartContent $
                 encodeUtf8
                   [stext|
-Thank you for siging up for Fingrado! Please confirm your email address by clicking on the link below.
+Thank you for siging up for OpenStrings! Please confirm your email address by clicking on the link below.
 
 #{verurl}
 
@@ -395,7 +395,7 @@ Thank you
               PartContent $
                 renderHtml
                   [shamlet|
-                    <p>Thank you for siging up for Fingrado! Please confirm your email address by clicking on the link below.
+                    <p>Thank you for siging up for OpenStrings! Please confirm your email address by clicking on the link below.
                     <p>
                         <a href=#{verurl}>#{verurl}
                     <p>Thank you
