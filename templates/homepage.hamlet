@@ -1,7 +1,7 @@
 <div>
   <h1 .centered>OpenStrings
   <p .lead .centered>A platform for string players to share and view fingerings
-  <p>Use your favorite scorewriter — Finale, Sibelius, MuseScore, Denemo, Lilypond, or anything that exports MusicXML — to engrave a passage. Then, upload it and add in your fingerings to share with the community. Get started by searching for existing works below.
+  <p>Use your favorite scorewriter — Finale, Sibelius, MuseScore, Dorico, Lilypond, or anything that exports MusicXML — to engrave a passage. Then, upload it and add in your fingerings to share with the community. Get started by searching for existing works below.
 <div ##{searchId}>
   <b-form-group .required>
     <b-form-group>
