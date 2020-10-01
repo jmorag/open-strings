@@ -29,5 +29,4 @@ let
 in {
   fingerdb =
     lib.justStaticExecutables (lib.dontCheck survey.haskellPackages."${name}");
-  keter = lib.justStaticExecutables (survey.haskellPackages.keter);
 }
