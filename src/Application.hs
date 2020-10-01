@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -127,7 +128,12 @@ makeApplication foundation = do
   logWare <- makeLogWare foundation
   -- Create the WAI application and apply middlewares
   appPlain <- toWaiAppPlain foundation
-  return $ forceSSL $ logWare $ defaultMiddlewaresNoLogging appPlain
+  return $
+#ifdef DEVELOPMENT
+    logWare $ defaultMiddlewaresNoLogging appPlain
+#else
+    forceSSL $ logWare $ defaultMiddlewaresNoLogging appPlain
+#endif
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
