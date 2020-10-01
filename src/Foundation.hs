@@ -450,6 +450,24 @@ Thank you
                 }
   getEmail = liftHandler . runDB . fmap (fmap userIdent) . get
 
+  emailLoginHandler toParent = do
+    csrf <- fromMaybe "" . reqToken <$> getRequest
+    $(widgetFile "login-email")
+
+  registerHandler = do
+    toParent <- getRouteToParent
+    csrf <- fromMaybe "" . reqToken <$> getRequest
+    authLayout do
+      setTitle "Register a new account"
+      $(widgetFile "register-account")
+
+  forgotPasswordHandler = do
+    toParent <- getRouteToParent
+    csrf <- fromMaybe "" . reqToken <$> getRequest
+    authLayout do
+      setTitle "Password Reset"
+      $(widgetFile "password-reset")
+
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
 instance RenderMessage App FormMessage where

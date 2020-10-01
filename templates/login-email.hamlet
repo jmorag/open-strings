@@ -1,0 +1,10 @@
+<form action="@{toParent loginR}" method="post">
+  <div .form-group>
+    <input name="_token" value="#{csrf}" type="hidden">
+    <input name="email" type="email" autofocus placeholder="Email" required autocomplete="off" .form-control>
+    <input name="password" type="password" placeholder="Password" required .form-control>
+  <div .form-group>
+    <button .btn .btn-primary type="submit">Login via email
+    <a href="@{toParent registerR}" .btn .btn-secondary>Register a new account
+  <div .form-group>
+    <a href="@{toParent forgotPasswordR}">Forgot password

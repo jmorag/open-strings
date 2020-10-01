@@ -1,0 +1,7 @@
+<p>Enter your e-mail address below, and a confirmation link will be sent to you.
+<form action="@{toParent registerR}" method="post">
+  <div .form-group>
+    <input name="_token" value="#{csrf}" type="hidden">
+    <input name="email" type="email" autofocus placeholder="Email" required autocomplete="off" .form-control>
+  <div .form-group>
+    <button .btn .btn-primary type="submit">Register
