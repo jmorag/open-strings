@@ -31,6 +31,7 @@ import Yesod.Default.Util
     widgetFileNoReload,
     widgetFileReload,
   )
+import Network.SendGridV3.Api (ApiKey(..))
 
 -- | Runtime settings to configure this application. These settings can be
 -- loaded from various sources: defaults, environment variables, config files,
@@ -73,12 +74,8 @@ data AppSettings = AppSettings
     -- | Google oauth2 params
     appGoogleOauthClientId :: Text,
     appGoogleOauthClientSecret :: Text,
-    -- | Github oauth2 params
-    appGithubOauthClientId :: Text,
-    appGithubOauthClientSecret :: Text,
-    -- | AWS Keys
-    appAwsAccessKey :: ByteString,
-    appAwsSecretKey :: ByteString
+    -- | Sendgrid
+    appSendgridApiKey :: ApiKey
   }
 
 
@@ -116,10 +113,8 @@ instance FromJSON AppSettings where
 
     appGoogleOauthClientId <- o .: "google-oauth2-client-id"
     appGoogleOauthClientSecret <- o .: "google-oauth2-client-secret"
-    appGithubOauthClientId <- o .: "github-oauth2-client-id"
-    appGithubOauthClientSecret <- o .: "github-oauth2-client-secret"
-    appAwsAccessKey <- encodeUtf8 <$> o .: "aws-access-key"
-    appAwsSecretKey <- encodeUtf8 <$> o .: "aws-secret-key"
+
+    appSendgridApiKey <- ApiKey <$> o .: "sendgrid-api-key"
 
     return AppSettings {..}
 

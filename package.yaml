@@ -30,8 +30,6 @@ dependencies:
   - lens
   - lens-aeson
   - lens-regex-pcre
-  - mime-mail
-  - mime-mail-ses
   - monad-control >=0.3 && <1.1
   - monad-logger >=0.3 && <0.4
   - persistent >=2.9 && <2.11
@@ -39,6 +37,7 @@ dependencies:
   - persistent-template >=2.5 && <2.9
   - raw-strings-qq
   - safe
+  - sendgrid-v3
   - shakespeare >=2.0 && <2.1
   - string-conversions
   - template-haskell

@@ -42,6 +42,16 @@ let
                     sha256 =
                       "01qx822fa1xl6q8c8grw5qqjcs21kl5ycxn2xd2fdnys3mqsqlpd";
                   }) { };
+                sendgrid-v3 = pkgs.haskell.lib.dontCheck
+                  (super.callCabal2nix "sendgrid-v3" (fetchFromGitHub {
+                    name = "sendgrid-v3";
+                    owner = "marcelbuesing";
+                    repo = "sendgrid-v3";
+                    rev = "22f55f95f1f6660cdb328e1bcde78691b045295b";
+                    sha256 =
+                      "0cg8zlhkk5xq3s8dwiqhjij82nsml0wwr1n1wavid3ld0j8q0x3x";
+                  }) { });
+
               };
             };
         };

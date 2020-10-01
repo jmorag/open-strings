@@ -10,17 +10,17 @@
 
 module Foundation where
 
-import Control.Lens
+import Control.Lens ((^?), _Right)
 import Control.Monad.Logger (LogSource)
 import Data.Aeson.Lens
 import qualified Data.CaseInsensitive as CI
+import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Text.Encoding as TE
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Import.NoFoundation
 import Model.UserType
-import Network.Mail.Mime
-import Network.Mail.Mime.SES
-import Text.Blaze.Html.Renderer.Utf8 (renderHtml)
+import Network.SendGridV3.Api
+import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Text.Hamlet (hamletFile)
 import Text.Jasmine (minifym)
 import Text.Julius (RawJS (rawJS))
@@ -28,7 +28,6 @@ import Text.Shakespeare.Text (stext)
 import Yesod.Auth.Dummy
 import Yesod.Auth.Email
 import Yesod.Auth.OAuth2
-import Yesod.Auth.OAuth2.GitHub
 import Yesod.Auth.OAuth2.Google
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
@@ -249,8 +248,6 @@ instance YesodPersistRunner App where
 instance YesodAuth App where
   type AuthId App = UserId
 
-  -- TODO: Override authLayout to look nicer
-
   -- Where to send a user after successful login
   loginDest :: App -> Route App
   loginDest _ = HomeR
@@ -345,63 +342,62 @@ instance YesodAuthEmail App where
   sendVerifyEmail email _ verurl = do
     -- Print out to the console the verification email, for easier
     -- debugging.
-    liftIO $ putStrLn $ "Copy/ Paste this URL in your browser:" ++ verurl
-
+    liftIO $ putStrLn $ "\nCopy/ Paste this URL in your browser:" ++ verurl ++ "\n"
     settings <- appSettings <$> getYesod
 
     -- Send email.
-    liftIO $
-      renderSendMailSESGlobal
-        ( SES
-            { sesFrom = "noreply.mignolo@gmail.com",
-              sesTo = [encodeUtf8 email],
-              sesAccessKey = appAwsAccessKey settings,
-              sesSecretKey = appAwsSecretKey settings,
-              sesSessionToken = Nothing,
-              sesRegion = usEast1
-            }
-        )
-        (emptyMail $ Address Nothing "noreply.mignolo@gmail.com")
-          { mailTo = [Address Nothing email],
-            mailHeaders =
-              [ ("Subject", "Verify your email address")
-              ],
-            mailParts = [[textPart, htmlPart]]
-          }
+    let to = personalization $ (MailAddress email "" :| [])
+        from = MailAddress "info@open-strings.com" "Open Strings"
+        subject = "Verify your email address"
+        content = Just $ mailContentText textPart :| [mailContentHtml htmlPart]
+        message = mail @() @() [to] from subject content
+    resp <- liftIO $ sendMail (appSendgridApiKey settings) message
+    liftIO (print resp)
     where
       textPart =
-        Part
-          { partType = "text/plain; charset=utf-8",
-            partEncoding = None,
-            partDisposition = DefaultDisposition,
-            partContent =
-              PartContent $
-                encodeUtf8
-                  [stext|
+        toStrict
+          [stext|
 Thank you for siging up for OpenStrings! Please confirm your email address by clicking on the link below.
 
 #{verurl}
 
 Thank you
-|],
-            partHeaders = []
-          }
+|]
       htmlPart =
-        Part
-          { partType = "text/html; charset=utf-8",
-            partEncoding = None,
-            partDisposition = DefaultDisposition,
-            partContent =
-              PartContent $
-                renderHtml
-                  [shamlet|
-                    <p>Thank you for siging up for OpenStrings! Please confirm your email address by clicking on the link below.
-                    <p>
-                        <a href=#{verurl}>#{verurl}
-                    <p>Thank you
-                |],
-            partHeaders = []
-          }
+        toStrict $
+          renderHtml
+            [shamlet|
+<p>Thank you for siging up for OpenStrings! Please confirm your email address <a href=#{verurl}>here</a>
+
+<p>Thank you
+                |]
+  sendForgotPasswordEmail email _ verurl = do
+    -- Print out to the console the verification email, for easier
+    -- debugging.
+    liftIO $ putStrLn $ "\nCopy/ Paste this URL in your browser:" ++ verurl ++ "\n"
+    settings <- appSettings <$> getYesod
+
+    -- Send email.
+    let to = personalization $ (MailAddress email "" :| [])
+        from = MailAddress "info@open-strings.com" "Open Strings"
+        subject = "open-strings password reset"
+        content = Just $ mailContentText textPart :| [mailContentHtml htmlPart]
+        message = mail @() @() [to] from subject content
+    resp <- liftIO $ sendMail (appSendgridApiKey settings) message
+    liftIO (print resp)
+    where
+      textPart =
+        toStrict
+          [stext|
+Click on the link below to reset your password.
+#{verurl}
+|]
+      htmlPart =
+        toStrict $
+          renderHtml
+            [shamlet|
+<p>Click <a href=#{verurl}>here</a> to reset your password.
+                |]
   getVerifyKey =
     liftHandler . runDB
       . fmap
