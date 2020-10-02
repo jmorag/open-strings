@@ -299,9 +299,6 @@ instance YesodAuth App where
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
         (appGoogleOauthClientSecret (appSettings app)),
-      -- oauth2GitHub
-      --   (appGithubOauthClientId (appSettings app))
-      --   (appGithubOauthClientSecret (appSettings app)),
       authEmail
     ]
       ++ extraAuthPlugins
