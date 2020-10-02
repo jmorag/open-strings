@@ -464,6 +464,14 @@ Click on the link below to reset your password.
       setTitle "Password Reset"
       $(widgetFile "password-reset")
 
+  setPasswordHandler needOld = do
+    toParent <- getRouteToParent
+    csrf <- fromMaybe "" . reqToken <$> getRequest
+    selectRep do
+      provideRep $ authLayout do
+        setTitle "Set Password"
+        $(widgetFile "set-password")
+
 -- This instance is required to use forms. You can modify renderMessage to
 -- achieve customized and internationalized form validation messages.
 instance RenderMessage App FormMessage where
