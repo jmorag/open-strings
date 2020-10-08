@@ -9,7 +9,9 @@ where
 import ClassyPrelude hiding (Element)
 import Control.Category ((>>>))
 import Control.Lens
-import Data.Text.Lens
+import Data.List.Zipper as Z
+import Data.Text.Lens (unpacked)
+import Fingering
 import Text.XML
 import Text.XML.Lens
 
@@ -57,13 +59,46 @@ measureNumbers =
       . unpacked
       . _Show
 
+isTimeStep :: Node -> Bool
+isTimeStep e = (e ^? _Element . name) `elem` [Just "note", Just "forward", Just "backup"]
+
+timeStep :: Traversal' Element Element
+timeStep = deep (failing (el "note") (failing (el "backup") (el "forward")))
+
+readTimeSteps :: Document -> Maybe [TimeStep]
+readTimeSteps doc = Z.toList <$> foldM readTimeStep Z.empty (doc ^.. root . timeStep)
+
+readTimeStep :: Zipper TimeStep -> Element -> Maybe (Zipper TimeStep)
+readTimeStep zipper e = do
+  let readInt = readMay @Text @Int
+  -- everything except grace notes have durations
+  duration <- e ^? deep (el "duration" . text) . to readInt . _Just
+  case e ^? name of
+    Just "note" ->
+      case e ^? deep (el "rest") of
+        Just _ -> Just $ pushN duration Rest zipper
+        Nothing ->
+          case xmlPitch e of
+            Nothing -> Nothing
+            Just pitch ->
+              let newNote = Single $ N pitch (xmlConstraint e)
+               in case e ^? deep (el "chord") of
+                    Just _ -> Just $ modifyN duration (<> newNote) (leftN duration zipper)
+                    Nothing -> case e ^? deep (el "voice") . text . to readInt . _Just of
+                      Just n | n > 1 -> Just $ modifyN duration (newNote <>) zipper
+                      _ -> Just $ pushN duration newNote zipper
+    Just "backup" -> Just $ leftN duration zipper
+    Just "forward" -> Just $ rightN duration zipper
+
 --------------------------------------------------------------------------------
 -- repl utils
 --------------------------------------------------------------------------------
 
--- readXML :: FilePath -> IO Document
--- readXML = Text.XML.readFile def
+readXML :: FilePath -> IO Document
+readXML = Text.XML.readFile def
 
--- prok = readXML "/home/joseph/Documents/MuseScore3/Scores/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
+prok = readXML "/home/joseph/Documents/MuseScore3/Scores/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
 
--- brahms = readXML "/home/joseph/Documents/MuseScore3/Scores/Brahms_violin_concerto.musicxml"
+brahms = readXML "/home/joseph/Documents/MuseScore3/Scores/Brahms_violin_concerto.musicxml"
+
+sibelius = readXML "/home/joseph/Documents/MuseScore3/Scores/Sibelius_violin_concerto_excerpt_no_grace.musicxml"
