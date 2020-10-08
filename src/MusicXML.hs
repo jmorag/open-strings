@@ -3,14 +3,19 @@ module MusicXML
     mergeFingerings,
     adjustMeasures,
     measureNumbers,
+    readTimeSteps,
   )
 where
 
 import ClassyPrelude hiding (Element)
 import Control.Category ((>>>))
 import Control.Lens
-import Data.List.Zipper as Z
+import Control.Monad (foldM_)
+import Control.Monad.ST
+import Data.Monoid
 import Data.Text.Lens (unpacked)
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import Fingering
 import Text.XML
 import Text.XML.Lens
@@ -59,36 +64,44 @@ measureNumbers =
       . unpacked
       . _Show
 
-isTimeStep :: Node -> Bool
-isTimeStep e = (e ^? _Element . name) `elem` [Just "note", Just "forward", Just "backup"]
-
 timeStep :: Traversal' Element Element
 timeStep = deep (failing (el "note") (failing (el "backup") (el "forward")))
 
-readTimeSteps :: Document -> Maybe [TimeStep]
-readTimeSteps doc = Z.toList <$> foldM readTimeStep Z.empty (doc ^.. root . timeStep)
+readTimeSteps :: Document -> V.Vector TimeStep
+readTimeSteps doc =
+  V.modify
+    (\v -> foldM_ (readTimeStep v) 0 (doc ^.. root . timeStep))
+    (V.replicate (totalDuration doc) Rest)
 
-readTimeStep :: Zipper TimeStep -> Element -> Maybe (Zipper TimeStep)
-readTimeStep zipper e = do
-  let readInt = readMay @Text @Int
-  -- everything except grace notes have durations
-  duration <- e ^? deep (el "duration" . text) . to readInt . _Just
-  case e ^? name of
-    Just "note" ->
-      case e ^? deep (el "rest") of
-        Just _ -> Just $ pushN duration Rest zipper
-        Nothing ->
-          case xmlPitch e of
-            Nothing -> Nothing
-            Just pitch ->
-              let newNote = Single $ N pitch (xmlConstraint e)
-               in case e ^? deep (el "chord") of
-                    Just _ -> Just $ modifyN duration (<> newNote) (leftN duration zipper)
-                    Nothing -> case e ^? deep (el "voice") . text . to readInt . _Just of
-                      Just n | n > 1 -> Just $ modifyN duration (newNote <>) zipper
-                      _ -> Just $ pushN duration newNote zipper
-    Just "backup" -> Just $ leftN duration zipper
-    Just "forward" -> Just $ rightN duration zipper
+readTimeStep :: VM.MVector s TimeStep -> Int -> Element -> ST s Int
+readTimeStep vec t e = do
+  let duration = e ^?! dur
+  case e ^?! name of
+    "note" -> do
+      let t' = maybe t (const (t - duration)) (e ^? deep (el "chord"))
+      forM_ [t' .. t' + duration - 1] $
+        VM.modify
+          vec
+          ((maybe Rest (\pitch -> Single (N pitch (xmlConstraint e))) (xmlPitch e)) <>)
+      pure (t' + duration)
+    "backup" -> pure (t - duration)
+    "forward" -> pure (t + duration)
+    n -> error $ "Impossible timestep element" <> show n
+
+totalDuration :: Document -> Int
+totalDuration doc = getSum $ foldMap fn (doc ^.. root . timeStep)
+  where
+    fn e = Sum case e ^?! name of
+      "note" -> maybe (e ^?! dur) (const 0) (e ^? deep (el "chord"))
+      "backup" -> negate (e ^?! dur)
+      "forward" -> e ^?! dur
+      n -> error $ "Impossible timestep element" <> show n
+
+dur :: Fold Element Int
+dur = deep (el "duration") . text . to readInt . _Just
+
+readInt :: Text -> Maybe Int
+readInt = readMay
 
 --------------------------------------------------------------------------------
 -- repl utils
@@ -97,8 +110,7 @@ readTimeStep zipper e = do
 readXML :: FilePath -> IO Document
 readXML = Text.XML.readFile def
 
+prok, brahms, sibelius :: IO Document
 prok = readXML "/home/joseph/Documents/MuseScore3/Scores/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
-
 brahms = readXML "/home/joseph/Documents/MuseScore3/Scores/Brahms_violin_concerto.musicxml"
-
 sibelius = readXML "/home/joseph/Documents/MuseScore3/Scores/Sibelius_violin_concerto_excerpt_no_grace.musicxml"
