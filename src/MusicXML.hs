@@ -12,7 +12,6 @@ import Control.Category ((>>>))
 import Control.Lens
 import Control.Monad (foldM_)
 import Control.Monad.ST
-import Data.Monoid
 import Data.Text.Lens (unpacked)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
@@ -68,34 +67,35 @@ timeStep :: Traversal' Element Element
 timeStep = deep (failing (el "note") (failing (el "backup") (el "forward")))
 
 readTimeSteps :: Document -> V.Vector TimeStep
-readTimeSteps doc =
-  V.modify
-    (\v -> foldM_ (readTimeStep v) 0 (doc ^.. root . timeStep))
-    (V.replicate (totalDuration doc) Rest)
+readTimeSteps doc = V.create do
+  vec <- VM.replicate (totalDuration doc) Rest
+  foldM_ (readTimeStep vec) 0 (doc ^.. root . timeStep)
+  pure vec
 
 readTimeStep :: VM.MVector s TimeStep -> Int -> Element -> ST s Int
-readTimeStep vec t e = do
-  let duration = e ^?! dur
+readTimeStep vec t e =
   case e ^?! name of
     "note" -> do
       let t' = maybe t (const (t - duration)) (e ^? deep (el "chord"))
       forM_ [t' .. t' + duration - 1] $
         VM.modify
           vec
-          ((maybe Rest (\pitch -> Single (N pitch (xmlConstraint e))) (xmlPitch e)) <>)
+          (maybe Rest (\pitch -> Single (N pitch (xmlConstraint e))) (xmlPitch e) <>)
       pure (t' + duration)
     "backup" -> pure (t - duration)
     "forward" -> pure (t + duration)
-    n -> error $ "Impossible timestep element" <> show n
+    n -> error $ "Impossible timestep element " <> show n
+  where
+    duration = e ^?! dur
 
 totalDuration :: Document -> Int
-totalDuration doc = getSum $ foldMap fn (doc ^.. root . timeStep)
+totalDuration = sumOf (root . timeStep . to fn)
   where
-    fn e = Sum case e ^?! name of
+    fn e = case e ^?! name of
       "note" -> maybe (e ^?! dur) (const 0) (e ^? deep (el "chord"))
       "backup" -> negate (e ^?! dur)
       "forward" -> e ^?! dur
-      n -> error $ "Impossible timestep element" <> show n
+      n -> error $ "Impossible timestep element " <> show n
 
 dur :: Fold Element Int
 dur = deep (el "duration") . text . to readInt . _Just
