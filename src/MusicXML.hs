@@ -9,6 +9,7 @@ where
 
 import ClassyPrelude hiding (Element)
 import Control.Category ((>>>))
+import Control.Comonad.Store
 import Control.Lens
 import Control.Monad (foldM_)
 import Control.Monad.ST
@@ -66,26 +67,27 @@ measureNumbers =
 timeStep :: Traversal' Element Element
 timeStep = deep (failing (el "note") (failing (el "backup") (el "forward")))
 
-readTimeSteps :: Document -> V.Vector TimeStep
+readTimeSteps :: Document -> Vector TimeStep
 readTimeSteps doc = V.create do
   vec <- VM.replicate (totalDuration doc) Rest
-  foldM_ (readTimeStep vec) 0 (doc ^.. root . timeStep)
+  foldM_ (readTimeStep vec) 0 (holesOf (root . timeStep) doc)
   pure vec
 
-readTimeStep :: VM.MVector s TimeStep -> Int -> Element -> ST s Int
-readTimeStep vec t e =
+readTimeStep :: VM.MVector s TimeStep -> Int -> XmlRef -> ST s Int
+readTimeStep vec t ref =
   case e ^?! name of
     "note" -> do
       let t' = maybe t (const (t - duration)) (e ^? deep (el "chord"))
       forM_ [t' .. t' + duration - 1] $
         VM.modify
           vec
-          (maybe Rest (\pitch -> Single (N pitch (xmlConstraint e))) (xmlPitch e) <>)
+          (maybe Rest (\pitch -> Single (N pitch (xmlConstraint e) ref)) (xmlPitch e) <>)
       pure (t' + duration)
     "backup" -> pure (t - duration)
     "forward" -> pure (t + duration)
     n -> error $ "Impossible timestep element " <> show n
   where
+    e = pos ref
     duration = e ^?! dur
 
 totalDuration :: Document -> Int

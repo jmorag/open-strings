@@ -4,6 +4,7 @@ module Fingering where
 
 import ClassyPrelude hiding (Element)
 import Control.Lens
+import Control.Lens.Internal.Context
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Text.XML.Lens
@@ -23,8 +24,30 @@ data Fingering = F Finger VString
 data Constraint = Free | OnString VString | Finger Finger | Fingering Fingering
   deriving (Show, Eq)
 
-data Note = N Pitch Constraint
-  deriving (Show, Eq)
+type XmlRef = Pretext' (->) Element Document
+
+data Note = N Pitch Constraint XmlRef
+
+pitch :: Note -> Pitch
+pitch (N p _ _) = p
+
+instance Show Note where
+  show (N p c _) =
+    debugPitch p <> case c of
+      Free -> ""
+      OnString s -> showStr s
+      Finger f -> showFinger f
+      Fingering (F f s) -> showFinger f <> showStr s
+    where
+      showStr E = "-I"
+      showStr A = "-II"
+      showStr D = "-III"
+      showStr G = "-IV"
+      showFinger Open = "-0"
+      showFinger One = "-1"
+      showFinger Two = "-2"
+      showFinger Three = "-3"
+      showFinger Four = "-4"
 
 -- | At each time step, there is either a rest, or 1, 2, 3, or 4 notes that must be
 -- covered by the left hand
@@ -34,23 +57,32 @@ data TimeStep
   | TripleStop Note Note Note
   | QuadrupleStop Note Note Note Note
   | Rest
-  deriving (Show, Eq)
+  deriving (Show)
 
 instance Semigroup TimeStep where
-  Single n1 <> Single n2 = DoubleStop n1 n2
-  Single n1 <> DoubleStop n2 n3 = TripleStop n1 n2 n3
-  Single n1 <> TripleStop n2 n3 n4 = QuadrupleStop n1 n2 n3 n4
-  DoubleStop n1 n2 <> Single n3 = TripleStop n1 n2 n3
-  TripleStop n1 n2 n3 <> Single n4 = QuadrupleStop n1 n2 n3 n4
-  DoubleStop n1 n2 <> DoubleStop n3 n4 = QuadrupleStop n1 n2 n3 n4
+  Single n1 <> Single n2 =
+    let [n1', n2'] = sortOn pitch [n1, n2] in DoubleStop n1' n2'
+  Single n1 <> DoubleStop n2 n3 =
+    let [n1', n2', n3'] = sortOn pitch [n1, n2, n3]
+     in TripleStop n1' n2' n3'
+  Single n1 <> TripleStop n2 n3 n4 =
+    let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
+     in QuadrupleStop n1' n2' n3' n4'
+  DoubleStop n1 n2 <> Single n3 =
+    let [n1', n2', n3'] = sortOn pitch [n1, n2, n3]
+     in TripleStop n1' n2' n3'
+  TripleStop n1 n2 n3 <> Single n4 =
+    let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
+     in QuadrupleStop n1' n2' n3' n4'
+  DoubleStop n1 n2 <> DoubleStop n3 n4 =
+    let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
+     in QuadrupleStop n1' n2' n3' n4'
   n <> Rest = n
   Rest <> n = n
   n1 <> n2 = error $ "Unsatisfiably large constraint - too many notes to cover at one time: " <> show n1 <> " | " <> show n2
 
 instance Monoid TimeStep where
   mempty = Rest
-
-type Passage = [TimeStep]
 
 -- | C4
 middleC :: Pitch
@@ -71,6 +103,7 @@ debugPitch p =
     9 -> "A"
     10 -> "A#"
     11 -> "B"
+    _ -> error "impossible"
     <> show (p `div` 12 - 1)
 
 -- | Get the MIDI pitch number from the xml note element
@@ -156,6 +189,6 @@ validPlacement constraint (L str finger _) = case constraint of
   Fingering (F f s) -> f == finger && s == str
 
 makeNode :: Note -> (Pitch, S.Set Location)
-makeNode (N pitch constraint) = (pitch, S.fromList locs)
+makeNode (N pitch constraint _) = (pitch, S.fromList locs)
   where
     locs = filter (validPlacement constraint) (allLocations pitch)

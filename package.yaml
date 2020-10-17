@@ -10,6 +10,7 @@ dependencies:
   - classy-prelude >=1.5 && <1.6
   - classy-prelude-conduit >=1.5 && <1.6
   - classy-prelude-yesod >=1.5 && <1.6
+  - comonad
   - conduit >=1.0 && <2.0
   - containers
   - data-default
