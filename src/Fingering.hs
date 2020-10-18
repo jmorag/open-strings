@@ -59,24 +59,26 @@ data TimeStep
   | Rest
   deriving (Show)
 
+double :: Note -> Note -> TimeStep
+double n1 n2 = let [n1', n2'] = sortOn pitch [n1, n2] in DoubleStop n1' n2'
+
+triple :: Note -> Note -> Note -> TimeStep
+triple n1 n2 n3 =
+  let [n1', n2', n3'] = sortOn pitch [n1, n2, n3]
+   in TripleStop n1' n2' n3'
+
+quad :: Note -> Note -> Note -> TimeStep
+quad n1 n2 n3 n4 =
+  let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
+   in QuadrupleStop n1' n2' n3' n4'
+
 instance Semigroup TimeStep where
-  Single n1 <> Single n2 =
-    let [n1', n2'] = sortOn pitch [n1, n2] in DoubleStop n1' n2'
-  Single n1 <> DoubleStop n2 n3 =
-    let [n1', n2', n3'] = sortOn pitch [n1, n2, n3]
-     in TripleStop n1' n2' n3'
-  Single n1 <> TripleStop n2 n3 n4 =
-    let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
-     in QuadrupleStop n1' n2' n3' n4'
-  DoubleStop n1 n2 <> Single n3 =
-    let [n1', n2', n3'] = sortOn pitch [n1, n2, n3]
-     in TripleStop n1' n2' n3'
-  TripleStop n1 n2 n3 <> Single n4 =
-    let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
-     in QuadrupleStop n1' n2' n3' n4'
-  DoubleStop n1 n2 <> DoubleStop n3 n4 =
-    let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
-     in QuadrupleStop n1' n2' n3' n4'
+  Single n1 <> Single n2 = double n1 n2
+  Single n1 <> DoubleStop n2 n3 = triple n1 n2 n3
+  Single n1 <> TripleStop n2 n3 n4 = quad n1 n2 n3 n4
+  DoubleStop n1 n2 <> Single n3 = triple n1 n2 n3
+  TripleStop n1 n2 n3 <> Single n4 = quad n1 n2 n3 n4
+  DoubleStop n1 n2 <> DoubleStop n3 n4 = quad n1 n2 n3 n4
   n <> Rest = n
   Rest <> n = n
   n1 <> n2 = error $ "Unsatisfiably large constraint - too many notes to cover at one time: " <> show n1 <> " | " <> show n2
