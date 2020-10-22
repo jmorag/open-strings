@@ -87,7 +87,15 @@ const vue = new Vue({
         const reader = new FileReader();
         reader.readAsText(file);
         reader.onload = async ({ target: { result } }) => {
-          await this.editor.render(result, this.start_measure);
+          try {
+            await this.editor.render(result, this.start_measure);
+          }
+          catch(e) {
+            this.editor.clear();
+            this.alert_message = "Grace notes currently cannot be rendered due to an <a href='https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/issues/878'>upstream bug</a>";
+            this.show_alert = true;
+            return
+          }
           this.show_editor = true;
           this.disable_submit = false;
         };
@@ -100,6 +108,7 @@ const vue = new Vue({
       this.start_measure = "";
       this.xml_file = null;
       this.show_editor = false;
+      this.show_alert = false;
       this.editor.clear();
       this.$refs.table.clearSelected();
     },
@@ -111,6 +120,7 @@ const vue = new Vue({
   watch: {
     xml_file: function (val) {
       this.$refs.table.clearSelected();
+      this.show_alert = false;
       this.renderXml(val);
     },
   }

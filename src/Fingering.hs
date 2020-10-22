@@ -67,7 +67,7 @@ triple n1 n2 n3 =
   let [n1', n2', n3'] = sortOn pitch [n1, n2, n3]
    in TripleStop n1' n2' n3'
 
-quad :: Note -> Note -> Note -> TimeStep
+quad :: Note -> Note -> Note -> Note -> TimeStep
 quad n1 n2 n3 n4 =
   let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
    in QuadrupleStop n1' n2' n3' n4'

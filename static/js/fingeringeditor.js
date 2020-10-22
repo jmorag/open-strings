@@ -107,7 +107,11 @@ class FingeringEditor {
     const notes = xml.querySelectorAll("note");
     let lyric_level = 1;
     for (let i = notes.length - 1; i >= 0; i--) {
-      let note = notes[i];
+      const note = notes[i];
+      if (note.querySelector("grace")) {
+        console.log(note);
+        throw "illegal grace note";
+      }
       if (note.querySelector("rest")) {
         continue;
       }

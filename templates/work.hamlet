@@ -1,5 +1,6 @@
 <div ##{wId}>
-  <b-alert v-bind:show="show_alert" variant="danger"> {{ alert_message }}
+  <b-alert v-bind:show="show_alert" variant="danger">
+    <span v-html="alert_message">
   <h2 style="text-align: center">#{title}
   <b-form v-on:submit.prevent="submit" novalidate>
     <!-- Existing uploads table -->
