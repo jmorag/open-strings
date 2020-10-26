@@ -3,7 +3,7 @@
   <input name="_token" value="#{csrf}" type="hidden">
   <div .form-group>
     <label for="email">Email
-    <input name="email" type="email" autofocus placeholder="Email" required autocomplete="off" .form-control #email>
+    <input name="email" type="email" placeholder="Email" required autocomplete="off" .form-control #email>
   <div .form-group>
     <label for="password">Password
     <input name="password" type="password" placeholder="Password" required .form-control #password>
