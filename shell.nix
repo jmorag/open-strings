@@ -18,6 +18,6 @@ let
         yesod-bin
       ]);
   };
-  buildInputs = with pkgs; [ ngrok ];
+  buildInputs = with pkgs; [ ngrok bfg-repo-cleaner ];
 in pkg.overrideAttrs
 (attrs: { buildInputs = attrs.buildInputs ++ buildInputs; })
