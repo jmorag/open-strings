@@ -298,8 +298,9 @@ instance YesodAuth App where
     [ oauth2GoogleScoped
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
-        (appGoogleOauthClientSecret (appSettings app)),
-      authEmail
+        (appGoogleOauthClientSecret (appSettings app))
+        -- remove unitl sendgrid account problems fixed
+        -- authEmail
     ]
       ++ extraAuthPlugins
     where
