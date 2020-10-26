@@ -181,18 +181,21 @@ class FingeringEditor {
       }
     });
   }
+
   set_noteheads(svg) {
-    let i = 0;
+    let i_xml = 0;
+    let i_svg = 0;
+    const xml_noteheads = this.xml.querySelectorAll("note");
     this.svg_noteheads = [];
-    svg.querySelectorAll("g.vf-stavenote").forEach(
-      n =>
-        // filter rests
-        n.querySelector("g.vf-modifiers").childElementCount > 0 &&
-        n.querySelectorAll("g.vf-notehead>path").forEach(note => {
-          note.setAttribute("index", i);
-          i++;
+    svg.querySelectorAll("g.vf-stavenote").forEach(n =>
+      n.querySelectorAll("g.vf-notehead>path").forEach(note => {
+        if (!xml_noteheads[i_xml].querySelector("rest")) {
+          note.setAttribute("index", i_svg);
+          i_svg++;
           this.svg_noteheads.push(note);
-        })
+        }
+        i_xml++;
+      })
     );
   }
 
