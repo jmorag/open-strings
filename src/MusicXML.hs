@@ -79,9 +79,7 @@ readTimeStep vec t ref =
     "note" -> do
       let t' = maybe t (const (t - duration)) (e ^? deep (el "chord"))
       forM_ [t' .. t' + duration - 1] $
-        VM.modify
-          vec
-          (maybe Rest (\pitch -> Single (N pitch (xmlConstraint e) ref)) (xmlPitch e) <>)
+        VM.modify vec (maybe Rest (\_ -> Single (Note ref)) (xmlPitch e) <>)
       pure (t' + duration)
     "backup" -> pure (t - duration)
     "forward" -> pure (t + duration)

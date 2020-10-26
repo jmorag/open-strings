@@ -3,6 +3,7 @@
 module Fingering where
 
 import ClassyPrelude hiding (Element)
+import Control.Comonad.Store
 import Control.Lens
 import Control.Lens.Internal.Context
 import qualified Data.Set as S
@@ -26,14 +27,24 @@ data Constraint = Free | OnString VString | Finger Finger | Fingering Fingering
 
 type XmlRef = Pretext' (->) Element Document
 
-data Note = N Pitch Constraint XmlRef
+newtype Note = Note {unNote :: XmlRef}
+
+instance Eq Note where
+  Note n == Note m = pos n == pos m
+
+getNote :: Note -> Element
+getNote = pos . unNote
 
 pitch :: Note -> Pitch
-pitch (N p _ _) = p
+pitch =
+  fromMaybe (error "Called pitch on pitchless xml element") . (xmlPitch . getNote)
+
+constraint :: Note -> Constraint
+constraint = xmlConstraint . getNote
 
 instance Show Note where
-  show (N p c _) =
-    debugPitch p <> case c of
+  show note =
+    debugPitch (pitch note) <> case (constraint note) of
       Free -> ""
       OnString s -> showStr s
       Finger f -> showFinger f
@@ -57,7 +68,7 @@ data TimeStep
   | TripleStop Note Note Note
   | QuadrupleStop Note Note Note Note
   | Rest
-  deriving (Show)
+  deriving (Show, Eq)
 
 double :: Note -> Note -> TimeStep
 double n1 n2 = let [n1', n2'] = sortOn pitch [n1, n2] in DoubleStop n1' n2'
@@ -148,9 +159,7 @@ xmlConstraint note =
         (Nothing, Just s') -> OnString s'
         (Just f', Just s') -> Fingering (F f' s')
 
-data Location
-  = -- | mm from nut
-    L VString Finger Int
+data Location = Location {string :: VString, finger :: Finger, distance :: Int}
   deriving (Eq, Show, Ord)
 
 -- type Node = (Pitch, S.Set Location)
@@ -169,10 +178,10 @@ ePitches = (76, 105)
 
 allLocations :: Pitch -> [Location]
 allLocations pitch = do
-  (str, (low, _)) <- zip [E, A, D, G] [ePitches, aPitches, dPitches, gPitches]
+  (str, (low, _high)) <- zip [E, A, D, G] [ePitches, aPitches, dPitches, gPitches]
   case measurementSeries V.!? (pitch - low) of
     Nothing -> []
-    Just dist -> map (flip (L str) dist) case pitch - low of
+    Just dist -> map (flip (Location str) dist) case pitch - low of
       -- At the low and high ends of the string, we can't use certain fingers
       -- TODO: decide high end
       0 -> [Open]
@@ -183,14 +192,14 @@ allLocations pitch = do
       5 -> [One, Two, Three]
       _ -> [One, Two, Three, Four]
 
-validPlacement :: Constraint -> Location -> Bool
-validPlacement constraint (L str finger _) = case constraint of
+validPlacement :: Location -> Constraint -> Bool
+validPlacement Location {..} = \case
   Free -> True
-  OnString s -> s == str
+  OnString s -> s == string
   Finger f -> f == finger
-  Fingering (F f s) -> f == finger && s == str
+  Fingering (F f s) -> f == finger && s == string
 
-makeNode :: Note -> (Pitch, S.Set Location)
-makeNode (N pitch constraint _) = (pitch, S.fromList locs)
-  where
-    locs = filter (validPlacement constraint) (allLocations pitch)
+-- makeNode :: Note -> (Pitch, S.Set Location)
+-- makeNode (N pitch constraint _) = (pitch, S.fromList locs)
+--   where
+--     locs = filter (validPlacement constraint) (allLocations pitch)
