@@ -6,6 +6,7 @@ import ClassyPrelude hiding (Element)
 import Control.Comonad.Store
 import Control.Lens
 import Control.Lens.Internal.Context
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Text.XML.Lens
@@ -97,6 +98,12 @@ instance Semigroup TimeStep where
 instance Monoid TimeStep where
   mempty = Rest
 
+data Step = Step {timeStep :: TimeStep, duration :: Int}
+  deriving (Show, Eq)
+
+coalesceTimeSteps :: Vector TimeStep -> [Step]
+coalesceTimeSteps = fmap (\ts -> Step (NE.head ts) (length ts)) . NE.group
+
 -- | C4
 middleC :: Pitch
 middleC = 60
@@ -164,7 +171,7 @@ data Location = Location {string :: VString, finger :: Finger, distance :: Int}
 
 -- type Node = (Pitch, S.Set Location)
 
-measurementSeries :: V.Vector Int
+measurementSeries :: Vector Int
 measurementSeries =
   V.fromList
     [0, 13, 30, 45, 61, 87, 101, 114, 129, 138, 147, 156, 168, 180, 190, 195, 202, 209, 213, 222, 228, 235, 241, 245, 251, 256, 260, 262, 268, 271]
