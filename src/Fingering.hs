@@ -98,7 +98,7 @@ instance Semigroup TimeStep where
 instance Monoid TimeStep where
   mempty = Rest
 
-data Step = Step {timeStep :: TimeStep, duration :: Int}
+data Step = Step {notes :: TimeStep, duration :: Int}
   deriving (Show, Eq)
 
 coalesceTimeSteps :: Vector TimeStep -> [Step]
