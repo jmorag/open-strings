@@ -102,7 +102,9 @@ getWorkR work_key = do
   composer <- runDB $ get404 (workComposerId work)
   entries <- getEntriesR work_key
   csrf <- fromMaybe "" . reqToken <$> getRequest
-  let title =
+  mentryId <- lookupGetParam "entry-id"
+  let entryId = Number $ fromMaybe (-1) (readMay =<< mentryId)
+      title =
         takeWhile (/= ',') (composerName composer) <> ": "
           <> replaceUnderscores (workTitle work)
   (parts, movements) <- workData work_key

@@ -34,6 +34,13 @@ const vue = new Vue({
     show_instructions: false,
     validated: false,
   },
+  mounted: async function() {
+    const index = this.entries.findIndex(e => e.entry_id === #{entryId});
+    if (index !== -1) {
+      this.$refs.table.selectRow(index)
+      await this.fetchXml(this.entries[index]);
+    }
+  },
   methods: {
     async submit(e) {
       if (!this.start_measure || !this.description) {

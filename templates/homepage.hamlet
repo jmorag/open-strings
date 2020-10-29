@@ -6,7 +6,6 @@
   <b-form-group .required>
     <b-form-group>
       <autocomplete
-        autofocus
         #work-title
         @submit="autocompleteSubmit"
         @update="update"
@@ -22,3 +21,16 @@
     <!-- Add work link -->
     <div v-show="show_add_work_link">
       <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
+<div ##{tableId}>
+  <b-table
+    selectable
+    select-mode="single"
+    small
+    hover
+    outlined
+    caption="Recently uploaded"
+    v-bind:fields="fields"
+    v-bind:items="items"
+    v-bind:primary_key="'entry_id'"
+    @row-clicked="navigate"
+  >

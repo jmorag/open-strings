@@ -2,7 +2,7 @@ const vue = new Vue({
   el: "##{rawJS searchId}",
   data: {
     show_add_work_link: false,
-    work_id: 0,
+    work_id: 0
   },
   components: { Autocomplete },
   methods: {
@@ -30,6 +30,30 @@ const vue = new Vue({
     },
     async autocompleteSubmit({ value }) {
       window.location.href = `/work/${value}`;
+    }
+  }
+});
+
+const mru_table = new Vue({
+  el: "##{rawJS tableId}",
+  data: {
+    fields: [
+      "work",
+      "part",
+      "measures",
+      {
+        key: "uploaded_by",
+        formatter: ({ user, time }) => {
+          const d = new Date(time);
+          return `${user} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`;
+        }
+      }
+    ],
+    items: #{entries}
+  },
+  methods: {
+    navigate(item, _index, _event) {
+      window.location.href = `/work/${item.work_id}?entry-id=${item.entry_id}`;
     }
   }
 });
