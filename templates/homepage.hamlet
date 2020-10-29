@@ -22,13 +22,13 @@
     <div v-show="show_add_work_link">
       <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
 <div ##{tableId}>
+  <p .lead>Recently uploaded
   <b-table
     selectable
     select-mode="single"
     small
     hover
     outlined
-    caption="Recently uploaded"
     v-bind:fields="fields"
     v-bind:items="items"
     v-bind:primary_key="'entry_id'"
