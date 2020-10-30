@@ -2,7 +2,7 @@
 
 module Handler.Upload where
 
-import Control.Lens hiding ((.=))
+import Control.Lens (lengthOf)
 import Data.Aeson.Types
 import Database.Esqueleto (fromSqlKey, toSqlKey)
 import Handler.Pieces
@@ -103,7 +103,7 @@ getWorkR work_key = do
   entries <- getEntriesR work_key
   csrf <- fromMaybe "" . reqToken <$> getRequest
   mentryId <- lookupGetParam "entry-id"
-  let entryId = Number $ fromMaybe (-1) (readMay =<< mentryId)
+  let entryId = fromMaybe Null (fmap Number . readMay =<< mentryId)
       title =
         takeWhile (/= ',') (composerName composer) <> ": "
           <> replaceUnderscores (workTitle work)

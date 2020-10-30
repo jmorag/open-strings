@@ -33,4 +33,4 @@
     v-bind:items="items"
     v-bind:primary_key="'entry_id'"
     @row-clicked="navigate"
-  >
+    >

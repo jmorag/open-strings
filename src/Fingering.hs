@@ -28,20 +28,10 @@ data Constraint = Free | OnString VString | Finger Finger | Fingering Fingering
 
 type XmlRef = Pretext' (->) Element Document
 
-newtype Note = Note {unNote :: XmlRef}
+data Note = Note {xmlRef :: XmlRef, possibleFingerings :: Set Location}
 
 instance Eq Note where
-  Note n == Note m = pos n == pos m
-
-getNote :: Note -> Element
-getNote = pos . unNote
-
-pitch :: Note -> Pitch
-pitch =
-  fromMaybe (error "Called pitch on pitchless xml element") . (xmlPitch . getNote)
-
-constraint :: Note -> Constraint
-constraint = xmlConstraint . getNote
+  n == m = getNote n == getNote m
 
 instance Show Note where
   show note =
@@ -60,6 +50,16 @@ instance Show Note where
       showFinger Two = "-2"
       showFinger Three = "-3"
       showFinger Four = "-4"
+
+getNote :: Note -> Element
+getNote = pos . xmlRef
+
+pitch :: Note -> Pitch
+pitch =
+  fromMaybe (error "Called pitch on pitchless xml element") . (xmlPitch . getNote)
+
+constraint :: Note -> Constraint
+constraint = xmlConstraint . getNote
 
 -- | At each time step, there is either a rest, or 1, 2, 3, or 4 notes that must be
 -- covered by the left hand
@@ -184,11 +184,11 @@ aPitches = (69, 98)
 ePitches = (76, 105)
 
 allLocations :: Pitch -> [Location]
-allLocations pitch = do
+allLocations p = do
   (str, (low, _high)) <- zip [E, A, D, G] [ePitches, aPitches, dPitches, gPitches]
-  case measurementSeries V.!? (pitch - low) of
+  case measurementSeries V.!? (p - low) of
     Nothing -> []
-    Just dist -> map (flip (Location str) dist) case pitch - low of
+    Just dist -> map (flip (Location str) dist) case p - low of
       -- At the low and high ends of the string, we can't use certain fingers
       -- TODO: decide high end
       0 -> [Open]
@@ -206,7 +206,10 @@ validPlacement Location {..} = \case
   Finger f -> f == finger
   Fingering (F f s) -> f == finger && s == string
 
--- makeNode :: Note -> (Pitch, S.Set Location)
--- makeNode (N pitch constraint _) = (pitch, S.fromList locs)
---   where
---     locs = filter (validPlacement constraint) (allLocations pitch)
+mkNote :: XmlRef -> Maybe Note
+mkNote xmlRef =
+  xmlPitch (pos xmlRef) <&> \p ->
+    let possibleFingerings =
+          S.fromList $
+            filter (flip validPlacement (xmlConstraint (pos xmlRef))) (allLocations p)
+     in Note {..}
