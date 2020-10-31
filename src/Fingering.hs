@@ -20,10 +20,7 @@ data VString = E | A | D | G
 -- Midi pitch
 type Pitch = Int
 
-data Fingering = F Finger VString
-  deriving (Show, Eq)
-
-data Constraint = Free | OnString VString | Finger Finger | Fingering Fingering
+data Constraint = Free | OnString VString | Finger Finger | Fingering Finger VString
   deriving (Show, Eq)
 
 type XmlRef = Pretext' (->) Element Document
@@ -39,7 +36,7 @@ instance Show Note where
       Free -> ""
       OnString s -> showStr s
       Finger f -> showFinger f
-      Fingering (F f s) -> showFinger f <> showStr s
+      Fingering f s -> showFinger f <> showStr s
     where
       showStr E = "-I"
       showStr A = "-II"
@@ -164,7 +161,7 @@ xmlConstraint note =
         (Nothing, Nothing) -> Free
         (Just f', Nothing) -> Finger f'
         (Nothing, Just s') -> OnString s'
-        (Just f', Just s') -> Fingering (F f' s')
+        (Just f', Just s') -> Fingering f' s'
 
 data Location = Location {string :: VString, finger :: Finger, distance :: Int}
   deriving (Eq, Show, Ord)
@@ -204,7 +201,7 @@ validPlacement Location {..} = \case
   Free -> True
   OnString s -> s == string
   Finger f -> f == finger
-  Fingering (F f s) -> f == finger && s == string
+  Fingering f s -> f == finger && s == string
 
 mkNote :: XmlRef -> Maybe Note
 mkNote xmlRef =
