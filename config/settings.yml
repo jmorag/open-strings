@@ -32,7 +32,7 @@ database-url: "_env:DATABASE_URL:postgres://fingerdb:fingerdb@localhost:5432/fin
 database-pool-size: "_env:DB_POOL:10"
 
 copyright: Joseph Morag, 2020
-#analytics: UA-YOURCODE
+analytics: "_env:GOOGLE_ANALYTICS:G-0000000000"
 
 # these should ONLY be passed as environment vars
 google-oauth2-client-id: "_env:GOOGLE_OAUTH_ID:***REMOVED***"
