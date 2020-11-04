@@ -67,13 +67,13 @@ measureNumbers =
 timeStep :: Traversal' Element Element
 timeStep = deep (failing (el "note") (failing (el "backup") (el "forward")))
 
-readTimeSteps :: Document -> Vector TimeStep
+readTimeSteps :: Document -> Vector (TimeStep Set)
 readTimeSteps doc = V.create do
   vec <- VM.replicate (totalDuration doc) Rest
   foldM_ (readTimeStep vec) 0 (holesOf (root . timeStep) doc)
   pure vec
 
-readTimeStep :: VM.MVector s TimeStep -> Int -> XmlRef -> ST s Int
+readTimeStep :: VM.MVector s (TimeStep Set) -> Int -> XmlRef -> ST s Int
 readTimeStep vec t ref =
   case e ^?! name of
     "note" -> do
