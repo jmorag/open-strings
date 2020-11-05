@@ -1,18 +1,18 @@
 module MusicXML
-  ( separateFingerings,
-    mergeFingerings,
-    adjustMeasures,
+  ( adjustMeasures,
     measureNumbers,
     readTimeSteps,
+    inferFingerings,
   )
 where
 
 import ClassyPrelude hiding (Element)
-import Control.Category ((>>>))
 import Control.Comonad.Store
 import Control.Lens
 import Control.Monad (foldM_)
 import Control.Monad.ST
+import Data.Foldable (foldr1)
+import qualified Data.List.NonEmpty as NE
 import Data.Text.Lens (unpacked)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
@@ -20,36 +20,52 @@ import Fingering
 import Text.XML
 import Text.XML.Lens
 
--- | Remove the
--- <technical><fingering>f</fingering><string>s</string></technical>
--- elements from the top level score element
-separateFingerings :: Document -> (Document, [[(Int, Node)]])
-separateFingerings score =
-  ( score & root . deep (el "technical") . nodes %~ filter (not . isFingering),
-    score ^.. root . deep (el "technical")
-      <&> (view nodes >>> zip [0 ..] >>> filter (isFingering . snd))
-  )
-
--- | Inverse of 'separateFingerings'
-mergeFingerings :: Document -> [[(Int, Node)]] -> Document
-mergeFingerings music fingerings =
-  over
-    (partsOf $ root . deep (el "technical"))
-    (zipWith merge fingerings)
-    music
-
-merge :: [(Int, Node)] -> Element -> Element
-merge fingerings = over nodes (go 0 fingerings)
+inferFingerings :: Document -> Document
+inferFingerings doc =
+  case infer (coalesceTimeSteps (readTimeSteps doc)) ^.. traversed . assignedNotes of
+    [] -> doc
+    ns -> peeks id . view xmlRef $ foldr1 go ns
   where
-    go :: Int -> [(Int, a)] -> [a] -> [a]
-    go _ [] rest = rest
-    go _ fs [] = map snd fs
-    go i fs'@((j, f) : fs) ts'@(t : ts)
-      | i == j = f : go (i + 1) fs ts'
-      | otherwise = t : go (i + 1) fs' ts
+    go :: AssignedNote -> AssignedNote -> AssignedNote
+    go note = over xmlRef (seeks (setFingering (note ^. fingerings . _Wrapped)))
 
-isFingering :: Node -> Bool
-isFingering e = (e ^? _Element . name) `elem` [Just "fingering", Just "string"]
+assignedNotes :: Fold AssignedStep AssignedNote
+assignedNotes = folding \step -> case _notes step of
+  Rest -> []
+  Single n -> [n]
+  DoubleStop n1 n2 -> [n1, n2]
+  TripleStop n1 n2 n3 -> [n1, n2, n3]
+  QuadrupleStop n1 n2 n3 n4 -> [n1, n2, n3, n4]
+
+setFingering :: Fingering -> Element -> Element
+setFingering fingering noteEl =
+  let e nm children = _Element # Element nm mempty children
+      get nm parent = parent ^? plate . el nm
+      fingerNum = case fingering ^. finger of One -> "1"; Two -> "2"; Three -> "3"; Four -> "4"; Open -> "0"
+      fingerEl = e "f" [_Content # fingerNum]
+      stringNum = case fingering ^. string of E -> "1"; A -> "2"; D -> "3"; G -> "4"
+      stringEl = e "string" [_Content # stringNum]
+      notationsEl = case get "notations" noteEl of
+        Nothing ->
+          e "notations" [e "technical" [fingerEl, stringEl]]
+            ^?! _Element
+        Just notations ->
+          case get "technical" notations of
+            Nothing -> notations & nodes %~ ((:) ((e "technical" [fingerEl, stringEl])))
+            Just technical ->
+              case (get "fingering" technical, get "string" technical) of
+                (Nothing, Nothing) ->
+                  notations & plate . el "technical" . nodes %~ ([fingerEl, stringEl] ++)
+                (Nothing, Just _) ->
+                  notations & plate . el "technical" . nodes %~ ((:) fingerEl)
+                    & deep (el "string") . text .~ stringNum
+                (Just _, Nothing) ->
+                  notations & plate . el "technical" . nodes %~ ((:) stringEl)
+                    & deep (el "fingering") . text .~ fingerNum
+                (Just _, Just _) ->
+                  notations & deep (el "fingering") . text .~ fingerNum
+                    & deep (el "string") . text .~ stringNum
+   in noteEl & plate . (el "notations") .~ notationsEl
 
 -- | Shift measure numbers to start at the given point
 adjustMeasures :: Int -> Document -> Document
@@ -87,6 +103,9 @@ readTimeStep vec t ref =
   where
     e = pos ref
     duration = e ^?! dur
+
+coalesceTimeSteps :: Vector (TimeStep f) -> [Step f]
+coalesceTimeSteps = fmap (\ts -> Step (NE.head ts) (length ts)) . NE.group
 
 totalDuration :: Document -> Int
 totalDuration = sumOf (root . timeStep . to fn)
