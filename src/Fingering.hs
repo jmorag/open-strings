@@ -7,7 +7,6 @@ import ClassyPrelude hiding (Element)
 import Control.Comonad.Store
 import Control.Lens
 import Control.Lens.Internal.Context
-import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Text.XML.Lens
@@ -87,11 +86,11 @@ xmlConstraint note =
 data Fingering = Fingering {_string :: VString, _finger :: Finger, _distance :: Int}
   deriving (Eq, Show, Ord)
 
-$(makeLenses ''Fingering)
+makeLenses ''Fingering
 
 data Note f = Note {_xmlRef :: XmlRef, _fingerings :: f Fingering}
 
-$(makeLenses ''Note)
+makeLenses ''Note
 
 type UnassignedNote = Note Set
 
@@ -168,14 +167,11 @@ instance Monoid (TimeStep f) where
 data Step f = Step {_notes :: TimeStep f, _duration :: Int}
   deriving (Show, Eq)
 
-$(makeLenses ''Step)
+makeLenses ''Step
 
 type UnassignedStep = Step Set
 
 type AssignedStep = Step Identity
-
-coalesceTimeSteps :: Vector (TimeStep f) -> [Step f]
-coalesceTimeSteps = fmap (\ts -> Step (NE.head ts) (length ts)) . NE.group
 
 -- | C4
 middleC :: Pitch
@@ -288,13 +284,17 @@ allAssignments (Step ns dur) = map (flip Step dur) (go ns)
             (Note x3 (Identity f3))
             (Note x4 (Identity f4))
 
+-- | This is not a real algorithm...
+infer :: [UnassignedStep] -> [AssignedStep]
+infer passage = map ((\(x : _) -> x) . allAssignments) passage
+
 data Penalty1 = P1
   { _p1Name :: Text,
     _p1Cost :: AssignedStep -> Double,
     _p1Weight :: Double
   }
 
-$(makeLenses ''Penalty1)
+makeLenses ''Penalty1
 
 data Penalty2 = P2
   { _p2Name :: Text,
@@ -302,7 +302,7 @@ data Penalty2 = P2
     _p2Weight :: Double
   }
 
-$(makeLenses ''Penalty2)
+makeLenses ''Penalty2
 
 -- | maximum floating point representable
 infinity, high, medium, low :: Double
