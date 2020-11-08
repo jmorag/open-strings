@@ -15,9 +15,11 @@ import Validation
 
 data Solo = Solo | Tutti
   deriving (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (FromDhall)
 
 data StringInstrument = Violin | Viola | Cello | Bass
   deriving (Show, Eq, Read, Ord, Generic)
+  deriving anyclass (FromDhall)
 
 data Part = Part
   { instrument :: StringInstrument,
@@ -29,6 +31,7 @@ data Part = Part
     part_num :: Natural
   }
   deriving (Show, Eq, Read, Generic)
+  deriving anyclass (FromDhall)
 
 -- We can't just switch the order of the fields in Part and use the derived instance
 -- because it breaks the database instance
@@ -122,9 +125,3 @@ hoistValidation :: Validation (NonEmpty String) a -> Parser a
 hoistValidation = validation (parseFail . unlines) pure
 
 derivePersistField "Part"
-
-instance FromDhall Part
-
-instance FromDhall StringInstrument
-
-instance FromDhall Solo

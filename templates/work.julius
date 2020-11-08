@@ -32,20 +32,48 @@ const vue = new Vue({
     disable_submit: true,
     show_editor: false,
     show_instructions: false,
-    validated: false,
+    validated: false
   },
+
   mounted: async function() {
     const index = this.entries.findIndex(e => e.entry_id === #{entryId});
     if (index !== -1) {
-      this.$refs.table.selectRow(index)
+      this.$refs.table.selectRow(index);
       await this.fetchXml(this.entries[index]);
     }
   },
+
   methods: {
+    async infer(e) {
+      const s = new XMLSerializer();
+      const body = {
+        infer_xml: s.serializeToString(this.editor.musicxml)
+      };
+      this.loading = true;
+      const resp = await fetch("@{InferR}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      this.loading = false;
+      if (json.error) {
+        this.alert_message = json.error;
+        this.show_alert = true;
+        return;
+      }
+      if (json.success) {
+        this.description = "Inferred";
+        this.editor.clear()
+        this.renderXml(new Blob([json.xml])); // TODO make this better
+        return;
+      }
+    },
+
     async submit(e) {
       if (!this.start_measure || !this.description) {
         this.validated = true;
-        return
+        return;
       }
       const s = new XMLSerializer();
       const body = {
@@ -70,24 +98,27 @@ const vue = new Vue({
       }
       if (json.success) {
         this.show_success = true;
-        await this.fetchEntries() // update table
+        await this.fetchEntries(); // update table
         return;
       }
     },
     async fetchXml(item, _index, _event) {
-      this.xml_file = null
+      this.xml_file = null;
       this.movement_id = item.movement_id;
       this.part = item.part;
       this.start_measure = item.start_measure;
-      this.description = item.description
+      this.description = item.description;
+      this.loading = true;
       const resp = await fetch(`/api/musicxml/${item.entry_id}`);
       if (resp.status === 404) {
         this.alert_message = "Error retrieving MusicXML";
         this.show_alert = true;
+        this.loading = false;
         return;
       }
       const blob = await resp.blob();
       this.renderXml(blob);
+      this.loading = false;
     },
     renderXml(file) {
       if (file) {
@@ -96,12 +127,12 @@ const vue = new Vue({
         reader.onload = async ({ target: { result } }) => {
           try {
             await this.editor.render(result, this.start_measure);
-          }
-          catch(e) {
+          } catch (e) {
             this.editor.clear();
-            this.alert_message = "Grace notes currently cannot be rendered due to an <a href='https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/issues/878'>upstream bug</a>";
+            this.alert_message =
+              "Grace notes currently cannot be rendered due to an <a href='https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/issues/878'>upstream bug</a>";
             this.show_alert = true;
-            return
+            return;
           }
           this.show_editor = true;
           this.disable_submit = false;
@@ -125,10 +156,10 @@ const vue = new Vue({
     }
   },
   watch: {
-    xml_file: function (val) {
+    xml_file: function(val) {
       this.$refs.table.clearSelected();
       this.show_alert = false;
       this.renderXml(val);
-    },
+    }
   }
 });

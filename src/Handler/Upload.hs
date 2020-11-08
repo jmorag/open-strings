@@ -2,7 +2,7 @@
 
 module Handler.Upload where
 
-import Control.Lens (lengthOf)
+import Control.Lens (deep, lengthOf, (^..))
 import Data.Aeson.Types
 import Database.Esqueleto (fromSqlKey, toSqlKey)
 import Handler.Pieces
@@ -13,6 +13,27 @@ import Text.Julius
 import Text.XML
 import Text.XML.Lens
 
+data InferParams = InferParams
+  { infer_xml :: !LText
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (FromJSON)
+
+postInferR :: Handler Value
+postInferR =
+  parseCheckJsonBody >>= \case
+    Error e -> pure $ object ["error" .= e]
+    Success InferParams {..} -> case parseText def infer_xml of
+      Left e -> pure $ object ["error" .= tshow e]
+      Right musicxml -> do
+        let xml' = inferFingerings musicxml
+        print (xml' ^.. root . deep (el "string") . text)
+        pure $
+          object
+            [ "success" .= True,
+              "xml" .= renderText def xml'
+            ]
+
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64,
     part :: !Part,
@@ -21,8 +42,7 @@ data UploadFingeringParams = UploadFingeringParams
     description :: !Text
   }
   deriving (Show, Generic)
-
-instance FromJSON UploadFingeringParams
+  deriving anyclass (FromJSON)
 
 postUploadR :: Handler Value
 postUploadR =

@@ -48,6 +48,7 @@ class FingeringEditor {
   }
 
   get musicxml() {
+    // TODO consider not removing dummy xml nodes
     if (this.xml === null) {
       return null;
     }

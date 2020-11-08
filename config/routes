@@ -26,3 +26,5 @@
 /api/entries/#Int64 EntriesR GET
 
 /api/musicxml/#Int64 MusicXMLR GET
+
+/api/infer InferR POST
