@@ -4,9 +4,8 @@
 module Fingering where
 
 import ClassyPrelude hiding (Element)
-import Control.Comonad.Store
 import Control.Lens
-import Control.Lens.Internal.Context
+import qualified Data.Foldable as F
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Text.XML.Lens
@@ -41,7 +40,11 @@ debugPitch p =
 data Constraint = Free | OnString VString | Finger Finger | Specified Finger VString
   deriving (Show, Eq)
 
-type XmlRef = Pretext' (->) Element Document
+-- TODO figure out how to make Pretext' (Indexed Int) Element Document work
+type XmlRef = (Int, Element)
+
+deref :: XmlRef -> Element
+deref = snd
 
 -- | Get the MIDI pitch number from the xml note element
 xmlPitch :: Element -> Maybe Pitch
@@ -84,7 +87,20 @@ xmlConstraint note =
         (Just f', Just s') -> Specified f' s'
 
 data Fingering = Fingering {_string :: VString, _finger :: Finger, _distance :: Int}
-  deriving (Eq, Show, Ord)
+  deriving (Eq, Ord)
+
+instance Show Fingering where
+  show (Fingering {..}) = showFinger _finger <> showStr _string
+    where
+      showStr E = "-I"
+      showStr A = "-II"
+      showStr D = "-III"
+      showStr G = "-IV"
+      showFinger Open = "-0"
+      showFinger One = "-1"
+      showFinger Two = "-2"
+      showFinger Three = "-3"
+      showFinger Four = "-4"
 
 makeLenses ''Fingering
 
@@ -99,26 +115,12 @@ type AssignedNote = Note Identity
 instance Eq (Note f) where
   n == m = getNote n == getNote m
 
-instance Show (Note f) where
+instance Foldable f => Show (Note f) where
   show note =
-    debugPitch (pitch note) <> case (constraint note) of
-      Free -> ""
-      OnString s -> showStr s
-      Finger f -> showFinger f
-      Specified f s -> showFinger f <> showStr s
-    where
-      showStr E = "-I"
-      showStr A = "-II"
-      showStr D = "-III"
-      showStr G = "-IV"
-      showFinger Open = "-0"
-      showFinger One = "-1"
-      showFinger Two = "-2"
-      showFinger Three = "-3"
-      showFinger Four = "-4"
+    debugPitch (pitch note) <> "[" <> F.concatMap show (_fingerings note) <> "]"
 
 getNote :: Note f -> Element
-getNote = pos . _xmlRef
+getNote = deref . _xmlRef
 
 pitch :: Note f -> Pitch
 pitch =
@@ -136,6 +138,8 @@ data TimeStep f
   | QuadrupleStop (Note f) (Note f) (Note f) (Note f)
   | Rest
   deriving (Show, Eq)
+
+makePrisms ''TimeStep
 
 double :: Note f -> Note f -> TimeStep f
 double n1 n2 = let [n1', n2'] = sortOn pitch [n1, n2] in DoubleStop n1' n2'
@@ -159,12 +163,12 @@ instance Semigroup (TimeStep f) where
   DoubleStop n1 n2 <> DoubleStop n3 n4 = quad n1 n2 n3 n4
   n <> Rest = n
   Rest <> n = n
-  n1 <> n2 = error $ "Unsatisfiably large constraint - too many notes to cover at one time: " <> show n1 <> " | " <> show n2
+  _ <> _ = error $ "Unsatisfiably large constraint - too many notes to cover at one time: " -- <> show n1 <> " | " <> show n2
 
 instance Monoid (TimeStep f) where
   mempty = Rest
 
-data Step f = Step {_notes :: TimeStep f, _duration :: Int}
+data Step f = Step {_timestep :: TimeStep f, _duration :: Int}
   deriving (Show, Eq)
 
 makeLenses ''Step
@@ -245,10 +249,12 @@ validPlacement Fingering {..} = \case
 
 mkNote :: XmlRef -> Maybe UnassignedNote
 mkNote ref =
-  xmlPitch (pos ref) <&> \p ->
+  xmlPitch (deref ref) <&> \p ->
     let fs =
           S.fromList $
-            filter (flip validPlacement (xmlConstraint (pos ref))) (allFingerings p)
+            filter
+              (flip validPlacement (xmlConstraint (deref ref)))
+              (allFingerings p)
      in Note ref fs
 
 -- The cartesian product of all the possibleFingerings for a given timestep
@@ -286,7 +292,14 @@ allAssignments (Step ns dur) = map (flip Step dur) (go ns)
 
 -- | This is not a real algorithm...
 infer :: [UnassignedStep] -> [AssignedStep]
-infer passage = map ((\(x : _) -> x) . allAssignments) passage
+infer passage =
+  map
+    ( \step ->
+        fromMaybe
+          (error (show step))
+          (headMay (allAssignments step))
+    )
+    passage
 
 data Penalty1 = P1
   { _p1Name :: Text,
@@ -314,10 +327,10 @@ low = 10
 trill :: Penalty1
 trill = P1 "trill" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       Rest -> 0
       Single (Note x (Identity f)) ->
-        case pos x ^? deep (failing (el "trill-mark") (el "wavy-line")) of
+        case deref x ^? deep (failing (el "trill-mark") (el "wavy-line")) of
           Just _ -> case f ^. finger of
             Open -> high
             One -> 0
@@ -326,14 +339,14 @@ trill = P1 "trill" cost high
             Four -> infinity
           Nothing -> 0
       DoubleStop n1 n2 ->
-        cost (set notes (Single n1) step) + cost (set notes (Single n2) step)
+        cost (set timestep (Single n1) step) + cost (set timestep (Single n2) step)
       -- there should never be trills on triple/quadruple stops...
       _ -> 0
 
 doubleStopAdjacent :: Penalty1
 doubleStopAdjacent = P1 "double stops on adjacent strings" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2 ->
         let f1 = n1 ^. fingerings . _Wrapped
             f2 = n2 ^. fingerings . _Wrapped
@@ -344,7 +357,7 @@ doubleStopAdjacent = P1 "double stops on adjacent strings" cost high
 staticThird :: Penalty1
 staticThird = P1 "static third" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) `elem` [3, 4] ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -363,7 +376,7 @@ staticThird = P1 "static third" cost high
 staticSixth :: Penalty1
 staticSixth = P1 "static sixth" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) `elem` [8, 9] ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -382,7 +395,7 @@ staticSixth = P1 "static sixth" cost high
 staticOctave :: Penalty1
 staticOctave = P1 "static octave" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) == 12 ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -399,7 +412,7 @@ staticOctave = P1 "static octave" cost high
 staticTenth :: Penalty1
 staticTenth = P1 "static tenth (or any interval greater than an octave)" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) > 12 ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -413,7 +426,7 @@ staticTenth = P1 "static tenth (or any interval greater than an octave)" cost hi
 staticUnison :: Penalty1
 staticUnison = P1 "static unison" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | pitch n2 == pitch n1 ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -429,7 +442,7 @@ staticUnison = P1 "static unison" cost high
 staticSecond :: Penalty1
 staticSecond = P1 "static second" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) `elem` [1, 2] ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -444,7 +457,7 @@ staticSecond = P1 "static second" cost high
 staticFourth :: Penalty1
 staticFourth = P1 "static fourth" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) `elem` [5, 6] ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -461,7 +474,7 @@ staticFourth = P1 "static fourth" cost high
 staticFifth :: Penalty1
 staticFifth = P1 "static fifth" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) == 7 ->
           let f1 = n1 ^. fingerings . _Wrapped
@@ -479,7 +492,7 @@ staticFifth = P1 "static fifth" cost high
 staticSeventh :: Penalty1
 staticSeventh = P1 "static seventh" cost high
   where
-    cost step = case step ^. notes of
+    cost step = case step ^. timestep of
       DoubleStop n1 n2
         | (pitch n2 - pitch n1) `elem` [10, 11] ->
           let f1 = n1 ^. fingerings . _Wrapped
