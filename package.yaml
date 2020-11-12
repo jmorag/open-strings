@@ -38,6 +38,7 @@ dependencies:
   - persistent-template >=2.5 && <2.9
   - raw-strings-qq
   - safe
+  - search-algorithms
   - sendgrid-v3
   - shakespeare >=2.0 && <2.1
   - string-conversions

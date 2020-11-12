@@ -26,7 +26,7 @@ inferFingerings doc = over (partsOf' (root . timeStep)) go doc
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
-            map (\n -> (n ^. xmlRef . _1, n ^. fingerings . _Wrapped)) assignedNotes
+            map (\n -> (n ^. xmlRef . _1, n ^. fingerings')) assignedNotes
        in assignFingers (zip [0 ..] steps) fingers
     assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
     assignFingers e [] = map snd e
@@ -45,14 +45,6 @@ child nm = lens getter setter
     setter e new = case e ^? plate . el nm of
       Just _ -> set (singular (plate . el nm)) new e
       Nothing -> over nodes ((:) (_Element # new)) e
-
-notes :: Fold (Step f) (Note f)
-notes = folding \step -> case _timestep step of
-  Rest -> []
-  Single n -> [n]
-  DoubleStop n1 n2 -> [n1, n2]
-  TripleStop n1 n2 n3 -> [n1, n2, n3]
-  QuadrupleStop n1 n2 n3 n4 -> [n1, n2, n3, n4]
 
 setFingering :: Fingering -> Element -> Element
 setFingering fingering noteEl =

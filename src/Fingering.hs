@@ -1,11 +1,31 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Fingering where
+module Fingering
+  ( XmlRef,
+    deref,
+    infer,
+    Fingering (..),
+    fingerings',
+    xmlRef,
+    finger,
+    string,
+    Finger (..),
+    VString (..),
+    TimeStep (..),
+    Step (..),
+    Note (..),
+    AssignedNote,
+    mkNote,
+    notes,
+  )
+where
 
-import ClassyPrelude hiding (Element)
+import Algorithm.Search
+import ClassyPrelude hiding (Element, second)
 import Control.Lens
 import qualified Data.Foldable as F
+import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Text.XML.Lens
@@ -108,12 +128,17 @@ data Note f = Note {_xmlRef :: XmlRef, _fingerings :: f Fingering}
 
 makeLenses ''Note
 
+fingerings' :: Lens' AssignedNote Fingering
+fingerings' = fingerings . _Wrapped
+
 type UnassignedNote = Note Set
 
 type AssignedNote = Note Identity
 
 instance Eq (Note f) where
   n == m = getNote n == getNote m
+
+deriving instance Ord (Note Identity)
 
 instance Foldable f => Show (Note f) where
   show note =
@@ -126,9 +151,6 @@ pitch :: Note f -> Pitch
 pitch =
   fromMaybe (error "Called pitch on pitchless xml element") . (xmlPitch . getNote)
 
-constraint :: Note f -> Constraint
-constraint = xmlConstraint . getNote
-
 -- | At each time step, there is either a rest, or 1, 2, 3, or 4 notes that must be
 -- covered by the left hand
 data TimeStep f
@@ -139,7 +161,17 @@ data TimeStep f
   | Rest
   deriving (Show, Eq)
 
+deriving instance Ord (TimeStep Identity)
+
 makePrisms ''TimeStep
+
+notes :: Fold (Step f) (Note f)
+notes = folding \step -> case _timestep step of
+  Rest -> []
+  Single n -> [n]
+  DoubleStop n1 n2 -> [n1, n2]
+  TripleStop n1 n2 n3 -> [n1, n2, n3]
+  QuadrupleStop n1 n2 n3 n4 -> [n1, n2, n3, n4]
 
 double :: Note f -> Note f -> TimeStep f
 double n1 n2 = let [n1', n2'] = sortOn pitch [n1, n2] in DoubleStop n1' n2'
@@ -170,6 +202,8 @@ instance Monoid (TimeStep f) where
 
 data Step f = Step {_timestep :: TimeStep f, _duration :: Int}
   deriving (Show, Eq)
+
+deriving instance Ord (Step Identity)
 
 makeLenses ''Step
 
@@ -290,32 +324,110 @@ allAssignments (Step ns dur) = map (flip Step dur) (go ns)
             (Note x3 (Identity f3))
             (Note x4 (Identity f4))
 
--- | This is not a real algorithm...
+data Penalty a = P
+  { _pName :: Text,
+    _pCost :: a -> Double,
+    _pWeight :: Double
+  }
+
+makeLenses ''Penalty
+
+type Penalty1 = Penalty AssignedStep
+
+type Penalty2 = Penalty (AssignedStep, AssignedStep)
+
+--------------------------------------------------------------------------------
+-- Intervals
+--------------------------------------------------------------------------------
+_p1,
+  _p4,
+  _p5,
+  _p8,
+  _m2,
+  _M2,
+  _m3,
+  _M3,
+  _a4,
+  _m6,
+  _M6,
+  _m7,
+  _M7,
+  _m9,
+  second,
+  third,
+  sixth,
+  seventh ::
+    Note f -> Note f -> Bool
+halfSteps :: Note f -> Note f -> Int
+halfSteps p1 p2 = abs (pitch p2 - pitch p1)
+_p1 p1 p2 = halfSteps p1 p2 == 0
+_p4 p1 p2 = halfSteps p1 p2 == 5
+_p5 p1 p2 = halfSteps p1 p2 == 7
+_p8 p1 p2 = halfSteps p1 p2 == 12
+_m2 p1 p2 = halfSteps p1 p2 == 1
+_M2 p1 p2 = halfSteps p1 p2 == 2
+_m3 p1 p2 = halfSteps p1 p2 == 3
+_M3 p1 p2 = halfSteps p1 p2 == 4
+_a4 p1 p2 = halfSteps p1 p2 == 6
+_m6 p1 p2 = halfSteps p1 p2 == 8
+_M6 p1 p2 = halfSteps p1 p2 == 9
+_m7 p1 p2 = halfSteps p1 p2 == 10
+_M7 p1 p2 = halfSteps p1 p2 == 11
+-- minor 9th or higher
+_m9 p1 p2 = halfSteps p1 p2 > 12
+second p1 p2 = halfSteps p1 p2 `elem` [1, 2]
+third p1 p2 = halfSteps p1 p2 `elem` [3, 4]
+sixth p1 p2 = halfSteps p1 p2 `elem` [8, 9]
+seventh p1 p2 = halfSteps p1 p2 `elem` [10, 11]
+
+-- TODO investigate some kind of TH macro to autodiscover these like hedgehog's discover
+p1s :: [Penalty1]
+p1s =
+  [ trill,
+    doubleStopAdjacent,
+    staticUnison,
+    staticSecond,
+    staticThird,
+    staticFourth,
+    staticFifth,
+    staticSixth,
+    staticSeventh,
+    staticOctave,
+    staticTenth,
+    staticQuadrupleStop,
+    quadrupleStopAdjacent
+  ]
+
+p2s :: [Penalty2]
+p2s = []
+
 infer :: [UnassignedStep] -> [AssignedStep]
-infer passage =
-  map
-    ( \step ->
-        fromMaybe
-          (error (show step))
-          (headMay (allAssignments step))
-    )
-    passage
+infer steps = case sequence $ steps ^.. (traversed . to allAssignments . to NE.nonEmpty) of
+  Nothing -> error "Could not assign fingering"
+  Just (steps' :: [NE.NonEmpty AssignedStep]) -> case dijkstraPath cost steps' of
+    (c, path) -> traceShow c path
+    where
+      cost s1 s2 =
+        sumOf (traversed . to (\p -> ((p ^. pCost) s1 + (p ^. pCost) s2) * p ^. pWeight)) p1s
+          + sumOf (traversed . to (\p -> (p ^. pCost) (s1, s2) * p ^. pWeight)) p2s
 
-data Penalty1 = P1
-  { _p1Name :: Text,
-    _p1Cost :: AssignedStep -> Double,
-    _p1Weight :: Double
-  }
-
-makeLenses ''Penalty1
-
-data Penalty2 = P2
-  { _p2Name :: Text,
-    _p2Cost :: AssignedStep -> AssignedStep -> Double,
-    _p2Weight :: Double
-  }
-
-makeLenses ''Penalty2
+-- TODO generalize this to k shortest paths and possibly optimize
+-- run dijkstra when the paths have already been precomputed
+dijkstraPath ::
+  (Num cost, Ord cost, Ord state) =>
+  (state -> state -> cost) ->
+  [NE.NonEmpty state] ->
+  (cost, [state])
+dijkstraPath cost = \case
+  [] -> (0, [])
+  s : ss ->
+    minimumByOf (traversed . to (dijkstra next cost' done . (-1,)) . _Just) (compare `on` fst) s
+      ^?! _Just & _2 %~ map snd
+    where
+      ss' = V.fromList ss
+      done (i, _) = i == V.length ss' - 1
+      next (i, _) = map (i + 1,) (ss' V.! (i + 1))
+      cost' (_, s1) (_, s2) = cost s1 s2
 
 -- | maximum floating point representable
 infinity, high, medium, low :: Double
@@ -325,7 +437,7 @@ medium = 1e3
 low = 10
 
 trill :: Penalty1
-trill = P1 "trill" cost high
+trill = P "trill" cost high
   where
     cost step = case step ^. timestep of
       Rest -> 0
@@ -343,25 +455,28 @@ trill = P1 "trill" cost high
       -- there should never be trills on triple/quadruple stops...
       _ -> 0
 
+--------------------------------------------------------------------------------
+-- Double Stops
+--------------------------------------------------------------------------------
 doubleStopAdjacent :: Penalty1
-doubleStopAdjacent = P1 "double stops on adjacent strings" cost high
+doubleStopAdjacent = P "double stops on adjacent strings" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2 ->
-        let f1 = n1 ^. fingerings . _Wrapped
-            f2 = n2 ^. fingerings . _Wrapped
+        let f1 = n1 ^. fingerings'
+            f2 = n2 ^. fingerings'
             adjacent = f2 ^. string . from enum - f1 ^. string . from enum == 1
          in if adjacent then 0 else infinity
       _ -> 0
 
 staticThird :: Penalty1
-staticThird = P1 "static third" cost high
+staticThird = P "static third" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) `elem` [3, 4] ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | third n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (Three, One) -> 0
                 (Four, Two) -> 0
@@ -374,13 +489,13 @@ staticThird = P1 "static third" cost high
       _ -> 0
 
 staticSixth :: Penalty1
-staticSixth = P1 "static sixth" cost high
+staticSixth = P "static sixth" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) `elem` [8, 9] ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | sixth n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (One, Two) -> 0
                 (Two, Three) -> 0
@@ -393,13 +508,13 @@ staticSixth = P1 "static sixth" cost high
       _ -> 0
 
 staticOctave :: Penalty1
-staticOctave = P1 "static octave" cost high
+staticOctave = P "static octave" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) == 12 ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | _p8 n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (One, Four) -> 0
                 (Open, _) -> 0
@@ -410,13 +525,13 @@ staticOctave = P1 "static octave" cost high
       _ -> 0
 
 staticTenth :: Penalty1
-staticTenth = P1 "static tenth (or any interval greater than an octave)" cost high
+staticTenth = P "static tenth (or any interval greater than an octave)" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) > 12 ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | _m9 n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (One, Four) -> 0
                 (Open, _) -> 0
@@ -424,13 +539,13 @@ staticTenth = P1 "static tenth (or any interval greater than an octave)" cost hi
       _ -> 0
 
 staticUnison :: Penalty1
-staticUnison = P1 "static unison" cost high
+staticUnison = P "static unison" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | pitch n2 == pitch n1 ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | _p1 n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in -- Make sure that f1 refers to the lower string
               case (min f1 f2 ^. finger, max f1 f2 ^. finger) of
                 (Four, One) -> 0
@@ -440,13 +555,13 @@ staticUnison = P1 "static unison" cost high
       _ -> 0
 
 staticSecond :: Penalty1
-staticSecond = P1 "static second" cost high
+staticSecond = P "static second" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) `elem` [1, 2] ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | second n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (Four, One) -> 0
                 (Open, _) -> 0
@@ -455,13 +570,13 @@ staticSecond = P1 "static second" cost high
       _ -> 0
 
 staticFourth :: Penalty1
-staticFourth = P1 "static fourth" cost high
+staticFourth = P "static fourth" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) `elem` [5, 6] ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | _p4 n1 n2 || _a4 n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (Two, One) -> 0
                 (Three, Two) -> 0
@@ -472,13 +587,13 @@ staticFourth = P1 "static fourth" cost high
       _ -> 0
 
 staticFifth :: Penalty1
-staticFifth = P1 "static fifth" cost high
+staticFifth = P "static fifth" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) == 7 ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | _p5 n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (One, One) -> 0
                 (Two, Two) -> 0
@@ -490,13 +605,13 @@ staticFifth = P1 "static fifth" cost high
       _ -> 0
 
 staticSeventh :: Penalty1
-staticSeventh = P1 "static seventh" cost high
+staticSeventh = P "static seventh" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | (pitch n2 - pitch n1) `elem` [10, 11] ->
-          let f1 = n1 ^. fingerings . _Wrapped
-              f2 = n2 ^. fingerings . _Wrapped
+        | seventh n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
                 (One, Three) -> 0
                 (Two, Four) -> 0
@@ -504,3 +619,34 @@ staticSeventh = P1 "static seventh" cost high
                 (_, Open) -> 0
                 _ -> infinity
       _ -> 0
+
+--------------------------------------------------------------------------------
+-- Quadruple Stops
+--------------------------------------------------------------------------------
+
+quadrupleStopAdjacent :: Penalty1
+quadrupleStopAdjacent = P "quadruple stops on adjacent strings" cost high
+  where
+    cost step = case sort $
+      step
+        ^.. timestep . _QuadrupleStop . each . fingerings' . string of
+      [G, D, A, E] -> 0
+      _ -> infinity
+
+staticQuadrupleStop :: Penalty1
+staticQuadrupleStop = P "static root quadruple stop" cost high
+  where
+    cost step =
+      case sortOn (view (fingerings' . string)) $
+        step ^.. timestep . _QuadrupleStop . each of
+        ns@[n1, n2, n3, n4] ->
+          cost (set timestep (DoubleStop n1 n2) step)
+            + cost (set timestep (DoubleStop n2 n3) step)
+            + cost (set timestep (DoubleStop n3 n4) step)
+            + let [f1, f2, f3, f4] = ns ^.. traversed . fingerings' . finger
+               in if any
+                    (\(x, y) -> x == y && x /= Open)
+                    [(f1, f3), (f2, f4), (f1, f4)]
+                    then infinity
+                    else 0
+        _ -> 0
