@@ -275,11 +275,23 @@ allFingerings p = do
       _ -> [One, Two, Three, Four]
 
 validPlacement :: Fingering -> Constraint -> Bool
-validPlacement Fingering {..} = \case
+validPlacement Fingering {..} constraint = case constraint of
   Free -> True
   OnString s -> s == _string
   Finger f -> f == _finger
   Specified f s -> f == _finger && s == _string
+
+data Penalty a = P
+  { _pName :: Text,
+    _pCost :: a -> Double,
+    _pWeight :: Double
+  }
+
+makeLenses ''Penalty
+
+type Penalty1 = Penalty AssignedStep
+
+type Penalty2 = Penalty (AssignedStep, AssignedStep)
 
 mkNote :: XmlRef -> Maybe UnassignedNote
 mkNote ref =
@@ -295,46 +307,31 @@ mkNote ref =
 allAssignments :: Step Set -> [Step Identity]
 allAssignments (Step ns dur) = map (flip Step dur) (go ns)
   where
+    staticCost step =
+      sumOf
+        (traversed . to (\p -> ((p ^. pCost) step) * p ^. pWeight))
+        p1s
+    note x f = Note x (Identity f)
+    ret step = step <$ guard (staticCost (Step step dur) < infinity)
     go :: TimeStep Set -> [TimeStep Identity]
     go = \case
       Rest -> [Rest]
-      Single (Note x fs) -> fmap (\f -> Single (Note x (Identity f))) (S.toList fs)
+      Single (Note x fs) -> fmap (\f -> Single (note x f)) (S.toList fs)
       DoubleStop (Note x1 fs1) (Note x2 fs2) -> do
         f1 <- S.toList fs1
         f2 <- S.toList fs2
-        pure $ DoubleStop (Note x1 (Identity f1)) (Note x2 (Identity f2))
+        ret $ DoubleStop (note x1 f1) (note x2 f2)
       TripleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) -> do
         f1 <- S.toList fs1
         f2 <- S.toList fs2
         f3 <- S.toList fs3
-        pure $
-          TripleStop
-            (Note x1 (Identity f1))
-            (Note x2 (Identity f2))
-            (Note x3 (Identity f3))
+        ret $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
       QuadrupleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) (Note x4 fs4) -> do
         f1 <- S.toList fs1
         f2 <- S.toList fs2
         f3 <- S.toList fs3
         f4 <- S.toList fs4
-        pure $
-          QuadrupleStop
-            (Note x1 (Identity f1))
-            (Note x2 (Identity f2))
-            (Note x3 (Identity f3))
-            (Note x4 (Identity f4))
-
-data Penalty a = P
-  { _pName :: Text,
-    _pCost :: a -> Double,
-    _pWeight :: Double
-  }
-
-makeLenses ''Penalty
-
-type Penalty1 = Penalty AssignedStep
-
-type Penalty2 = Penalty (AssignedStep, AssignedStep)
+        ret $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
 
 --------------------------------------------------------------------------------
 -- Intervals
