@@ -372,16 +372,16 @@ _m7 p1 p2 = halfSteps p1 p2 == 10
 _M7 p1 p2 = halfSteps p1 p2 == 11
 -- minor 9th or higher
 _m9 p1 p2 = halfSteps p1 p2 > 12
-second p1 p2 = halfSteps p1 p2 `elem` [1, 2]
-third p1 p2 = halfSteps p1 p2 `elem` [3, 4]
-sixth p1 p2 = halfSteps p1 p2 `elem` [8, 9]
-seventh p1 p2 = halfSteps p1 p2 `elem` [10, 11]
+second p1 p2 = _m2 p1 p2 || _M2 p1 p2
+third p1 p2 = _m3 p1 p2 || _M3 p1 p2
+sixth p1 p2 = _m6 p1 p2 || _M6 p1 p2
+seventh p1 p2 = _m7 p1 p2 || _M7 p1 p2
 
 -- TODO investigate some kind of TH macro to autodiscover these like hedgehog's discover
 p1s :: [Penalty1]
 p1s =
   [ trill,
-    doubleStopAdjacent,
+    chordAdjacent,
     staticUnison,
     staticSecond,
     staticThird,
@@ -391,8 +391,8 @@ p1s =
     staticSeventh,
     staticOctave,
     staticTenth,
-    staticQuadrupleStop,
-    quadrupleStopAdjacent
+    staticTripleStop,
+    staticQuadrupleStop
   ]
 
 p2s :: [Penalty2]
@@ -455,16 +455,18 @@ trill = P "trill" cost high
 --------------------------------------------------------------------------------
 -- Double Stops
 --------------------------------------------------------------------------------
-doubleStopAdjacent :: Penalty1
-doubleStopAdjacent = P "double stops on adjacent strings" cost high
+chordAdjacent :: Penalty1
+chordAdjacent = P "chords on adjacent strings" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2 ->
-        let f1 = n1 ^. fingerings'
-            f2 = n2 ^. fingerings'
-            adjacent = f2 ^. string . from enum - f1 ^. string . from enum == 1
-         in if adjacent then 0 else infinity
-      _ -> 0
+    cost step =
+      case sort $ step ^.. notes . fingerings' . string of
+        [] -> 0 -- rest
+        [_] -> 0
+        [s1, s2] -> if fromEnum s2 - fromEnum s1 == 1 then 0 else infinity
+        [G, D, A] -> 0
+        [D, A, E] -> 0
+        [G, D, A, E] -> 0
+        _ -> infinity
 
 staticThird :: Penalty1
 staticThird = P "static third" cost high
@@ -618,20 +620,26 @@ staticSeventh = P "static seventh" cost high
       _ -> 0
 
 --------------------------------------------------------------------------------
--- Quadruple Stops
+-- Triple/Quadruple Stops
 --------------------------------------------------------------------------------
 
-quadrupleStopAdjacent :: Penalty1
-quadrupleStopAdjacent = P "quadruple stops on adjacent strings" cost high
+staticTripleStop :: Penalty1
+staticTripleStop = P "static triple stop" cost high
   where
-    cost step = case sort $
-      step
-        ^.. timestep . _QuadrupleStop . each . fingerings' . string of
-      [G, D, A, E] -> 0
-      _ -> infinity
+    cost step =
+      case sortOn (view (fingerings' . string)) $
+        step ^.. timestep . _TripleStop . each of
+        ns@[n1, n2, n3] ->
+          cost (set timestep (DoubleStop n1 n2) step)
+            + cost (set timestep (DoubleStop n2 n3) step)
+            + let [f1, _, f3] = ns ^.. traversed . fingerings' . finger
+               in if f1 == f3 && f1 /= Open
+                    then infinity
+                    else 0
+        _ -> 0
 
 staticQuadrupleStop :: Penalty1
-staticQuadrupleStop = P "static root quadruple stop" cost high
+staticQuadrupleStop = P "static quadruple stop" cost high
   where
     cost step =
       case sortOn (view (fingerings' . string)) $
