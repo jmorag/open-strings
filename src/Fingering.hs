@@ -20,13 +20,13 @@ module Fingering (
   notes,
 ) where
 
-import Algorithm.ShortestPath
 import ClassyPrelude hiding (Element, second)
 import Control.Lens
 import qualified Data.Foldable as F
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
+import Graph.ShortestPath
 import Text.XML.Lens
 
 data Finger = Open | One | Two | Three | Four

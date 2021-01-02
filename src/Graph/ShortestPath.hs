@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 
 -- |
--- Module : Algorithm.ShortestPath
-module Algorithm.ShortestPath where
+-- Module : Graph.ShortestPath
+module Graph.ShortestPath where
 
 -- import Control.Lens
 import Control.Monad.Memo
