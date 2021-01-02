@@ -1,27 +1,26 @@
 {-# LANGUAGE ApplicativeDo #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Fingering
-  ( XmlRef,
-    deref,
-    infer,
-    Fingering (..),
-    fingerings',
-    xmlRef,
-    finger,
-    string,
-    Finger (..),
-    VString (..),
-    TimeStep (..),
-    Step (..),
-    Note (..),
-    AssignedNote,
-    mkNote,
-    notes,
-  )
-where
+module Fingering (
+  XmlRef,
+  deref,
+  infer,
+  Fingering (..),
+  fingerings',
+  xmlRef,
+  finger,
+  string,
+  Finger (..),
+  VString (..),
+  TimeStep (..),
+  Step (..),
+  Note (..),
+  AssignedNote,
+  mkNote,
+  notes,
+) where
 
-import Algorithm.Search
+import Algorithm.ShortestPath
 import ClassyPrelude hiding (Element, second)
 import Control.Lens
 import qualified Data.Foldable as F
@@ -186,7 +185,7 @@ quad n1 n2 n3 n4 =
   let [n1', n2', n3', n4'] = sortOn pitch [n1, n2, n3, n4]
    in QuadrupleStop n1' n2' n3' n4'
 
-instance Semigroup (TimeStep f) where
+instance (Foldable f) => Semigroup (TimeStep f) where
   Single n1 <> Single n2 = double n1 n2
   Single n1 <> DoubleStop n2 n3 = triple n1 n2 n3
   Single n1 <> TripleStop n2 n3 n4 = quad n1 n2 n3 n4
@@ -195,9 +194,14 @@ instance Semigroup (TimeStep f) where
   DoubleStop n1 n2 <> DoubleStop n3 n4 = quad n1 n2 n3 n4
   n <> Rest = n
   Rest <> n = n
-  _ <> _ = error $ "Unsatisfiably large constraint - too many notes to cover at one time: " -- <> show n1 <> " | " <> show n2
+  n1 <> n2 =
+    error $
+      "Unsatisfiably large constraint - too many notes to cover at one time: "
+        <> show n1
+        <> " | "
+        <> show n2
 
-instance Monoid (TimeStep f) where
+instance (Foldable f) => Monoid (TimeStep f) where
   mempty = Rest
 
 data Step f = Step {_timestep :: TimeStep f, _duration :: Int}
@@ -219,36 +223,36 @@ measurementSeries :: Vector Int
 measurementSeries =
   V.fromList
     -- Assuming e string
-    [ 0, -- e
-      13, -- f
-      30, -- f#
-      45, -- g
-      61, -- g#
-      87, -- a
-      101, -- a#
-      114, -- b
-      129, -- c
-      138, -- c#
-      147, -- d
-      156, -- d#
-      168, -- e
-      180, -- f
-      190, -- f#
-      195, -- g
-      202, -- g#
-      209, -- a
-      213, -- a#
-      222, -- b
-      228, -- c
-      235, -- c#
-      241, -- d
-      245, -- d#
-      251, -- e
-      256, -- f
-      260, -- f#
-      262, -- g
-      268, -- g#
-      271 -- a
+    [ 0 -- e
+    , 13 -- f
+    , 30 -- f#
+    , 45 -- g
+    , 61 -- g#
+    , 87 -- a
+    , 101 -- a#
+    , 114 -- b
+    , 129 -- c
+    , 138 -- c#
+    , 147 -- d
+    , 156 -- d#
+    , 168 -- e
+    , 180 -- f
+    , 190 -- f#
+    , 195 -- g
+    , 202 -- g#
+    , 209 -- a
+    , 213 -- a#
+    , 222 -- b
+    , 228 -- c
+    , 235 -- c#
+    , 241 -- d
+    , 245 -- d#
+    , 251 -- e
+    , 256 -- f
+    , 260 -- f#
+    , 262 -- g
+    , 268 -- g#
+    , 271 -- a
     ]
 
 -- Ranges of the pitches playable on each string
@@ -282,9 +286,9 @@ validPlacement Fingering {..} constraint = case constraint of
   Specified f s -> f == _finger && s == _string
 
 data Penalty a = P
-  { _pName :: Text,
-    _pCost :: a -> Double,
-    _pWeight :: Double
+  { _pName :: Text
+  , _pCost :: a -> Double
+  , _pWeight :: Double
   }
 
 makeLenses ''Penalty
@@ -304,7 +308,7 @@ mkNote ref =
      in Note ref fs
 
 -- The cartesian product of all the possibleFingerings for a given timestep
-allAssignments :: Step Set -> [Step Identity]
+allAssignments :: UnassignedStep -> [AssignedStep]
 allAssignments (Step ns dur) = map (flip Step dur) (go ns)
   where
     staticCost step =
@@ -336,24 +340,24 @@ allAssignments (Step ns dur) = map (flip Step dur) (go ns)
 --------------------------------------------------------------------------------
 -- Intervals
 --------------------------------------------------------------------------------
-_p1,
-  _p4,
-  _p5,
-  _p8,
-  _m2,
-  _M2,
-  _m3,
-  _M3,
-  _a4,
-  _m6,
-  _M6,
-  _m7,
-  _M7,
-  _m9,
-  second,
-  third,
-  sixth,
-  seventh ::
+_p1
+  , _p4
+  , _p5
+  , _p8
+  , _m2
+  , _M2
+  , _m3
+  , _M3
+  , _a4
+  , _m6
+  , _M6
+  , _m7
+  , _M7
+  , _m9
+  , second
+  , third
+  , sixth
+  , seventh ::
     Note f -> Note f -> Bool
 halfSteps :: Note f -> Note f -> Int
 halfSteps p1 p2 = abs (pitch p2 - pitch p1)
@@ -380,51 +384,37 @@ seventh p1 p2 = _m7 p1 p2 || _M7 p1 p2
 -- TODO investigate some kind of TH macro to autodiscover these like hedgehog's discover
 p1s :: [Penalty1]
 p1s =
-  [ trill,
-    chordAdjacent,
-    staticUnison,
-    staticSecond,
-    staticThird,
-    staticFourth,
-    staticFifth,
-    staticSixth,
-    staticSeventh,
-    staticOctave,
-    staticTenth,
-    staticTripleStop,
-    staticQuadrupleStop
+  [ trill
+  , chordAdjacent
+  , staticUnison
+  , staticSecond
+  , staticThird
+  , staticFourth
+  , staticFifth
+  , staticSixth
+  , staticSeventh
+  , staticOctave
+  , staticTenth
+  , staticTripleStop
+  , staticQuadrupleStop
   ]
 
 p2s :: [Penalty2]
-p2s = []
+p2s = [oneFingerHalfStep]
 
 infer :: [UnassignedStep] -> [AssignedStep]
 infer steps = case sequence $ steps ^.. (traversed . to allAssignments . to NE.nonEmpty) of
   Nothing -> error "Could not assign fingering"
-  Just (steps' :: [NE.NonEmpty AssignedStep]) -> case dijkstraPath cost steps' of
-    (c, path) -> traceShow c path
+  Just steps' -> case shortestKPaths 1 singleCost transitionCost steps' of
+    [(c, path)] -> traceShow c path
+    _ -> error "Should return exactly one path"
     where
-      cost s1 s2 =
-        sumOf (traversed . to (\p -> ((p ^. pCost) s1 + (p ^. pCost) s2) * p ^. pWeight)) p1s
-          + sumOf (traversed . to (\p -> (p ^. pCost) (s1, s2) * p ^. pWeight)) p2s
-
--- TODO generalize this to k shortest paths and possibly optimize
--- run dijkstra when the paths have already been precomputed
-dijkstraPath ::
-  (Num cost, Ord cost, Ord state) =>
-  (state -> state -> cost) ->
-  [NE.NonEmpty state] ->
-  (cost, [state])
-dijkstraPath cost = \case
-  [] -> (0, [])
-  s : ss ->
-    minimumByOf (traversed . to (dijkstra next cost' done . (-1,)) . _Just) (compare `on` fst) s
-      ^?! _Just & _2 %~ map snd
-    where
-      ss' = V.fromList ss
-      done (i, _) = i == V.length ss' - 1
-      next (i, _) = map (i + 1,) (ss' V.! (i + 1))
-      cost' (_, s1) (_, s2) = cost s1 s2
+      singleCost s =
+        let cost p = (p ^. pCost) s * p ^. pWeight
+         in sumOf (traversed . to cost) p1s
+      transitionCost s1 s2 =
+        let cost p = (p ^. pCost) (s1, s2) * p ^. pWeight
+         in sumOf (traversed . to cost) p2s
 
 -- | maximum floating point representable
 infinity, high, medium, low :: Double
@@ -484,6 +474,15 @@ staticThird = P "static third" cost high
                 (Four, One)
                   | f1 ^. distance <= 101 && f2 ^. distance <= 45 -> low
                   | otherwise -> medium
+                (Four, Three)
+                  | f2 ^. distance - f1 ^. distance <= 40 -> low
+                  | otherwise -> high
+                (Three, Two)
+                  | f2 ^. distance - f1 ^. distance <= 35 -> low
+                  | otherwise -> high
+                (Two, One)
+                  | f2 ^. distance - f1 ^. distance <= 30 -> low
+                  | otherwise -> high
                 _ -> infinity
       _ -> 0
 
@@ -655,3 +654,13 @@ staticQuadrupleStop = P "static quadruple stop" cost high
                     then infinity
                     else 0
         _ -> 0
+
+--------------------------------------------------------------------------------
+-- Penalty2s
+--------------------------------------------------------------------------------
+oneFingerHalfStep :: Penalty2
+oneFingerHalfStep = P "one finger half step shift" cost low
+  where
+    cost steps = case steps ^.. both . timestep . _Single . fingerings' of
+      [Fingering f1 s1 _, Fingering f2 s2 _] | (f1, s1) == (f2, s2) -> 1
+      _ -> 0

@@ -1,10 +1,9 @@
-module MusicXML
-  ( adjustMeasures,
-    measureNumbers,
-    readTimeSteps,
-    inferFingerings,
-  )
-where
+module MusicXML (
+  adjustMeasures,
+  measureNumbers,
+  readTimeSteps,
+  inferFingerings,
+) where
 
 import ClassyPrelude hiding (Element)
 import Control.Lens
@@ -19,7 +18,7 @@ import Text.XML
 import Text.XML.Lens
 
 inferFingerings :: Document -> Document
-inferFingerings doc = over (partsOf' (root . timeStep)) go doc
+inferFingerings = over (partsOf' (root . timeStep)) go
   where
     go steps =
       let assignedSteps = infer $ coalesceTimeSteps (readTimeSteps steps)
@@ -28,13 +27,14 @@ inferFingerings doc = over (partsOf' (root . timeStep)) go doc
           fingers =
             map (\n -> (n ^. xmlRef . _1, n ^. fingerings')) assignedNotes
        in assignFingers (zip [0 ..] steps) fingers
-    assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
-    assignFingers e [] = map snd e
-    assignFingers ((i, e) : es) ((j, f) : fs) =
-      if i == j
-        then setFingering f e : assignFingers es fs
-        else e : assignFingers es ((j, f) : fs)
-    assignFingers [] _ = error "Length of fingerings exceeds length of note elements"
+
+assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
+assignFingers e [] = map snd e
+assignFingers ((i, e) : es) ((j, f) : fs) =
+  if i == j
+    then setFingering f e : assignFingers es fs
+    else e : assignFingers es ((j, f) : fs)
+assignFingers [] _ = error "Length of fingerings exceeds length of note elements"
 
 -- Unlawful lens to get immediate child of an xml element and
 -- create a new one if the target doesn't exist
@@ -44,7 +44,7 @@ child nm = lens getter setter
     getter e = fromMaybe (Element nm mempty []) $ e ^? plate . el nm
     setter e new = case e ^? plate . el nm of
       Just _ -> set (singular (plate . el nm)) new e
-      Nothing -> over nodes ((:) (_Element # new)) e
+      Nothing -> over nodes ((_Element # new) :) e
 
 setFingering :: Fingering -> Element -> Element
 setFingering fingering noteEl =
