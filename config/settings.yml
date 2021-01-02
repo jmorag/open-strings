@@ -28,7 +28,7 @@ approot:        "_env:YESOD_APPROOT:http://127.0.0.1:3001"
 # NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:YESOD_PGPASS:'123'")
 # See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
 
-database-url: "_env:DATABASE_URL:postgres://fingerdb:fingerdb@localhost:5432/fingerdb"
+database-url: "_env:DATABASE_URL:postgres://joseph@localhost:5432/fingerdb"
 database-pool-size: "_env:DB_POOL:10"
 
 copyright: Joseph Morag, 2020

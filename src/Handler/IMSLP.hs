@@ -50,7 +50,7 @@ getIMSLPR imslp = do
       title =
         decodeUrl
           . T.strip
-          . T.map (\case '_' -> ' '; c -> c)
+          . replaceUnderscores
           . T.drop (T.length "https://imslp.org/wiki/")
           . T.dropEnd 1
           . T.dropWhileEnd (/= '(')
@@ -58,7 +58,7 @@ getIMSLPR imslp = do
       composer =
         decodeUrl
           . T.strip
-          . T.map (\case '_' -> ' '; c -> c)
+          . replaceUnderscores
           . T.dropEnd 1
           . T.takeWhileEnd (/= '(')
           $ imslp'
