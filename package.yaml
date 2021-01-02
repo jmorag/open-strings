@@ -159,8 +159,6 @@ executables:
       - condition: (flag(library-only)) || (flag(server-only))
         buildable: false
 
-
-
 # Test suite
 tests:
   fingerdb-test:

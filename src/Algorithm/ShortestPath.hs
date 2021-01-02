@@ -4,6 +4,7 @@
 -- Module : Algorithm.ShortestPath
 module Algorithm.ShortestPath where
 
+-- import Control.Lens
 import Control.Monad.Memo
 import Control.Monad.Memo.Class
 import Data.Function
@@ -11,8 +12,6 @@ import Data.List (sortBy)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Vector.Unboxed (Unbox)
 import Prelude
-
--- type MemoSingleCost = MemoStateT c state
 
 -- TODO: Right now the memoization uses two Maps, one for single costs
 -- and one for transition costs, so we incur a log lookup penalty. Not
@@ -36,10 +35,18 @@ shortestKPaths k singleCost transitionCost graph =
       doMemo m x = startEvalMemo (startEvalMemoT (m x))
       costs = doMemo (mapM (\p -> fmap (,p) (pathCost singleCost transitionCost p))) paths
    in take k $ sortBy (compare `on` fst) costs
+{-# INLINEABLE shortestKPaths #-}
 
 enumeratePaths :: [NonEmpty state] -> [[state]]
 enumeratePaths (fs : next) = concatMap (\f -> map (f :) (enumeratePaths next)) fs
 enumeratePaths [] = [[]]
+
+-- enum' :: [NonEmpty state] -> [[(Int, state)]]
+-- enum' = enumeratePaths . over (unsafePartsOf' (traversed . traversed)) (zip [0 ..])
+
+-- data CostCache = C {
+--   single :: Vector
+-- }
 
 pathCost ::
   ( Ord state
