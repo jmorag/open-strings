@@ -20,7 +20,6 @@ cabal.sandbox.config
 *.keter
 *~
 \#*
-fingerdb.cabal
 /.log/
 /dbbackup/
 
