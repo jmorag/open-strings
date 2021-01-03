@@ -33,7 +33,10 @@ import Text.XML.Lens
 data Finger = Open | One | Two | Three | Four
   deriving (Show, Eq, Enum, Ord)
 
-data VString = E | A | D | G
+-- we want lower strings to come before higher strings as that's the
+-- order we think about fingerings for chords, despite the convention
+-- of E = I, A = II, etc.
+data VString = G | D | A | E
   deriving (Show, Eq, Enum, Ord)
 
 -- Midi pitch
