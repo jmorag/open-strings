@@ -4,69 +4,81 @@
 -- Module : Graph.ShortestPath
 module Graph.ShortestPath where
 
--- import Control.Lens
-import Control.Monad.Memo
-import Control.Monad.Memo.Class
+import Control.Monad
+import Control.Monad.ST
 import Data.Function
-import Data.List (sortBy)
+import Data.List (minimumBy)
 import Data.List.NonEmpty (NonEmpty (..))
-import Data.Vector.Unboxed (Unbox)
+import Data.Vector (Vector)
+import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as VM
 import Prelude
 
--- TODO: Right now the memoization uses two Maps, one for single costs
--- and one for transition costs, so we incur a log lookup penalty. Not
--- horrible, but we are very invested in the speed of this procedure.
--- Optimally, we should create a bijection (V `union` E) <=> Int so we
--- can use a single unboxed vector to cache costs. The easiest way to
--- do that would be to decorate `state`s with an Int and then figure
--- out another bijection (Int, Int) <=> Int for state pairs. The
--- standard strided array index formulation is suboptimal because
--- [NonEmpty state] is ragged, so picking the largest NonEmpty state
--- would waste space.
-shortestKPaths ::
-  (Ord state, Unbox cost, Num cost, Ord cost) =>
-  Int ->
-  (state -> cost) ->
-  (state -> state -> cost) ->
-  [NonEmpty state] ->
-  [(cost, [state])]
-shortestKPaths k singleCost transitionCost graph =
-  let paths = enumeratePaths graph
-      doMemo m x = startEvalMemo (startEvalMemoT (m x))
-      costs = doMemo (mapM (\p -> fmap (,p) (pathCost singleCost transitionCost p))) paths
-   in take k $ sortBy (compare `on` fst) costs
-{-# INLINEABLE shortestKPaths #-}
+-- Introduction to Algorithms, Chapter 6 (Cormen, Leiserson, Rivest, Stein)
+-- https://edutechlearners.com/download/Introduction_to_algorithms-3rd%20Edition.pdf
+--------------------------------------------------------------------------------
+-- DAG-Shortest-Paths(G, w, s):
+--   TOPSORT(G) # fingering graph is already in topologically sorted order
+--   INITIALIZE-SINGLE-SOURCE(G)
+--   for each vertex u, taken in topologically sorted order
+--     for each vertex v in G.adj(u)
+--       RELAX(u,v,w)
+--------------------------------------------------------------------------------
+-- INITIALIZE-SINGLE-SOURCE(G, s):
+-- for each vertex v in G.V
+--   v.d = ∞
+--   v.π = NIL
+-- s.d = 0
+--------------------------------------------------------------------------------
+-- RELAX(u, v, w):
+-- if v.d > u.d + w(u,v)
+--   v.d = u.d + w(u,v)
+--   v.π = u
 
-enumeratePaths :: [NonEmpty state] -> [[state]]
-enumeratePaths (fs : next) = concatMap (\f -> map (f :) (enumeratePaths next)) fs
-enumeratePaths [] = [[]]
+-- G ~ [NonEmpty state]
+infinity :: Double
+infinity = 1.8e308
 
--- enum' :: [NonEmpty state] -> [[(Int, state)]]
--- enum' = enumeratePaths . over (unsafePartsOf' (traversed . traversed)) (zip [0 ..])
+data GraphNode state = Node
+  { vertex :: state
+  , dist :: Double
+  , staticCost :: Double
+  , previous :: Maybe (GraphNode state)
+  }
+  deriving (Show, Eq, Ord)
 
--- data CostCache = C {
---   single :: Vector
--- }
-
-pathCost ::
-  ( Ord state
-  , MonadTrans t
-  , Unbox cost
-  , Num cost
-  , MonadCache state cost m
-  , MonadCache (state, state) cost (t m)
-  ) =>
-  (state -> cost) ->
-  (state -> state -> cost) ->
-  [state] ->
-  t m cost
-pathCost singleCost transitionCost = go 0
+getPath :: Show state => Vector (NonEmpty (GraphNode state)) -> (Double, [state])
+getPath vec =
+  let end = minimumBy (compare `on` dist) (V.last vec)
+   in (dist end, reverse $ vertex end : go (previous end))
   where
-    go !acc = \case
-      [] -> pure acc
-      [state] -> (acc +) <$> memol1 (pure . singleCost) state
-      (s1 : s2 : rest) -> do
-        single <- memol1 (pure . singleCost) s1
-        transition <- for2 memol0 (\x y -> pure (transitionCost x y)) s1 s2
-        go (acc + single + transition) (s2 : rest)
-{-# INLINEABLE pathCost #-}
+    go Nothing = []
+    go (Just p) = vertex p : go (previous p)
+
+initialize :: [NonEmpty state] -> (state -> Double) -> [NonEmpty (GraphNode state)]
+initialize graph singleCost =
+  map (fmap (\f -> Node f infinity (singleCost f) Nothing)) graph
+
+shortestPath :: forall state. (Show state, Ord state) => [NonEmpty state] -> (state -> Double) -> (state -> state -> Double) -> (Double, [state])
+shortestPath [] _ _ = (0, [])
+shortestPath (fs : rest) singleCost transitionCost =
+  fmap mkGraph fs & minimumBy (compare `on` fst)
+  where
+    mkGraph f =
+      let graph =
+            V.fromList $
+              (Node f 0 (singleCost f) Nothing :| []) : initialize rest singleCost
+       in getPath $ V.modify go graph
+
+    relax u v =
+      -- add the static cost of the next node when calculating the new distance
+      let dist' = dist u + transitionCost (vertex u) (vertex v) + staticCost v
+       in if dist' < (dist v) then v {dist = dist', previous = Just u} else v
+
+    go :: forall s. VM.MVector s (NonEmpty (GraphNode state)) -> ST s ()
+    go g = forM_ [1 .. VM.length g - 1] \i -> do
+      mapM_ (\u -> VM.modify g (fmap (relax u)) i) =<< VM.read g (i - 1)
+
+nEdges :: [NonEmpty state] -> Int
+nEdges (x : y : rest) = length x * length y + nEdges (y : rest)
+nEdges _ = 0

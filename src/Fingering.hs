@@ -18,6 +18,7 @@ module Fingering (
   AssignedNote,
   mkNote,
   notes,
+  allAssignments,
 ) where
 
 import ClassyPrelude hiding (Element, second)
@@ -274,7 +275,7 @@ allFingerings p = do
       1 -> [One]
       2 -> [One, Two]
       3 -> [One, Two]
-      4 -> [One, Two]
+      4 -> [One, Two, Three]
       5 -> [One, Two, Three]
       _ -> [One, Two, Three, Four]
 
@@ -405,9 +406,8 @@ p2s = [oneFingerHalfStep]
 infer :: [UnassignedStep] -> [AssignedStep]
 infer steps = case sequence $ steps ^.. (traversed . to allAssignments . to NE.nonEmpty) of
   Nothing -> error "Could not assign fingering"
-  Just steps' -> case shortestKPaths 1 singleCost transitionCost steps' of
-    [(c, path)] -> traceShow c path
-    _ -> error "Should return exactly one path"
+  Just steps' -> case shortestPath steps' singleCost transitionCost of
+    (c, path) -> traceShow c path
     where
       singleCost s =
         let cost p = (p ^. pCost) s * p ^. pWeight
@@ -417,8 +417,7 @@ infer steps = case sequence $ steps ^.. (traversed . to allAssignments . to NE.n
          in sumOf (traversed . to cost) p2s
 
 -- | maximum floating point representable
-infinity, high, medium, low :: Double
-infinity = 1.8e308
+high, medium, low :: Double
 high = 1e6
 medium = 1e3
 low = 10
