@@ -24,6 +24,7 @@ module Fingering (
 import ClassyPrelude hiding (Element, second)
 import Control.Lens
 import qualified Data.Foldable as F
+import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
@@ -259,6 +260,123 @@ measurementSeries =
     , 271 -- a
     ]
 
+data Position = Half | First | Second | Third | Fourth | Fifth | Sixth | Seventh | EighthAndUp
+  deriving (Show, Eq, Ord, Enum, Bounded)
+
+position :: Fingering -> [Position]
+position (Fingering _ Open _) = [Half .. EighthAndUp]
+position (Fingering _ One 13) = [Half, First]
+position (Fingering _ One 30) = [First]
+position (Fingering _ One 45) = [Second]
+position (Fingering _ One 61) = [Second, Third]
+position (Fingering _ One 87) = [Third]
+position (Fingering _ One 101) = [Third, Fourth]
+position (Fingering _ One 114) = [Fourth]
+position (Fingering _ One 129) = [Fourth, Fifth]
+position (Fingering _ One 138) = [Fifth]
+position (Fingering _ One 147) = [Sixth]
+position (Fingering _ One 156) = [Seventh]
+position (Fingering _ One 168) = [EighthAndUp]
+position (Fingering _ One 180) = [EighthAndUp]
+position (Fingering _ One 190) = [EighthAndUp]
+position (Fingering _ One 195) = [EighthAndUp]
+position (Fingering _ One 202) = [EighthAndUp]
+position (Fingering _ One 209) = [EighthAndUp]
+position (Fingering _ One 213) = [EighthAndUp]
+position (Fingering _ One 222) = [EighthAndUp]
+position (Fingering _ One 228) = [EighthAndUp]
+position (Fingering _ One 235) = [EighthAndUp]
+position (Fingering _ One 241) = [EighthAndUp]
+position (Fingering _ One 245) = [EighthAndUp]
+position (Fingering _ One 251) = [EighthAndUp]
+position (Fingering _ One 256) = [EighthAndUp]
+position (Fingering _ One 260) = [EighthAndUp]
+position (Fingering _ One 262) = [EighthAndUp]
+position (Fingering _ One 268) = [EighthAndUp]
+position (Fingering _ One 271) = [EighthAndUp]
+position (Fingering _ Two 30) = [Half]
+position (Fingering _ Two 45) = [First]
+position (Fingering _ Two 61) = [First]
+position (Fingering _ Two 87) = [Second]
+position (Fingering _ Two 101) = [Third]
+position (Fingering _ Two 114) = [Third]
+position (Fingering _ Two 129) = [Fourth]
+position (Fingering _ Two 138) = [Fourth]
+position (Fingering _ Two 147) = [Fifth]
+position (Fingering _ Two 156) = [Fifth]
+position (Fingering _ Two 168) = [Sixth]
+position (Fingering _ Two 180) = [Seventh]
+position (Fingering _ Two 190) = [Seventh]
+position (Fingering _ Two 195) = [EighthAndUp]
+position (Fingering _ Two 202) = [EighthAndUp]
+position (Fingering _ Two 209) = [EighthAndUp]
+position (Fingering _ Two 213) = [EighthAndUp]
+position (Fingering _ Two 222) = [EighthAndUp]
+position (Fingering _ Two 228) = [EighthAndUp]
+position (Fingering _ Two 235) = [EighthAndUp]
+position (Fingering _ Two 241) = [EighthAndUp]
+position (Fingering _ Two 245) = [EighthAndUp]
+position (Fingering _ Two 251) = [EighthAndUp]
+position (Fingering _ Two 256) = [EighthAndUp]
+position (Fingering _ Two 260) = [EighthAndUp]
+position (Fingering _ Two 262) = [EighthAndUp]
+position (Fingering _ Two 268) = [EighthAndUp]
+position (Fingering _ Two 271) = [EighthAndUp]
+position (Fingering _ Three 45) = [Half]
+position (Fingering _ Three 61) = [First]
+position (Fingering _ Three 87) = [First]
+position (Fingering _ Three 101) = [First, Second]
+position (Fingering _ Three 114) = [Second]
+position (Fingering _ Three 129) = [Second, Third]
+position (Fingering _ Three 138) = [Third, Fourth]
+position (Fingering _ Three 147) = [Fourth]
+position (Fingering _ Three 156) = [Fourth, Fifth]
+position (Fingering _ Three 168) = [Fifth]
+position (Fingering _ Three 180) = [Fifth]
+position (Fingering _ Three 190) = [Sixth]
+position (Fingering _ Three 195) = [Seventh]
+position (Fingering _ Three 202) = [Seventh]
+position (Fingering _ Three 209) = [EighthAndUp]
+position (Fingering _ Three 213) = [EighthAndUp]
+position (Fingering _ Three 222) = [EighthAndUp]
+position (Fingering _ Three 228) = [EighthAndUp]
+position (Fingering _ Three 235) = [EighthAndUp]
+position (Fingering _ Three 241) = [EighthAndUp]
+position (Fingering _ Three 245) = [EighthAndUp]
+position (Fingering _ Three 251) = [EighthAndUp]
+position (Fingering _ Three 256) = [EighthAndUp]
+position (Fingering _ Three 260) = [EighthAndUp]
+position (Fingering _ Three 262) = [EighthAndUp]
+position (Fingering _ Three 268) = [EighthAndUp]
+position (Fingering _ Three 271) = [EighthAndUp]
+position (Fingering _ Four 61) = [Half]
+position (Fingering _ Four 87) = [Half]
+position (Fingering _ Four 101) = [First]
+position (Fingering _ Four 114) = [First]
+position (Fingering _ Four 129) = [Second]
+position (Fingering _ Four 138) = [Second]
+position (Fingering _ Four 147) = [Third]
+position (Fingering _ Four 156) = [Third, Fourth]
+position (Fingering _ Four 168) = [Fourth]
+position (Fingering _ Four 180) = [Fourth, Fifth]
+position (Fingering _ Four 190) = [Fifth]
+position (Fingering _ Four 195) = [Sixth]
+position (Fingering _ Four 202) = [Sixth]
+position (Fingering _ Four 209) = [Seventh]
+position (Fingering _ Four 213) = [Seventh]
+position (Fingering _ Four 222) = [EighthAndUp]
+position (Fingering _ Four 228) = [EighthAndUp]
+position (Fingering _ Four 235) = [EighthAndUp]
+position (Fingering _ Four 241) = [EighthAndUp]
+position (Fingering _ Four 245) = [EighthAndUp]
+position (Fingering _ Four 251) = [EighthAndUp]
+position (Fingering _ Four 256) = [EighthAndUp]
+position (Fingering _ Four 260) = [EighthAndUp]
+position (Fingering _ Four 262) = [EighthAndUp]
+position (Fingering _ Four 268) = [EighthAndUp]
+position (Fingering _ Four 271) = [EighthAndUp]
+position _ = []
+
 -- Ranges of the pitches playable on each string
 gPitches, dPitches, aPitches, ePitches :: (Pitch, Pitch)
 gPitches = (55, 84)
@@ -275,12 +393,12 @@ allFingerings p = do
       -- At the low and high ends of the string, we can't use certain fingers
       -- TODO: decide high end
       0 -> [Open]
-      1 -> [One]
-      2 -> [One, Two]
-      3 -> [One, Two]
-      4 -> [One, Two, Three]
-      5 -> [One, Two, Three]
-      _ -> [One, Two, Three, Four]
+      1 -> [Two]
+      2 -> [Two, Two]
+      3 -> [Two, Two]
+      4 -> [Two, Two, Three]
+      5 -> [Two, Two, Three]
+      _ -> [Two, Two, Three, Four]
 
 validPlacement :: Fingering -> Constraint -> Bool
 validPlacement Fingering {..} constraint = case constraint of
@@ -301,6 +419,12 @@ type Penalty1 = Penalty AssignedStep
 
 type Penalty2 = Penalty (AssignedStep, AssignedStep)
 
+applyP1s :: [Penalty1] -> AssignedStep -> Double
+applyP1s ps step = sum $ map (\p -> (p ^. pCost) step * (p ^. pWeight)) ps
+
+applyP2s :: [Penalty2] -> AssignedStep -> AssignedStep -> Double
+applyP2s ps step1 step2 = sum $ map (\p -> (p ^. pCost) (step1, step2) * (p ^. pWeight)) ps
+
 mkNote :: XmlRef -> Maybe UnassignedNote
 mkNote ref =
   xmlPitch (deref ref) <&> \p ->
@@ -315,31 +439,35 @@ mkNote ref =
 allAssignments :: UnassignedStep -> [AssignedStep]
 allAssignments (Step ns dur) = map (flip Step dur) (go ns)
   where
-    staticCost step =
-      sumOf
-        (traversed . to (\p -> ((p ^. pCost) step) * p ^. pWeight))
-        p1s
+    staticCost = applyP1s p1s
     note x f = Note x (Identity f)
-    ret step = step <$ guard (staticCost (Step step dur) < infinity)
+    ret step =
+      let cost = staticCost (Step step dur)
+       in if cost < infinity then pure step else mzero
+
     go :: TimeStep Set -> [TimeStep Identity]
-    go = \case
-      Rest -> [Rest]
-      Single (Note x fs) -> fmap (\f -> Single (note x f)) (S.toList fs)
-      DoubleStop (Note x1 fs1) (Note x2 fs2) -> do
-        f1 <- S.toList fs1
-        f2 <- S.toList fs2
-        ret $ DoubleStop (note x1 f1) (note x2 f2)
-      TripleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) -> do
-        f1 <- S.toList fs1
-        f2 <- S.toList fs2
-        f3 <- S.toList fs3
-        ret $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
-      QuadrupleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) (Note x4 fs4) -> do
-        f1 <- S.toList fs1
-        f2 <- S.toList fs2
-        f3 <- S.toList fs3
-        f4 <- S.toList fs4
-        ret $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
+    go unassigned = case possible of
+      [] -> error (show unassigned)
+      _ -> possible
+      where
+        possible = case unassigned of
+          Rest -> [Rest]
+          Single (Note x fs) -> fmap (\f -> Single (note x f)) (S.toList fs)
+          DoubleStop (Note x1 fs1) (Note x2 fs2) -> do
+            f1 <- S.toList fs1
+            f2 <- S.toList fs2
+            ret $ DoubleStop (note x1 f1) (note x2 f2)
+          TripleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) -> do
+            f1 <- S.toList fs1
+            f2 <- S.toList fs2
+            f3 <- S.toList fs3
+            ret $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
+          QuadrupleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) (Note x4 fs4) -> do
+            f1 <- S.toList fs1
+            f2 <- S.toList fs2
+            f3 <- S.toList fs3
+            f4 <- S.toList fs4
+            ret $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
 
 --------------------------------------------------------------------------------
 -- Intervals
@@ -385,45 +513,49 @@ third p1 p2 = _m3 p1 p2 || _M3 p1 p2
 sixth p1 p2 = _m6 p1 p2 || _M6 p1 p2
 seventh p1 p2 = _m7 p1 p2 || _M7 p1 p2
 
--- TODO investigate some kind of TH macro to autodiscover these like hedgehog's discover
+-- TODO: investigate some kind of TH macro to autodiscover these like hedgehog's discover
 p1s :: [Penalty1]
 p1s =
-  [ trill
-  , chordAdjacent
-  , staticUnison
+  singles
+    <> doubleStops
+    <> [ trill
+       , chordAdjacent
+       , staticTripleStop
+       , staticQuadrupleStop
+       ]
+
+singles, doubleStops :: [Penalty1]
+singles = [highPosition, mediumPosition]
+doubleStops =
+  [ staticUnison
   , staticSecond
   , staticThird
   , staticFourth
   , staticFifth
-  , staticSixth
+  , staticMinorSixth
+  , staticMajorSixth
   , staticSeventh
   , staticOctave
   , staticTenth
-  , staticTripleStop
-  , staticQuadrupleStop
   ]
 
 p2s :: [Penalty2]
-p2s = [oneFingerHalfStep]
+p2s = [oneFingerHalfStep, samePosition, sameString]
 
 infer :: [UnassignedStep] -> [AssignedStep]
 infer steps = case sequence $ steps ^.. (traversed . to allAssignments . to NE.nonEmpty) of
   Nothing -> error "Could not assign fingering"
-  Just steps' -> case shortestPath steps' singleCost transitionCost of
+  Just steps' -> case shortestPath steps' (applyP1s p1s) (applyP2s p2s) of
     (c, path) -> traceShow c path
-    where
-      singleCost s =
-        let cost p = (p ^. pCost) s * p ^. pWeight
-         in sumOf (traversed . to cost) p1s
-      transitionCost s1 s2 =
-        let cost p = (p ^. pCost) (s1, s2) * p ^. pWeight
-         in sumOf (traversed . to cost) p2s
 
 -- | maximum floating point representable
 high, medium, low :: Double
 high = 1e6
 medium = 1e3
 low = 10
+
+binarize :: Bool -> Double
+binarize b = if b then 1 else 0
 
 trill :: Penalty1
 trill = P "trill" cost high
@@ -443,6 +575,18 @@ trill = P "trill" cost high
         cost (set timestep (Single n1) step) + cost (set timestep (Single n2) step)
       -- there should never be trills on triple/quadruple stops...
       _ -> 0
+
+highPosition :: Penalty1
+highPosition = P "high position" cost medium
+  where
+    cost step =
+      binarize $ anyOf (notes . fingerings' . to position . traversed) (>= EighthAndUp) step
+
+mediumPosition :: Penalty1
+mediumPosition = P "medium position" cost low
+  where
+    cost step =
+      binarize $ anyOf (notes . fingerings' . to position . traversed) (>= Fourth) step
 
 --------------------------------------------------------------------------------
 -- Double Stops
@@ -474,8 +618,9 @@ staticThird = P "static third" cost high
                 (_, Open) -> 0
                 (Open, _) -> 0
                 (Four, One)
-                  | f1 ^. distance <= 101 && f2 ^. distance <= 45 -> low
+                  | allOf (both . to position . traversed) (<= First) (f1, f2) -> low
                   | otherwise -> medium
+                -- TODO: Make these more comprehensive
                 (Four, Three)
                   | f2 ^. distance - f1 ^. distance <= 40 -> low
                   | otherwise -> high
@@ -488,16 +633,33 @@ staticThird = P "static third" cost high
                 _ -> infinity
       _ -> 0
 
-staticSixth :: Penalty1
-staticSixth = P "static sixth" cost high
+staticMinorSixth :: Penalty1
+staticMinorSixth = P "static minor sixth" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
-        | sixth n1 n2 ->
+        | _m6 n1 n2 ->
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (One, Two) -> 0
+                (Two, Two) -> 0
+                (Two, Three) -> 0
+                (Three, Four) -> 0
+                (_, Open) -> low
+                (Open, _) -> low
+                _ -> infinity
+      _ -> 0
+
+staticMajorSixth :: Penalty1
+staticMajorSixth = P "static major sixth" cost high
+  where
+    cost step = case step ^. timestep of
+      DoubleStop n1 n2
+        | _m6 n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
+           in case (f1 ^. finger, f2 ^. finger) of
+                (Two, Two) -> 0
                 (Two, Three) -> 0
                 (Three, Four) -> 0
                 (One, Three) -> low
@@ -533,7 +695,7 @@ staticTenth = P "static tenth (or any interval greater than an octave)" cost hig
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (One, Four) -> 0
+                (Two, Four) -> 0
                 (Open, _) -> 0
                 _ -> infinity
       _ -> 0
@@ -548,7 +710,7 @@ staticUnison = P "static unison" cost high
               f2 = n2 ^. fingerings'
            in -- Make sure that f1 refers to the lower string
               case (min f1 f2 ^. finger, max f1 f2 ^. finger) of
-                (Four, One) -> 0
+                (Four, Two) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
                 _ -> infinity
@@ -563,7 +725,7 @@ staticSecond = P "static second" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Four, One) -> 0
+                (Four, Two) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
                 _ -> infinity
@@ -578,7 +740,7 @@ staticFourth = P "static fourth" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Two, One) -> 0
+                (Two, Two) -> 0
                 (Three, Two) -> 0
                 (Four, Three) -> 0
                 (Open, _) -> 0
@@ -598,7 +760,7 @@ staticFifth = P "static fifth" cost high
                 (One, One) -> 0
                 (Two, Two) -> 0
                 (Three, Three) -> 0
-                (Four, Four) -> low
+                (Four, Four) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
                 _ -> infinity
@@ -613,7 +775,7 @@ staticSeventh = P "static seventh" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (One, Three) -> 0
+                (Two, Three) -> 0
                 (Two, Four) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
@@ -631,12 +793,10 @@ staticTripleStop = P "static triple stop" cost high
       case sortOn (view (fingerings' . string)) $
         step ^.. timestep . _TripleStop . each of
         ns@[n1, n2, n3] ->
-          cost (set timestep (DoubleStop n1 n2) step)
-            + cost (set timestep (DoubleStop n2 n3) step)
+          applyP1s doubleStops (set timestep (DoubleStop n1 n2) step)
+            + applyP1s doubleStops (set timestep (DoubleStop n2 n3) step)
             + let [f1, _, f3] = ns ^.. traversed . fingerings' . finger
-               in if f1 == f3 && f1 /= Open
-                    then infinity
-                    else 0
+               in if f1 == f3 && f1 /= Open then infinity else 0
         _ -> 0
 
 staticQuadrupleStop :: Penalty1
@@ -646,9 +806,9 @@ staticQuadrupleStop = P "static quadruple stop" cost high
       case sortOn (view (fingerings' . string)) $
         step ^.. timestep . _QuadrupleStop . each of
         ns@[n1, n2, n3, n4] ->
-          cost (set timestep (DoubleStop n1 n2) step)
-            + cost (set timestep (DoubleStop n2 n3) step)
-            + cost (set timestep (DoubleStop n3 n4) step)
+          applyP1s doubleStops (set timestep (DoubleStop n1 n2) step)
+            + applyP1s doubleStops (set timestep (DoubleStop n2 n3) step)
+            + applyP1s doubleStops (set timestep (DoubleStop n3 n4) step)
             + let [f1, f2, f3, f4] = ns ^.. traversed . fingerings' . finger
                in if any
                     (\(x, y) -> x == y && x /= Open)
@@ -661,8 +821,33 @@ staticQuadrupleStop = P "static quadruple stop" cost high
 -- Penalty2s
 --------------------------------------------------------------------------------
 oneFingerHalfStep :: Penalty2
-oneFingerHalfStep = P "one finger half step shift" cost low
+oneFingerHalfStep = P "one finger half step shift" cost (- low)
   where
-    cost steps = case steps ^.. both . timestep . _Single . fingerings' of
-      [Fingering f1 s1 _, Fingering f2 s2 _] | (f1, s1) == (f2, s2) -> 1
+    cost (Step (Single n1) _, Step (Single n2) _)
+      | and
+          [ _m2 n1 n2
+          , n1 ^. fingerings' . finger == n2 ^. fingerings' . finger
+          , n1 ^. fingerings' . string == n2 ^. fingerings' . string
+          ] =
+        1
+    -- TODO: double stops
+    cost _ = 0
+
+samePosition :: Penalty2
+samePosition = P "same position" cost (- high)
+  where
+    cost steps =
+      let positions = steps ^.. both . notes . fingerings' . to position
+       in binarize $ not (null (F.foldr1 L.intersect positions))
+
+sameString :: Penalty2
+sameString = P "same string" cost (- high)
+  where
+    cost (x, y) = case (x ^. timestep, y ^. timestep) of
+      (Single n1, Single n2) -> binarize $ n1 ^. s == n2 ^. s
+      (DoubleStop n11 n12, DoubleStop n21 n22) ->
+        binarize $ n11 ^. s == n21 ^. s && n12 ^. s == n22 ^. s
+      (Single n1, DoubleStop n21 n22) -> binarize $ (n1 ^. s) `elem` [n21 ^. s, n22 ^. s]
+      (DoubleStop n11 n12, Single n2) -> binarize $ (n2 ^. s) `elem` [n11 ^. s, n12 ^. s]
       _ -> 0
+    s = fingerings' . string
