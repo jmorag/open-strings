@@ -11,7 +11,7 @@ class FingeringEditor {
     this.handleKeypress = this.handleKeypress.bind(this);
     this.handleClick = this.handleClick.bind(this);
     // Defined here so that we can disconnect it when calling clear
-    this.observer = new MutationObserver(_ => {
+    this.observer = new MutationObserver((_) => {
       const svg = document.querySelector("svg");
       this.set_noteheads(svg);
       this.set_fingerings(svg);
@@ -48,41 +48,57 @@ class FingeringEditor {
   }
 
   get musicxml() {
-    // TODO consider not removing dummy xml nodes
+    // TODO: consider not removing dummy xml nodes
     if (this.xml === null) {
       return null;
     }
     const xml = this.xml.cloneNode(true);
     // Move strings from lyrics to string element inside notations>technical
-    xml.querySelectorAll("lyric.string").forEach(string_lyric => {
+    xml.querySelectorAll("lyric.string").forEach((string_lyric) => {
       const n = this.constructor.romanToArabic(
         string_lyric.firstElementChild.textContent
       );
-      if (n !== "X") {
-        let string_node = string_lyric.parentNode.querySelector(
-          "notations>technical>string"
-        );
-        if (string_node) {
-          string_node.textContent = n;
-        } else {
-          string_node = xml.createElement("string");
-          string_node.textContent = n;
-          string_lyric.parentNode
-            .querySelector("notations>technical")
-            .appendChild(string_node);
-        }
-        console.log("Set string in xml to ", n);
+      let string_node = string_lyric.parentNode.querySelector(
+        "notations>technical>string"
+      );
+      if (string_node) {
+        string_node.textContent = n;
+      } else {
+        string_node = xml.createElement("string");
+        string_node.textContent = n;
+        string_lyric.parentNode
+          .querySelector("notations>technical")
+          .appendChild(string_node);
       }
-      string_lyric.parentNode.removeChild(string_lyric);
+      console.log("Set string in xml to ", n);
+
+      string_lyric.remove();
     });
 
     // Remove empty fingerings
-    xml.querySelectorAll("notations>technical>fingering").forEach(fingering => {
-      if (fingering.textContent === "-1") {
-        const technical = fingering.parentNode;
+    xml
+      .querySelectorAll("notations>technical>fingering")
+      .forEach((fingering) => {
+        if (fingering.textContent === "-1") {
+          const technical = fingering.parentNode;
+          const notations = technical.parentNode;
+          const note = notations.parentNode;
+          technical.removeChild(fingering);
+          if (!technical.childElementCount) {
+            notations.removeChild(technical);
+            if (!notations.childElementCount) {
+              note.removeChild(notations);
+            }
+          }
+        }
+      });
+    // Remove empty strings
+    xml.querySelectorAll("notations>technical>string").forEach((string) => {
+      if (string.textContent === "X") {
+        const technical = string.parentNode;
         const notations = technical.parentNode;
         const note = notations.parentNode;
-        technical.removeChild(fingering);
+        technical.removeChild(string);
         if (!technical.childElementCount) {
           notations.removeChild(technical);
           if (!notations.childElementCount) {
@@ -160,8 +176,8 @@ class FingeringEditor {
   set_fingerings(svg) {
     let i = 0;
     this.svg_fingerings = [];
-    svg.querySelectorAll("g.vf-stavenote>g.vf-modifiers").forEach(m =>
-      m.querySelectorAll("text").forEach(f => {
+    svg.querySelectorAll("g.vf-stavenote>g.vf-modifiers").forEach((m) =>
+      m.querySelectorAll("text").forEach((f) => {
         f.setAttribute("index", i);
         i++;
         // hide bogus fingerings
@@ -174,7 +190,7 @@ class FingeringEditor {
   set_strings(svg) {
     let i = 0;
     this.svg_strings = [];
-    svg.querySelectorAll("svg>text").forEach(s => {
+    svg.querySelectorAll("svg>text").forEach((s) => {
       if (["I", "II", "III", "IV", "X"].contains(s.textContent)) {
         s.setAttribute("index", i);
         s.textContent === "X" && s.setAttribute("visibility", "hidden");
@@ -188,8 +204,8 @@ class FingeringEditor {
     let i_svg = 0;
     const xml_noteheads = this.xml.querySelectorAll("note");
     this.svg_noteheads = [];
-    svg.querySelectorAll("g.vf-stavenote").forEach(n =>
-      n.querySelectorAll("g.vf-notehead>path").forEach(note => {
+    svg.querySelectorAll("g.vf-stavenote").forEach((n) =>
+      n.querySelectorAll("g.vf-notehead>path").forEach((note) => {
         if (!xml_noteheads[i_xml].querySelector("rest")) {
           note.setAttribute("index", i_svg);
           i_svg++;
@@ -242,18 +258,18 @@ class FingeringEditor {
   }
 
   resetFingerings() {
-    this.svg_fingerings.forEach(finger => {
+    this.svg_fingerings.forEach((finger) => {
       finger.textContent = "-1";
       finger.setAttribute("visibility", "hidden");
     });
-    this.svg_strings.forEach(string => {
+    this.svg_strings.forEach((string) => {
       string.textContent = "-1";
       string.setAttribute("visibility", "hidden");
     });
-    this.xml.querySelectorAll("fingering").forEach(finger => {
+    this.xml.querySelectorAll("fingering").forEach((finger) => {
       finger.textContent = "-1";
     });
-    this.xml.querySelectorAll("lyric.string>text").forEach(string_lyric => {
+    this.xml.querySelectorAll("lyric.string>text").forEach((string_lyric) => {
       string_lyric.textContent = "X";
     });
     this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
@@ -366,7 +382,7 @@ class FingeringEditor {
         drawMeasureNumbers: !!start_measure,
         useXMLMeasureNumbers: !!start_measure,
         autoBeam: false,
-        pageFormat: "Endless"
+        pageFormat: "Endless",
       }
     );
     await osmd.load(this.xml);
