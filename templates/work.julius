@@ -7,6 +7,7 @@ const vue = new Vue({
     movement_id: (#{movements})[0].value,
     parts: #{parts},
     part: (#{parts})[0],
+    infer_weights: #{startingWeights},
     xml_file: null,
     table_fields: [
       "movement",
@@ -48,25 +49,31 @@ const vue = new Vue({
       const s = new XMLSerializer();
       const body = {
         infer_xml: s.serializeToString(this.editor.musicxml),
-        infer_weights: {},
+        infer_weights: this.infer_weights,
       };
       this.loading = true;
-      const resp = await fetch("@{InferR}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
-        body: JSON.stringify(body)
-      });
-      const json = await resp.json();
-      this.loading = false;
-      if (json.error) {
-        this.alert_message = json.error;
+      try {
+        const resp = await fetch("@{InferR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body)
+        });
+        const json = await resp.json();
+        this.loading = false;
+        if (json.error) {
+          this.alert_message = json.error;
+          this.show_alert = true;
+          return;
+        }
+        if (json.success) {
+          this.description = "Inferred";
+          this.editor.clear()
+          this.renderXml(new Blob([json.xml])); // TODO: make this better
+          return;
+        }
+      } catch (e) {
+        this.alert_message = `${e}`;
         this.show_alert = true;
-        return;
-      }
-      if (json.success) {
-        this.description = "Inferred";
-        this.editor.clear()
-        this.renderXml(new Blob([json.xml])); // TODO make this better
         return;
       }
     },

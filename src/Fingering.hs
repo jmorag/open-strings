@@ -19,6 +19,10 @@ module Fingering (
   mkNote,
   notes,
   allAssignments,
+  low,
+  medium,
+  high,
+  Weights,
 ) where
 
 import ClassyPrelude hiding (Element, second)
@@ -560,8 +564,8 @@ infer weights steps =
       (c, path) -> traceShow c path
 
 high, medium, low :: Double
-high = 100
-medium = 50
+high = 10
+medium = 5
 low = 1
 
 binarize :: Bool -> Double

@@ -17,7 +17,7 @@ import Fingering
 import Text.XML
 import Text.XML.Lens
 
-inferFingerings :: Document -> Map Text Double -> Document
+inferFingerings :: Document -> Weights -> Document
 inferFingerings doc weights = over (partsOf' (root . timeStep)) go doc
   where
     go steps =

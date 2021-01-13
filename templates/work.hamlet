@@ -46,8 +46,34 @@
             <b-button variant="primary" type="submit" #submit>Upload
             <b-button variant="secondary" @click="description = ''; editor.enable(); show_instructions = true">Edit fingerings
             <b-button variant="info" @click="description = ''; editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
-            <b-button variant="success" @click="infer">Infer fingerings
-        <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. <br>The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
+            <b-button variant="success" @click="infer" v-show="show_instructions">Infer fingerings
+          <p #slider-instructions v-show="show_instructions">Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
+          <b-form-group v-show="show_instructions">
+            <b-container fluid>
+              <b-row .my-1 v-for="(weight, name) in infer_weights" v-bind:key="name">
+                <b-col sm="2">
+                  <b-label v-bind:for=`${name}` .text-capitalize .font-weight-bold> {{ name }}
+                <b-col sm="8">
+                  <b-form-input
+                    .slider
+                    v-bind:id=`${name}`
+                    v-model="infer_weights[`${name}`]"
+                    number
+                    type="range"
+                    min="-10"
+                    max="10">
+                <b-col sm="2">
+                  <b-form-input
+                    .manual
+                    v-bind:id=`${name}_manual`
+                    v-model="infer_weights[`${name}`]"
+                    number
+                    size="sm"
+                    style="{vertical_align: middle}"
+                    min="-10"
+                    max="10"
+                    type="number">
+        <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
       $nothing
         <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>
 

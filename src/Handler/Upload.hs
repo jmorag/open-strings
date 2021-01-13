@@ -5,6 +5,7 @@ module Handler.Upload where
 import Control.Lens (deep, lengthOf, (^..))
 import Data.Aeson.Types
 import Database.Esqueleto (fromSqlKey, toSqlKey)
+import Fingering (Weights, high, low, medium)
 import Handler.Pieces
 import Import
 import Model.Parts
@@ -28,7 +29,6 @@ postInferR =
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
         let xml' = inferFingerings musicxml infer_weights
-        print (xml' ^.. root . deep (el "string") . text)
         pure $
           object
             [ "success" .= True
@@ -137,3 +137,16 @@ getWorkR work_key = do
     wId <- newIdent
     renderId <- newIdent
     $(widgetFile "work")
+
+startingWeights :: Value
+startingWeights =
+  object
+    [ "same string" .= (- high)
+    , "same position" .= (- high)
+    , "open string" .= zero
+    , "fourth finger" .= zero
+    , "high position" .= zero
+    , "medium position" .= zero
+    ]
+  where
+    zero = 0 :: Double
