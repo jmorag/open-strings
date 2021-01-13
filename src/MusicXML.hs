@@ -17,11 +17,11 @@ import Fingering
 import Text.XML
 import Text.XML.Lens
 
-inferFingerings :: Document -> Document
-inferFingerings = over (partsOf' (root . timeStep)) go
+inferFingerings :: Document -> Map Text Double -> Document
+inferFingerings doc weights = over (partsOf' (root . timeStep)) go doc
   where
     go steps =
-      let assignedSteps = infer $ coalesceTimeSteps (readTimeSteps steps)
+      let assignedSteps = infer weights $ coalesceTimeSteps (readTimeSteps steps)
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =

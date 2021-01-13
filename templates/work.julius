@@ -47,7 +47,8 @@ const vue = new Vue({
     async infer(e) {
       const s = new XMLSerializer();
       const body = {
-        infer_xml: s.serializeToString(this.editor.musicxml)
+        infer_xml: s.serializeToString(this.editor.musicxml),
+        infer_weights: {},
       };
       this.loading = true;
       const resp = await fetch("@{InferR}", {

@@ -224,6 +224,8 @@ type AssignedStep = Step Identity
 middleC :: Pitch
 middleC = 60
 
+-- TODO: fixme, should be idealized string split into halfsteps, not
+-- some ridiculous tape measure I did on my fingerboard
 measurementSeries :: Vector Int
 measurementSeries =
   V.fromList
@@ -419,11 +421,19 @@ type Penalty1 = Penalty AssignedStep
 
 type Penalty2 = Penalty (AssignedStep, AssignedStep)
 
-applyP1s :: [Penalty1] -> AssignedStep -> Double
-applyP1s ps step = sum $ map (\p -> (p ^. pCost) step * (p ^. pWeight)) ps
+applyP1s :: Weights -> [Penalty1] -> AssignedStep -> Double
+applyP1s weights ps step = sum $ map cost ps
+  where
+    cost p =
+      let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
+       in (p ^. pCost) step * weight
 
-applyP2s :: [Penalty2] -> AssignedStep -> AssignedStep -> Double
-applyP2s ps step1 step2 = sum $ map (\p -> (p ^. pCost) (step1, step2) * (p ^. pWeight)) ps
+applyP2s :: Weights -> [Penalty2] -> AssignedStep -> AssignedStep -> Double
+applyP2s weights ps step1 step2 = sum $ map cost ps
+  where
+    cost p =
+      let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
+       in (p ^. pCost) (step1, step2) * weight
 
 mkNote :: XmlRef -> Maybe UnassignedNote
 mkNote ref =
@@ -436,10 +446,10 @@ mkNote ref =
      in Note ref fs
 
 -- The cartesian product of all the possibleFingerings for a given timestep
-allAssignments :: UnassignedStep -> [AssignedStep]
-allAssignments (Step ns dur) = map (flip Step dur) (go ns)
+allAssignments :: Weights -> UnassignedStep -> [AssignedStep]
+allAssignments weights (Step ns dur) = map (flip Step dur) (go ns)
   where
-    staticCost = applyP1s p1s
+    staticCost = applyP1s weights p1s
     note x f = Note x (Identity f)
     ret step =
       let cost = staticCost (Step step dur)
@@ -513,7 +523,6 @@ third p1 p2 = _m3 p1 p2 || _M3 p1 p2
 sixth p1 p2 = _m6 p1 p2 || _M6 p1 p2
 seventh p1 p2 = _m7 p1 p2 || _M7 p1 p2
 
--- TODO: investigate some kind of TH macro to autodiscover these like hedgehog's discover
 p1s :: [Penalty1]
 p1s =
   singles
@@ -525,7 +534,7 @@ p1s =
        ]
 
 singles, doubleStops :: [Penalty1]
-singles = [highPosition, mediumPosition]
+singles = [highPosition, mediumPosition, fourthFinger]
 doubleStops =
   [ staticUnison
   , staticSecond
@@ -542,17 +551,18 @@ doubleStops =
 p2s :: [Penalty2]
 p2s = [oneFingerHalfStep, samePosition, sameString]
 
-infer :: [UnassignedStep] -> [AssignedStep]
-infer steps = case sequence $ steps ^.. (traversed . to allAssignments . to NE.nonEmpty) of
-  Nothing -> error "Could not assign fingering"
-  Just steps' -> case shortestPath steps' (applyP1s p1s) (applyP2s p2s) of
-    (c, path) -> traceShow c path
+type Weights = Map Text Double
+infer :: Weights -> [UnassignedStep] -> [AssignedStep]
+infer weights steps =
+  case sequence $ steps ^.. (traversed . to (allAssignments weights) . to NE.nonEmpty) of
+    Nothing -> error "Could not assign fingering"
+    Just steps' -> case shortestPath steps' (applyP1s weights p1s) (applyP2s weights p2s) of
+      (c, path) -> traceShow c path
 
--- | maximum floating point representable
 high, medium, low :: Double
-high = 1e6
-medium = 1e3
-low = 10
+high = 100
+medium = 50
+low = 1
 
 binarize :: Bool -> Double
 binarize b = if b then 1 else 0
@@ -587,6 +597,11 @@ mediumPosition = P "medium position" cost low
   where
     cost step =
       binarize $ anyOf (notes . fingerings' . to position . traversed) (>= Fourth) step
+
+fourthFinger :: Penalty1
+fourthFinger = P "fourth finger" cost 0
+  where
+    cost step = binarize $ step ^? timestep . _Single . fingerings' . finger == Just Four
 
 --------------------------------------------------------------------------------
 -- Double Stops
@@ -793,8 +808,9 @@ staticTripleStop = P "static triple stop" cost high
       case sortOn (view (fingerings' . string)) $
         step ^.. timestep . _TripleStop . each of
         ns@[n1, n2, n3] ->
-          applyP1s doubleStops (set timestep (DoubleStop n1 n2) step)
-            + applyP1s doubleStops (set timestep (DoubleStop n2 n3) step)
+          -- TODO: fixme pass weights to all penalty functions
+          applyP1s mempty doubleStops (set timestep (DoubleStop n1 n2) step)
+            + applyP1s mempty doubleStops (set timestep (DoubleStop n2 n3) step)
             + let [f1, _, f3] = ns ^.. traversed . fingerings' . finger
                in if f1 == f3 && f1 /= Open then infinity else 0
         _ -> 0
@@ -806,9 +822,10 @@ staticQuadrupleStop = P "static quadruple stop" cost high
       case sortOn (view (fingerings' . string)) $
         step ^.. timestep . _QuadrupleStop . each of
         ns@[n1, n2, n3, n4] ->
-          applyP1s doubleStops (set timestep (DoubleStop n1 n2) step)
-            + applyP1s doubleStops (set timestep (DoubleStop n2 n3) step)
-            + applyP1s doubleStops (set timestep (DoubleStop n3 n4) step)
+          -- TODO: fixme pass weights to all penalty functions
+          applyP1s mempty doubleStops (set timestep (DoubleStop n1 n2) step)
+            + applyP1s mempty doubleStops (set timestep (DoubleStop n2 n3) step)
+            + applyP1s mempty doubleStops (set timestep (DoubleStop n3 n4) step)
             + let [f1, f2, f3, f4] = ns ^.. traversed . fingerings' . finger
                in if any
                     (\(x, y) -> x == y && x /= Open)

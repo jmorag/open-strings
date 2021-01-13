@@ -15,6 +15,7 @@ import Text.XML.Lens
 
 data InferParams = InferParams
   { infer_xml :: !LText
+  , infer_weights :: !(Map Text Double)
   }
   deriving stock (Show, Generic)
   deriving anyclass (FromJSON)
@@ -26,20 +27,20 @@ postInferR =
     Success InferParams {..} -> case parseText def infer_xml of
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
-        let xml' = inferFingerings musicxml
+        let xml' = inferFingerings musicxml infer_weights
         print (xml' ^.. root . deep (el "string") . text)
         pure $
           object
-            [ "success" .= True,
-              "xml" .= renderText def xml'
+            [ "success" .= True
+            , "xml" .= renderText def xml'
             ]
 
 data UploadFingeringParams = UploadFingeringParams
-  { movement_id :: !Int64,
-    part :: !Part,
-    start_measure :: !Int,
-    xml :: !LText,
-    description :: !Text
+  { movement_id :: !Int64
+  , part :: !Part
+  , start_measure :: !Int
+  , xml :: !LText
+  , description :: !Text
   }
   deriving (Show, Generic)
   deriving anyclass (FromJSON)
@@ -75,12 +76,12 @@ getAddWorkR = defaultLayout do
   $(widgetFile "add-work")
 
 data AddWorkParams = AddWorkParams
-  { work_url :: !(Maybe Text),
-    work_title :: !Text,
-    work_composer :: !Text,
-    work_instrumentation :: !(Set Part),
-    work_movements :: ![Text],
-    composer_url :: !(Maybe Text)
+  { work_url :: !(Maybe Text)
+  , work_title :: !Text
+  , work_composer :: !Text
+  , work_instrumentation :: !(Set Part)
+  , work_movements :: ![Text]
+  , composer_url :: !(Maybe Text)
   }
   deriving (Show, Generic)
 
@@ -104,8 +105,8 @@ postAddWorkR =
         Left (Entity workId _) ->
           pure $
             object
-              [ "error" .= ("Work already in database" :: Text),
-                "work_id" .= fromSqlKey workId
+              [ "error" .= ("Work already in database" :: Text)
+              , "work_id" .= fromSqlKey workId
               ]
         Right workId -> do
           case work_movements of
