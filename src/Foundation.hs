@@ -38,19 +38,19 @@ import Yesod.Default.Util (addStaticContentExternal)
 -- starts running, such as database connections. Every handler will have
 -- access to the data present here.
 data App = App
-  { appSettings :: AppSettings,
-    -- | Settings for static file serving.
-    appStatic :: Static,
-    -- | Database connection pool.
-    appConnPool :: ConnectionPool,
-    appHttpManager :: Manager,
-    appLogger :: Logger
+  { appSettings :: AppSettings
+  , -- | Settings for static file serving.
+    appStatic :: Static
+  , -- | Database connection pool.
+    appConnPool :: ConnectionPool
+  , appHttpManager :: Manager
+  , appLogger :: Logger
   }
 
 data MenuItem = MenuItem
-  { menuItemLabel :: Text,
-    menuItemRoute :: Route App,
-    menuItemAccessCallback :: Bool
+  { menuItemLabel :: Text
+  , menuItemRoute :: Route App
+  , menuItemAccessCallback :: Bool
   }
 
 data MenuTypes
@@ -122,27 +122,27 @@ instance Yesod App where
     let menuItems =
           [ NavbarLeft $
               MenuItem
-                { menuItemLabel = "Home",
-                  menuItemRoute = HomeR,
-                  menuItemAccessCallback = True
-                },
-            NavbarRight $
+                { menuItemLabel = "Home"
+                , menuItemRoute = HomeR
+                , menuItemAccessCallback = True
+                }
+          , NavbarRight $
               MenuItem
-                { menuItemLabel = "Login",
-                  menuItemRoute = AuthR LoginR,
-                  menuItemAccessCallback = isNothing muser
-                },
-            NavbarRight $
+                { menuItemLabel = "Login"
+                , menuItemRoute = AuthR LoginR
+                , menuItemAccessCallback = isNothing muser
+                }
+          , NavbarRight $
               MenuItem
-                { menuItemLabel = "Sign Up",
-                  menuItemRoute = AuthR registerR,
-                  menuItemAccessCallback = isNothing muser
-                },
-            NavbarRight $
+                { menuItemLabel = "Sign Up"
+                , menuItemRoute = AuthR registerR
+                , menuItemAccessCallback = isNothing muser
+                }
+          , NavbarRight $
               MenuItem
-                { menuItemLabel = "Logout",
-                  menuItemRoute = AuthR LogoutR,
-                  menuItemAccessCallback = isJust muser
+                { menuItemLabel = "Logout"
+                , menuItemRoute = AuthR LogoutR
+                , menuItemAccessCallback = isJust muser
                 }
           ]
 
@@ -162,9 +162,7 @@ instance Yesod App where
     pc <- widgetToPageContent $ do
       addStylesheet $ StaticR css_bootstrap_css
       (addScript . StaticR)
-        if (appVueDevel (appSettings master))
-          then js_vue_js
-          else js_vue_min_js
+        if (appVueDevel (appSettings master)) then js_vue_js else js_vue_min_js
       addScript (StaticR js_bootstrapvue_min_js)
       -- TODO: uncomment if icons necessary
       -- addScriptRemote "//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"
@@ -282,10 +280,10 @@ instance YesodAuth App where
               Authenticated uid
                 <$ insert_
                   OAuthUser
-                    { oAuthUserUserId = uid,
-                      oAuthUserEmail = extract (key "email"),
-                      oAuthUserName = extract (key "name"),
-                      oAuthUserPicture = extract $
+                    { oAuthUserUserId = uid
+                    , oAuthUserEmail = extract (key "email")
+                    , oAuthUserName = extract (key "name")
+                    , oAuthUserPicture = extract $
                         key $ case oauth of
                           "google" -> "picture"
                           "github" -> "avatar_url"
@@ -298,8 +296,8 @@ instance YesodAuth App where
     [ oauth2GoogleScoped
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
-        (appGoogleOauthClientSecret (appSettings app)),
-      authEmail
+        (appGoogleOauthClientSecret (appSettings app))
+    , authEmail
     ]
       ++ extraAuthPlugins
     where
@@ -325,10 +323,10 @@ instance YesodAuthEmail App where
       uid <- insert $ User email Email now
       insert_ $
         EmailUser
-          { emailUserUserId = uid,
-            emailUserPassword = Nothing,
-            emailUserVerkey = Just verkey,
-            emailUserVerified = False
+          { emailUserUserId = uid
+          , emailUserPassword = Nothing
+          , emailUserVerkey = Just verkey
+          , emailUserVerified = False
           }
       pure uid
 
@@ -435,11 +433,11 @@ Click on the link below to reset your password.
           return $
             Just
               EmailCreds
-                { emailCredsId = uid,
-                  emailCredsAuthId = Just uid,
-                  emailCredsStatus = isJust $ emailUserPassword u,
-                  emailCredsVerkey = emailUserVerkey u,
-                  emailCredsEmail = email
+                { emailCredsId = uid
+                , emailCredsAuthId = Just uid
+                , emailCredsStatus = isJust $ emailUserPassword u
+                , emailCredsVerkey = emailUserVerkey u
+                , emailCredsEmail = email
                 }
   getEmail = liftHandler . runDB . fmap (fmap userIdent) . get
 
