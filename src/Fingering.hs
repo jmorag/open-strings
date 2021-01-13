@@ -534,7 +534,7 @@ p1s =
        ]
 
 singles, doubleStops :: [Penalty1]
-singles = [highPosition, mediumPosition, fourthFinger]
+singles = [highPosition, mediumPosition, fourthFinger, openString]
 doubleStops =
   [ staticUnison
   , staticSecond
@@ -602,6 +602,11 @@ fourthFinger :: Penalty1
 fourthFinger = P "fourth finger" cost 0
   where
     cost step = binarize $ step ^? timestep . _Single . fingerings' . finger == Just Four
+
+openString :: Penalty1
+openString = P "open string" cost 0
+  where
+    cost step = binarize $ anyOf (notes . fingerings' . finger) (== Open) step
 
 --------------------------------------------------------------------------------
 -- Double Stops
