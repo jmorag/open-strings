@@ -395,12 +395,12 @@ allFingerings p = do
       -- At the low and high ends of the string, we can't use certain fingers
       -- TODO: decide high end
       0 -> [Open]
-      1 -> [Two]
-      2 -> [Two, Two]
-      3 -> [Two, Two]
-      4 -> [Two, Two, Three]
-      5 -> [Two, Two, Three]
-      _ -> [Two, Two, Three, Four]
+      1 -> [One]
+      2 -> [One, Two]
+      3 -> [One, Two]
+      4 -> [One, Two, Three]
+      5 -> [One, Two, Three]
+      _ -> [One, Two, Three, Four]
 
 validPlacement :: Fingering -> Constraint -> Bool
 validPlacement Fingering {..} constraint = case constraint of
