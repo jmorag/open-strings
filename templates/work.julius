@@ -133,15 +133,7 @@ const vue = new Vue({
         const reader = new FileReader();
         reader.readAsText(file);
         reader.onload = async ({ target: { result } }) => {
-          try {
-            await this.editor.render(result, this.start_measure);
-          } catch (e) {
-            this.editor.clear();
-            this.alert_message =
-              "Grace notes currently cannot be rendered due to an <a href='https://github.com/opensheetmusicdisplay/opensheetmusicdisplay/issues/878'>upstream bug</a>";
-            this.show_alert = true;
-            return;
-          }
+          await this.editor.render(result, this.start_measure);
           this.show_editor = true;
           this.disable_submit = false;
         };

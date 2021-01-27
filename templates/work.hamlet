@@ -52,7 +52,7 @@
             <b-container fluid>
               <b-row .my-1 v-for="(weight, name) in infer_weights" v-bind:key="name">
                 <b-col sm="2">
-                  <b-label v-bind:for=`${name}` .text-capitalize .font-weight-bold> {{ name }}
+                  <label v-bind:for=`${name}` .text-capitalize .font-weight-bold> {{ name }}
                 <b-col sm="8">
                   <b-form-input
                     .slider

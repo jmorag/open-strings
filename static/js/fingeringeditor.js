@@ -3,6 +3,7 @@ class FingeringEditor {
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
     this.index = 0;
+    this.svg_stavenotes = null;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
     this.svg_strings = null;
@@ -13,6 +14,7 @@ class FingeringEditor {
     // Defined here so that we can disconnect it when calling clear
     this.observer = new MutationObserver((_) => {
       const svg = document.querySelector("svg");
+      this.set_stavenotes(svg);
       this.set_noteheads(svg);
       this.set_fingerings(svg);
       this.set_strings(svg);
@@ -125,10 +127,6 @@ class FingeringEditor {
     let lyric_level = 1;
     for (let i = notes.length - 1; i >= 0; i--) {
       const note = notes[i];
-      if (note.querySelector("grace")) {
-        console.log(note);
-        throw "illegal grace note";
-      }
       if (note.querySelector("rest")) {
         continue;
       }
@@ -176,15 +174,17 @@ class FingeringEditor {
   set_fingerings(svg) {
     let i = 0;
     this.svg_fingerings = [];
-    svg.querySelectorAll("g.vf-stavenote>g.vf-modifiers").forEach((m) =>
-      m.querySelectorAll("text").forEach((f) => {
-        f.setAttribute("index", i);
-        i++;
-        // hide bogus fingerings
-        f.textContent === "-1" && f.setAttribute("visibility", "hidden");
-        this.svg_fingerings.push(f);
-      })
-    );
+    this.svg_stavenotes.forEach((s) => {
+      Array.from(s.querySelector("g.vf-modifiers").children).forEach((f) => {
+        if (f.tagName === "text") {
+          f.setAttribute("index", i);
+          i++;
+          // hide bogus fingerings
+          f.textContent === "-1" && f.setAttribute("visibility", "hidden");
+          this.svg_fingerings.push(f);
+        }
+      });
+    });
   }
 
   set_strings(svg) {
@@ -204,16 +204,30 @@ class FingeringEditor {
     let i_svg = 0;
     const xml_noteheads = this.xml.querySelectorAll("note");
     this.svg_noteheads = [];
-    svg.querySelectorAll("g.vf-stavenote").forEach((n) =>
-      n.querySelectorAll("g.vf-notehead>path").forEach((note) => {
-        if (!xml_noteheads[i_xml].querySelector("rest")) {
-          note.setAttribute("index", i_svg);
-          i_svg++;
-          this.svg_noteheads.push(note);
-        }
-        i_xml++;
-      })
+    this.svg_stavenotes.forEach((n) =>
+      n.children[0] // don't descend into nested grace notes
+        .querySelectorAll("g.vf-notehead>path")
+        .forEach((note) => {
+          if (!xml_noteheads[i_xml].querySelector("rest")) {
+            note.setAttribute("index", i_svg);
+            i_svg++;
+            this.svg_noteheads.push(note);
+          }
+          i_xml++;
+        })
     );
+  }
+
+  set_stavenotes(svg) {
+    this.svg_stavenotes = [];
+    // In the svg, grace notes are children of the main note they are
+    // attached to, even though they precede it musically
+    svg.querySelectorAll("svg>g.vf-stavenote").forEach((n) => {
+      n.querySelectorAll("g.vf-modifiers>g.vf-stavenote").forEach((grace) =>
+        this.svg_stavenotes.push(grace)
+      );
+      this.svg_stavenotes.push(n);
+    });
   }
 
   next() {
