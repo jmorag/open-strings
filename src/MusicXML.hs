@@ -21,7 +21,7 @@ inferFingerings :: Document -> Weights -> Document
 inferFingerings doc weights = over (partsOf' (root . timeStep)) go doc
   where
     go steps =
-      let assignedSteps = infer weights $ coalesceTimeSteps (readTimeSteps steps)
+      let assignedSteps = infer weights (readTimeSteps steps)
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
@@ -61,6 +61,82 @@ setFingering fingering noteEl =
    in noteEl & child "notations" . child "technical" . child "fingering" .~ fingerEl
         & child "notations" . child "technical" . child "string" .~ stringEl
 
+timeStep :: Traversal' Element Element
+timeStep = deep $ el "note" `failing` el "backup" `failing` el "forward"
+
+readTimeSteps :: [Element] -> [Step Set]
+readTimeSteps es = addGraceNotes graceNotes noGrace
+  where
+    es' = zip [0 ..] es
+    (len, graceNotes) = totalDuration es'
+    noGrace = coalesceTimeSteps $ V.create do
+      vec <- VM.replicate len Rest
+      foldM_ (readTimeStep vec) 0 es'
+      pure vec
+
+readTimeStep :: VM.MVector s (TimeStep Set) -> Int -> XmlRef -> ST s Int
+readTimeStep vec t ref =
+  let t' = if chord e then t - dur e else t
+   in case e ^?! name of
+        "note" -> do
+          -- skip grace notes in this phase
+          unless (grace e) $
+            forM_ [t' .. t' + dur e - 1] $ VM.modify vec (mkNote ref <>)
+          pure (t' + dur e)
+        "backup" -> pure (t' - dur e)
+        "forward" -> pure (t' + dur e)
+        n -> error $ "Impossible timestep element " <> show n
+  where
+    e = deref ref
+
+coalesceTimeSteps :: Foldable t => t (TimeStep f) -> [Step f]
+coalesceTimeSteps = fmap (\ts -> Step (NE.head ts) (length ts)) . NE.group
+
+addGraceNotes :: [(TimeStep Set, Int)] -> [Step Set] -> [Step Set]
+addGraceNotes = go 0 []
+  where
+    go _ acc [] regularNotes = reverse acc <> regularNotes
+    go _ acc graceNotes [] = reverse acc <> (map (\(g, _) -> Step g 1) graceNotes)
+    go t acc graceNotes@((g, t') : gs) regularNotes@(n : ns)
+      -- Assumes that grace notes line up exactly before regular
+      -- notes. This should of course be true but it could bear some
+      -- stress testing.
+      | t == t' = go t (Step g 1 : acc) gs regularNotes
+      | otherwise = go (t + _duration n) (n : acc) graceNotes ns
+
+totalDuration :: [XmlRef] -> (Int, [(TimeStep Set, Int)])
+totalDuration = go 0 []
+  where
+    go t acc [] = (t, reverse acc)
+    go t acc (ref : es) = case grace e of
+      False -> go (t + calculateDuration e) acc es
+      True -> case chord e of
+        False -> go t ((mkNote ref, t) : acc) es
+        True -> case acc of
+          [] -> error "Impossible - chord element before non-chord element"
+          ((n, t') : ns) -> go t ((mkNote ref <> n, t') : ns) es
+      where
+        e = deref ref
+
+calculateDuration :: Element -> Int
+calculateDuration e = case e ^?! name of
+  "note" -> if chord e then 0 else dur e
+  "backup" -> negate (dur e)
+  "forward" -> dur e
+  n -> error $ "Impossible timestep element " <> show n
+
+chord, grace :: Element -> Bool
+chord = has (deep (el "chord"))
+grace = has (deep (el "grace"))
+
+dur :: Element -> Int
+dur e =
+  if grace e
+    then 0
+    else
+      fromMaybe (error "Duration element missing from non-grace note") $
+        e ^? deep (el "duration") . text . to readMay . _Just
+
 -- | Shift measure numbers to start at the given point
 adjustMeasures :: Int -> Document -> Document
 adjustMeasures beg = iset (root . measureNumbers) (+ beg)
@@ -74,48 +150,6 @@ measureNumbers =
       . unpacked
       . _Show
 
-timeStep :: Traversal' Element Element
-timeStep = deep $ el "note" `failing` el "backup" `failing` el "forward"
-
-readTimeSteps :: [Element] -> Vector (TimeStep Set)
-readTimeSteps es = V.create do
-  vec <- VM.replicate (totalDuration es) Rest
-  foldM_ (readTimeStep vec) 0 (zip [0 ..] es)
-  pure vec
-
-readTimeStep :: VM.MVector s (TimeStep Set) -> Int -> XmlRef -> ST s Int
-readTimeStep vec t ref =
-  case e ^?! name of
-    "note" -> do
-      let t' = maybe t (const (t - xmlDuration)) (e ^? deep (el "chord"))
-      forM_ [t' .. t' + xmlDuration - 1] $
-        VM.modify vec (maybe Rest Single (mkNote ref) <>)
-      pure (t' + xmlDuration)
-    "backup" -> pure (t - xmlDuration)
-    "forward" -> pure (t + xmlDuration)
-    n -> error $ "Impossible timestep element " <> show n
-  where
-    e = deref ref
-    xmlDuration = e ^?! dur
-
-coalesceTimeSteps :: Vector (TimeStep f) -> [Step f]
-coalesceTimeSteps = fmap (\ts -> Step (NE.head ts) (length ts)) . NE.group
-
-totalDuration :: [Element] -> Int
-totalDuration = sumOf (traversed . to fn)
-  where
-    fn e = case e ^?! name of
-      "note" -> maybe (e ^?! dur) (const 0) (e ^? deep (el "chord"))
-      "backup" -> negate (e ^?! dur)
-      "forward" -> e ^?! dur
-      n -> error $ "Impossible timestep element " <> show n
-
-dur :: Fold Element Int
-dur = deep (el "duration") . text . to readInt . _Just
-
-readInt :: Text -> Maybe Int
-readInt = readMay
-
 --------------------------------------------------------------------------------
 -- repl utils
 --------------------------------------------------------------------------------
@@ -123,7 +157,9 @@ readInt = readMay
 readXML :: FilePath -> IO Document
 readXML = Text.XML.readFile def
 
-prok, brahms, sibelius :: IO Document
+prok, brahms, sibelius, ysaye, tartini :: IO Document
 prok = readXML "/home/joseph/Documents/MuseScore3/Scores/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
 brahms = readXML "/home/joseph/Documents/MuseScore3/Scores/Brahms_violin_concerto.musicxml"
-sibelius = readXML "/home/joseph/Documents/MuseScore3/Scores/Sibelius_violin_concerto_excerpt_no_grace.musicxml"
+sibelius = readXML "/home/joseph/Documents/MuseScore3/Scores/Sibelius_violin_concerto_excerpt.musicxml"
+ysaye = readXML "/home/joseph/Documents/MuseScore3/Scores/Ysaye ballade excerpt.txt"
+tartini = readXML "/home/joseph/Documents/MuseScore3/Scores/tartini_devil_page_1.musicxml"

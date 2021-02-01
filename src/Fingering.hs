@@ -139,8 +139,6 @@ makeLenses ''Note
 fingerings' :: Lens' AssignedNote Fingering
 fingerings' = fingerings . _Wrapped
 
-type UnassignedNote = Note Set
-
 type AssignedNote = Note Identity
 
 instance Eq (Note f) where
@@ -439,15 +437,17 @@ applyP2s weights ps step1 step2 = sum $ map cost ps
       let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
        in (p ^. pCost) (step1, step2) * weight
 
-mkNote :: XmlRef -> Maybe UnassignedNote
+mkNote :: XmlRef -> TimeStep Set
 mkNote ref =
-  xmlPitch (deref ref) <&> \p ->
-    let fs =
-          S.fromList $
-            filter
-              (flip validPlacement (xmlConstraint (deref ref)))
-              (allFingerings p)
-     in Note ref fs
+  case xmlPitch (deref ref) of
+    Just p ->
+      let fs =
+            S.fromList $
+              filter
+                (flip validPlacement (xmlConstraint (deref ref)))
+                (allFingerings p)
+       in Single $ Note ref fs
+    Nothing -> Rest
 
 -- The cartesian product of all the possibleFingerings for a given timestep
 allAssignments :: Weights -> UnassignedStep -> [AssignedStep]
