@@ -282,7 +282,7 @@ class FingeringEditor {
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
     console.log(e);
-    switch (e.key) {
+    switch (e.code) {
       case "ArrowRight":
         this.next();
         break;
@@ -290,49 +290,37 @@ class FingeringEditor {
         this.prev();
         break;
       // lies conveniently to the left of 1 on most keyboards
-      case "`":
+      case "Backquote":
         this.setFinger("0");
         this.next();
         break;
-      case "0":
+      case "Digit0":
         this.setFinger("0");
         this.next();
         break;
-      case "1":
-        this.setFinger("1");
+      case "Digit1":
+        if (e.shiftKey) this.setString("1");
+        else this.setFinger("1");
         this.next();
         break;
-      case "2":
-        this.setFinger("2");
+      case "Digit2":
+        if (e.shiftKey) this.setString("2");
+        else this.setFinger("2");
         this.next();
         break;
-      case "3":
-        this.setFinger("3");
+      case "Digit3":
+        if (e.shiftKey) this.setString("3");
+        else this.setFinger("3");
         this.next();
         break;
-      case "4":
-        this.setFinger("4");
+      case "Digit4":
+        if (e.shiftKey) this.setString("4");
+        else this.setFinger("4");
         this.next();
         break;
       case "Backspace":
         this.setFinger("-1");
         this.setString("-1");
-        break;
-      case "!":
-        this.setString("1");
-        this.next();
-        break;
-      case "@":
-        this.setString("2");
-        this.next();
-        break;
-      case "#":
-        this.setString("3");
-        this.next();
-        break;
-      case "$":
-        this.setString("4");
-        this.next();
         break;
       case "Enter":
         break;
