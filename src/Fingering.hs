@@ -666,7 +666,7 @@ staticMinorSixth = P "static minor sixth" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Two, Two) -> 0
+                (One, Two) -> 0
                 (Two, Three) -> 0
                 (Three, Four) -> 0
                 (_, Open) -> low
@@ -683,7 +683,7 @@ staticMajorSixth = P "static major sixth" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Two, Two) -> 0
+                (One, Two) -> 0
                 (Two, Three) -> 0
                 (Three, Four) -> 0
                 (One, Three) -> low
@@ -719,7 +719,7 @@ staticTenth = P "static tenth (or any interval greater than an octave)" cost hig
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Two, Four) -> 0
+                (One, Four) -> 0
                 (Open, _) -> 0
                 _ -> infinity
       _ -> 0
@@ -734,7 +734,7 @@ staticUnison = P "static unison" cost high
               f2 = n2 ^. fingerings'
            in -- Make sure that f1 refers to the lower string
               case (min f1 f2 ^. finger, max f1 f2 ^. finger) of
-                (Four, Two) -> 0
+                (Four, One) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
                 _ -> infinity
@@ -749,7 +749,7 @@ staticSecond = P "static second" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Four, Two) -> 0
+                (Four, One) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
                 _ -> infinity
@@ -764,7 +764,7 @@ staticFourth = P "static fourth" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Two, Two) -> 0
+                (Two, One) -> 0
                 (Three, Two) -> 0
                 (Four, Three) -> 0
                 (Open, _) -> 0
@@ -799,7 +799,7 @@ staticSeventh = P "static seventh" cost high
           let f1 = n1 ^. fingerings'
               f2 = n2 ^. fingerings'
            in case (f1 ^. finger, f2 ^. finger) of
-                (Two, Three) -> 0
+                (One, Three) -> 0
                 (Two, Four) -> 0
                 (Open, _) -> 0
                 (_, Open) -> 0
