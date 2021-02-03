@@ -16,8 +16,7 @@ class FingeringEditor {
       const svg = document.querySelector("svg");
       this.set_stavenotes(svg);
       this.set_noteheads(svg);
-      this.set_fingerings(svg);
-      this.set_strings(svg);
+      this.set_fingerings_and_strings(svg);
     });
   }
 
@@ -35,47 +34,12 @@ class FingeringEditor {
     return "X";
   }
 
-  static romanToArabic(n) {
-    switch (n) {
-      case "I":
-        return "1";
-      case "II":
-        return "2";
-      case "III":
-        return "3";
-      case "IV":
-        return "4";
-    }
-    return n;
-  }
-
   get musicxml() {
     // TODO: consider not removing dummy xml nodes
     if (this.xml === null) {
       return null;
     }
     const xml = this.xml.cloneNode(true);
-    // Move strings from lyrics to string element inside notations>technical
-    xml.querySelectorAll("lyric.string").forEach((string_lyric) => {
-      const n = this.constructor.romanToArabic(
-        string_lyric.firstElementChild.textContent
-      );
-      let string_node = string_lyric.parentNode.querySelector(
-        "notations>technical>string"
-      );
-      if (string_node) {
-        string_node.textContent = n;
-      } else {
-        string_node = xml.createElement("string");
-        string_node.textContent = n;
-        string_lyric.parentNode
-          .querySelector("notations>technical")
-          .appendChild(string_node);
-      }
-      console.log("Set string in xml to ", n);
-
-      string_lyric.remove();
-    });
 
     // Remove empty fingerings
     xml
@@ -94,6 +58,7 @@ class FingeringEditor {
           }
         }
       });
+
     // Remove empty strings
     xml.querySelectorAll("notations>technical>string").forEach((string) => {
       if (string.textContent === "X") {
@@ -124,79 +89,105 @@ class FingeringEditor {
       });
     }
     const notes = xml.querySelectorAll("note");
-    let lyric_level = 1;
     for (let i = notes.length - 1; i >= 0; i--) {
       const note = notes[i];
       if (note.querySelector("rest")) {
         continue;
       }
-      // OSMD doesn't display string numbers so we display them as lyrics instead
-      const lyric = xml.createElement("lyric");
-      lyric.setAttribute("class", "string");
-      const text = xml.createElement("text");
-      lyric.appendChild(text);
-
-      text.textContent = this.arabicToRoman(
-        note.querySelector("notations>technical>string")?.textContent
-      );
-      note.appendChild(lyric);
-      lyric.setAttribute("number", lyric_level);
-      if (!!note.querySelector("chord")) {
-        lyric_level++;
-      } else {
-        lyric_level = 1;
-      }
-
-      // add -1 fingerings to unfingered notes
+      // add -1 fingerings and strings to unfingered notes
       if (note.querySelector("notations") === null) {
         let notations = xml.createElement("notations");
         let technical = xml.createElement("technical");
         let fingering = xml.createElement("fingering");
+        let string = xml.createElement("string");
         fingering.appendChild(xml.createTextNode("-1"));
+        string.appendChild(xml.createTextNode("-1"));
         technical.appendChild(fingering);
+        technical.appendChild(string);
         notations.appendChild(technical);
         note.appendChild(notations);
       } else if (note.querySelector("notations>technical") === null) {
         let technical = xml.createElement("technical");
         let fingering = xml.createElement("fingering");
+        let string = xml.createElement("string");
         fingering.appendChild(xml.createTextNode("-1"));
+        string.appendChild(xml.createTextNode("-1"));
         technical.appendChild(fingering);
+        technical.appendChild(string);
         note.querySelector("notations").appendChild(technical);
       } else if (note.querySelector("notations>technical>fingering") === null) {
         let fingering = xml.createElement("fingering");
         fingering.appendChild(xml.createTextNode("-1"));
         note.querySelector("notations>technical").appendChild(fingering);
+      } else if (note.querySelector("notations>technical>string") === null) {
+        let string = xml.createElement("string");
+        string.appendChild(xml.createTextNode("-1"));
+        note.querySelector("notations>technical").appendChild(string);
       }
     }
     return xml;
   }
 
-  set_fingerings(svg) {
+  set_fingerings_and_strings(svg) {
+    const isFingering = (e) => {
+      return (
+        e.tagName === "text" &&
+        ["-1", "0", "1", "2", "3", "4"].contains(e.textContent)
+      );
+    };
+    // rudimentary check for svg circle around string number
+    const isStringNumCircle = (e) => {
+      return e.tagName === "path" && e.getAttribute("stroke-width") === "1.5";
+    };
+
     let i = 0;
     this.svg_fingerings = [];
-    this.svg_stavenotes.forEach((s) => {
-      Array.from(s.querySelector("g.vf-modifiers").children).forEach((f) => {
-        if (f.tagName === "text") {
-          f.setAttribute("index", i);
-          i++;
-          // hide bogus fingerings
-          f.textContent === "-1" && f.setAttribute("visibility", "hidden");
-          this.svg_fingerings.push(f);
-        }
-      });
-    });
-  }
-
-  set_strings(svg) {
-    let i = 0;
     this.svg_strings = [];
-    svg.querySelectorAll("svg>text").forEach((s) => {
-      if (["I", "II", "III", "IV", "X"].contains(s.textContent)) {
-        s.setAttribute("index", i);
-        s.textContent === "X" && s.setAttribute("visibility", "hidden");
-        this.svg_strings.push(s);
+    for (const s of this.svg_stavenotes) {
+      let modifiers = Array.from(s.querySelector("g.vf-modifiers").children);
+      let j = i; // save index so we can reset for string numbers
+      let fIndex = modifiers.findIndex(isFingering);
+      if (fIndex === -1) {
+        continue; // probably a rest
       }
-    });
+      let f = modifiers[fIndex];
+      // svg finger numbers
+      while (isFingering(f)) {
+        f.setAttribute("index", i);
+        i++;
+        // hide bogus fingerings
+        f.textContent === "-1" && f.setAttribute("visibility", "hidden");
+        this.svg_fingerings.push(f);
+        fIndex++;
+        f = modifiers[fIndex];
+      }
+
+      // svg string numbers
+      //
+      // OSMD/Vexflow natively displays these as numbers inside a
+      // circle but violinists are used to roman numerals.
+      // Furthermore, since we can now disambiguate between string
+      // numbers and finger numbers via the numeral system, we can do
+      // away with the circles since they can run into each other in
+      // chords. See
+      // https://github.com/jmorag/opensheetmusicdisplay/commit/d30baff1aad828bf75cd87b2f17348af0867b6fe
+
+      i = j; // reset i to beginning of this chord
+      while (fIndex < modifiers.length) {
+        if (isStringNumCircle(f)) {
+          f.setAttribute("visibility", "hidden");
+        } else {
+          f.setAttribute("index", i);
+          // hide bogus string numbers
+          f.textContent === "-1" && f.setAttribute("visibility", "hidden");
+          f.textContent = this.constructor.arabicToRoman(f.textContent);
+          i++;
+          this.svg_strings.push(f);
+        }
+        fIndex++;
+        f = modifiers[fIndex];
+      }
+    }
   }
 
   set_noteheads(svg) {
@@ -258,13 +249,10 @@ class FingeringEditor {
 
   setString(n) {
     let string = this.svg_strings[this.index];
-    string.textContent = n;
-    let string_num = this.constructor.romanToArabic(n);
-    this.xml.querySelectorAll("lyric.string>text")[
-      this.index
-    ].textContent = string_num;
+    string.textContent = this.constructor.arabicToRoman(n);
+    this.xml.querySelectorAll("string")[this.index].textContent = n;
 
-    if (n === "X") {
+    if (n === "-1") {
       string.setAttribute("visibility", "hidden");
     } else {
       string.removeAttribute("visibility");
@@ -283,8 +271,8 @@ class FingeringEditor {
     this.xml.querySelectorAll("fingering").forEach((finger) => {
       finger.textContent = "-1";
     });
-    this.xml.querySelectorAll("lyric.string>text").forEach((string_lyric) => {
-      string_lyric.textContent = "X";
+    this.xml.querySelectorAll("technical>string").forEach((string) => {
+      string.textContent = "-1";
     });
     this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
     this.svg_noteheads[0].setAttribute("fill", this.focused);
@@ -328,22 +316,22 @@ class FingeringEditor {
         break;
       case "Backspace":
         this.setFinger("-1");
-        this.setString("X");
+        this.setString("-1");
         break;
       case "!":
-        this.setString("I");
+        this.setString("1");
         this.next();
         break;
       case "@":
-        this.setString("II");
+        this.setString("2");
         this.next();
         break;
       case "#":
-        this.setString("III");
+        this.setString("3");
         this.next();
         break;
       case "$":
-        this.setString("IV");
+        this.setString("4");
         this.next();
         break;
       case "Enter":
