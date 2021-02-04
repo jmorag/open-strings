@@ -1,7 +1,6 @@
-module Import
-  ( module Import,
-  )
-where
+module Import (
+  module Import,
+) where
 
 import Data.Char
 import qualified Data.Text as T

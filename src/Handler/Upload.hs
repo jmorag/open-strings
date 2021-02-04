@@ -2,7 +2,7 @@
 
 module Handler.Upload where
 
-import Control.Lens (deep, lengthOf, (^..))
+import Control.Lens (lengthOf)
 import Data.Aeson.Types
 import Database.Esqueleto (fromSqlKey, toSqlKey)
 import Fingering (Weights, high, low, medium)
@@ -28,12 +28,22 @@ postInferR =
     Success InferParams {..} -> case parseText def infer_xml of
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
-        let xml' = inferFingerings musicxml infer_weights
-        pure $
-          object
-            [ "success" .= True
-            , "xml" .= renderText def xml'
-            ]
+        let musicxml' = inferFingerings musicxml infer_weights
+        $logInfo "Inferring fingerings"
+        result <-
+          timeout timeLimit (tryAny (evaluateDeep musicxml'))
+        pure case result of
+          Nothing -> object ["error" .= timeoutMsg]
+          Just (Right xml') ->
+            object
+              [ "success" .= True
+              , "xml" .= renderText def xml'
+              ]
+          Just (Left e) -> object ["error" .= tshow e]
+  where
+    timeLimit = 15 * (10 ^ (6 :: Int)) -- 15 seconds
+    timeoutMsg :: Text
+    timeoutMsg = "Inference timed out. Try annotating some fingerings yourself or uploading a shorter passage"
 
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64

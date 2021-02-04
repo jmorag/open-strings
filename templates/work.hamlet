@@ -1,6 +1,4 @@
 <div ##{wId}>
-  <b-alert v-bind:show="show_alert" variant="danger">
-    <span v-html="alert_message">
   <h2 style="text-align: center">#{title}
   <b-form v-on:submit.prevent="submit" novalidate>
     <!-- Existing uploads table -->
@@ -47,6 +45,8 @@
             <b-button variant="secondary" @click="description = ''; editor.enable(); show_instructions = true">Edit fingerings
             <b-button variant="info" @click="description = ''; editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
             <b-button variant="success" @click="infer" v-show="show_instructions">Infer fingerings
+            <b-alert v-bind:show="show_alert" variant="danger">
+              <span v-html="alert_message">
           <p #slider-instructions v-show="show_instructions">Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
           <b-form-group v-show="show_instructions">
             <b-container fluid>
