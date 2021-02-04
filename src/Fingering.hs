@@ -547,7 +547,8 @@ doubleStops =
   , staticFifth
   , staticMinorSixth
   , staticMajorSixth
-  , staticSeventh
+  , staticMinorSeventh
+  , staticMajorSeventh
   , staticOctave
   , staticTenth
   ]
@@ -790,8 +791,27 @@ staticFifth = P "static fifth" cost high
                 _ -> infinity
       _ -> 0
 
-staticSeventh :: Penalty1
-staticSeventh = P "static seventh" cost high
+staticMinorSeventh :: Penalty1
+staticMinorSeventh = P "static minor seventh" cost high
+  where
+    cost step = case step ^. timestep of
+      DoubleStop n1 n2
+        | seventh n1 n2 ->
+          let f1 = n1 ^. fingerings'
+              f2 = n2 ^. fingerings'
+           in case (f1 ^. finger, f2 ^. finger) of
+                (One, Three) -> 0
+                (Two, Four) -> 0
+                (Open, _) -> 0
+                (_, Open) -> 0
+                (One, Two) -> low
+                (Two, Three) -> low
+                (Three, Four) -> medium
+                _ -> infinity
+      _ -> 0
+
+staticMajorSeventh :: Penalty1
+staticMajorSeventh = P "static major seventh" cost high
   where
     cost step = case step ^. timestep of
       DoubleStop n1 n2
