@@ -114,7 +114,7 @@ xmlConstraint note =
         (Nothing, Just s') -> OnString s'
         (Just f', Just s') -> Specified f' s'
 
-data Fingering = Fingering {_string :: VString, _finger :: Finger, _distance :: Int}
+data Fingering = Fingering {_string :: VString, _finger :: Finger, _distance :: Double}
   deriving (Eq, Ord)
 
 instance Show Fingering where
@@ -226,159 +226,210 @@ type AssignedStep = Step Identity
 middleC :: Pitch
 middleC = 60
 
--- TODO: fixme, should be idealized string split into halfsteps, not
--- some ridiculous tape measure I did on my fingerboard
-measurementSeries :: Vector Int
+-- | Calculate the (infinite) series of Hz values for a chromatic
+-- scale starting at baseFreq.
+halfStepFreqs :: Floating t => t -> [t]
+halfStepFreqs baseFreq = baseFreq : halfStepFreqs (baseFreq * 2 ** (1 / 12))
+
+-- | Calculate the position on an idealized string with given base
+-- length and frequency of a finger required to play a note of
+-- frequency freq. Note that real strings don't behave this nicely,
+-- but the differences in practice shouldn't matter too much when
+-- picking fingerings
+halfStepPosition :: Fractional a => a -> a -> a -> a
+halfStepPosition baseLen baseFreq freq = baseLen * (1 - (baseFreq / freq))
+
+-- According to
+-- https://www.fretlessfingerguides.com/measure_violin_scale_string_length.html
+-- and confirmed by shar, pirastro, an ideal full size violin string
+-- has a vibrating length of 330mm.
+measurementSeries :: Vector Double
 measurementSeries =
-  V.fromList
-    -- Assuming e string
-    [ 0 -- e
-    , 13 -- f
-    , 30 -- f#
-    , 45 -- g
-    , 61 -- g#
-    , 87 -- a
-    , 101 -- a#
-    , 114 -- b
-    , 129 -- c
-    , 138 -- c#
-    , 147 -- d
-    , 156 -- d#
-    , 168 -- e
-    , 180 -- f
-    , 190 -- f#
-    , 195 -- g
-    , 202 -- g#
-    , 209 -- a
-    , 213 -- a#
-    , 222 -- b
-    , 228 -- c
-    , 235 -- c#
-    , 241 -- d
-    , 245 -- d#
-    , 251 -- e
-    , 256 -- f
-    , 260 -- f#
-    , 262 -- g
-    , 268 -- g#
-    , 271 -- a
-    ]
+  halfStepFreqs 440 & map (halfStepPosition 330 440) & take 30 & V.fromList
+
+-- >>> measurementSeries
+--   [ 0 -- e
+--   , 18.521476815041137 -- f
+--   , 36.00342301368804 -- f#
+--   , 52.50418296627425 -- g
+--   , 68.0788264252471 -- g#
+--   , 82.77933231534762 -- a
+--   , 96.65476220843938 -- a#
+--   , 109.7514240619444 -- b
+--   , 122.113026767346 -- c
+--   , 133.78082602455106 -- c#
+--   , 144.79376202895352 -- d
+--   , 155.18858943071635 -- d#
+--   , 165.00000000000009 -- e
+--   , 174.26073840752065 -- f
+--   , 183.0017115068441 -- f#
+--   , 191.25209148313715 -- g
+--   , 199.0394132126236 -- g#
+--   , 206.38966615767384 -- a
+--   , 213.3273811042197 -- a#
+--   , 219.8757120309722 -- b
+--   , 226.056513383673 -- c
+--   , 231.89041301227553 -- c#
+--   , 237.3968810144768 -- d
+--   , 242.5942947153582 -- d#
+--   , 247.50000000000003 -- e
+--   , 252.13036920376032 -- f
+--   , 256.50085575342206 -- f#
+--   , 260.6260457415686 -- g
+--   , 264.5197066063118 -- g#
+--   , 268.19483307883695 -- a
+--   ]
+
+-- Patterns to make matching on the measurement series easier
+-- TODO: matching on doubles like this is probably crazy unsafe...
+pattern E5, F5, Fs5, G5, Gs5, A5, As5, B5, C6, Cs6, D6, Ds6, E6, F6, Fs6, G6, Gs6, A6, As6, B6, C7, Cs7, D7, Ds7, E7, F7, Fs7, G7, Gs7, A7 :: Double
+pattern E5 = 0
+pattern F5 = 18.521476815041137
+pattern Fs5 = 36.00342301368804
+pattern G5 = 52.50418296627425
+pattern Gs5 = 68.0788264252471
+pattern A5 = 82.77933231534762
+pattern As5 = 96.65476220843938
+pattern B5 = 109.7514240619444
+pattern C6 = 122.113026767346
+pattern Cs6 = 133.78082602455106
+pattern D6 = 144.79376202895352
+pattern Ds6 = 155.18858943071635
+pattern E6 = 165.00000000000009
+pattern F6 = 174.26073840752065
+pattern Fs6 = 183.0017115068441
+pattern G6 = 191.25209148313715
+pattern Gs6 = 199.0394132126236
+pattern A6 = 206.38966615767384
+pattern As6 = 213.3273811042197
+pattern B6 = 219.8757120309722
+pattern C7 = 226.056513383673
+pattern Cs7 = 231.89041301227553
+pattern D7 = 237.3968810144768
+pattern Ds7 = 242.5942947153582
+pattern E7 = 247.50000000000003
+pattern F7 = 252.13036920376032
+pattern Fs7 = 256.50085575342206
+pattern G7 = 260.6260457415686
+pattern Gs7 = 264.5197066063118
+pattern A7 = 268.19483307883695
+{-# COMPLETE E5, F5, F5, Fs5, G5, Gs5, A5, As5, B5, C6, Cs6, D6, Ds6, E6, F6, Fs6, G6, Gs6, A6, As6, B6, C7, Cs7, D7, Ds7, E7, F7, Fs7, G7, Gs7, A7 #-}
 
 data Position = Half | First | Second | Third | Fourth | Fifth | Sixth | Seventh | EighthAndUp
   deriving (Show, Eq, Ord, Enum, Bounded)
 
 position :: Fingering -> [Position]
-position (Fingering _ Open _) = [Half .. EighthAndUp]
-position (Fingering _ One 13) = [Half, First]
-position (Fingering _ One 30) = [First]
-position (Fingering _ One 45) = [Second]
-position (Fingering _ One 61) = [Second, Third]
-position (Fingering _ One 87) = [Third]
-position (Fingering _ One 101) = [Third, Fourth]
-position (Fingering _ One 114) = [Fourth]
-position (Fingering _ One 129) = [Fourth, Fifth]
-position (Fingering _ One 138) = [Fifth]
-position (Fingering _ One 147) = [Sixth]
-position (Fingering _ One 156) = [Seventh]
-position (Fingering _ One 168) = [EighthAndUp]
-position (Fingering _ One 180) = [EighthAndUp]
-position (Fingering _ One 190) = [EighthAndUp]
-position (Fingering _ One 195) = [EighthAndUp]
-position (Fingering _ One 202) = [EighthAndUp]
-position (Fingering _ One 209) = [EighthAndUp]
-position (Fingering _ One 213) = [EighthAndUp]
-position (Fingering _ One 222) = [EighthAndUp]
-position (Fingering _ One 228) = [EighthAndUp]
-position (Fingering _ One 235) = [EighthAndUp]
-position (Fingering _ One 241) = [EighthAndUp]
-position (Fingering _ One 245) = [EighthAndUp]
-position (Fingering _ One 251) = [EighthAndUp]
-position (Fingering _ One 256) = [EighthAndUp]
-position (Fingering _ One 260) = [EighthAndUp]
-position (Fingering _ One 262) = [EighthAndUp]
-position (Fingering _ One 268) = [EighthAndUp]
-position (Fingering _ One 271) = [EighthAndUp]
-position (Fingering _ Two 30) = [Half]
-position (Fingering _ Two 45) = [First]
-position (Fingering _ Two 61) = [First]
-position (Fingering _ Two 87) = [Second]
-position (Fingering _ Two 101) = [Third]
-position (Fingering _ Two 114) = [Third]
-position (Fingering _ Two 129) = [Fourth]
-position (Fingering _ Two 138) = [Fourth]
-position (Fingering _ Two 147) = [Fifth]
-position (Fingering _ Two 156) = [Fifth]
-position (Fingering _ Two 168) = [Sixth]
-position (Fingering _ Two 180) = [Seventh]
-position (Fingering _ Two 190) = [Seventh]
-position (Fingering _ Two 195) = [EighthAndUp]
-position (Fingering _ Two 202) = [EighthAndUp]
-position (Fingering _ Two 209) = [EighthAndUp]
-position (Fingering _ Two 213) = [EighthAndUp]
-position (Fingering _ Two 222) = [EighthAndUp]
-position (Fingering _ Two 228) = [EighthAndUp]
-position (Fingering _ Two 235) = [EighthAndUp]
-position (Fingering _ Two 241) = [EighthAndUp]
-position (Fingering _ Two 245) = [EighthAndUp]
-position (Fingering _ Two 251) = [EighthAndUp]
-position (Fingering _ Two 256) = [EighthAndUp]
-position (Fingering _ Two 260) = [EighthAndUp]
-position (Fingering _ Two 262) = [EighthAndUp]
-position (Fingering _ Two 268) = [EighthAndUp]
-position (Fingering _ Two 271) = [EighthAndUp]
-position (Fingering _ Three 45) = [Half]
-position (Fingering _ Three 61) = [First]
-position (Fingering _ Three 87) = [First]
-position (Fingering _ Three 101) = [First, Second]
-position (Fingering _ Three 114) = [Second]
-position (Fingering _ Three 129) = [Second, Third]
-position (Fingering _ Three 138) = [Third, Fourth]
-position (Fingering _ Three 147) = [Fourth]
-position (Fingering _ Three 156) = [Fourth, Fifth]
-position (Fingering _ Three 168) = [Fifth]
-position (Fingering _ Three 180) = [Fifth]
-position (Fingering _ Three 190) = [Sixth]
-position (Fingering _ Three 195) = [Seventh]
-position (Fingering _ Three 202) = [Seventh]
-position (Fingering _ Three 209) = [EighthAndUp]
-position (Fingering _ Three 213) = [EighthAndUp]
-position (Fingering _ Three 222) = [EighthAndUp]
-position (Fingering _ Three 228) = [EighthAndUp]
-position (Fingering _ Three 235) = [EighthAndUp]
-position (Fingering _ Three 241) = [EighthAndUp]
-position (Fingering _ Three 245) = [EighthAndUp]
-position (Fingering _ Three 251) = [EighthAndUp]
-position (Fingering _ Three 256) = [EighthAndUp]
-position (Fingering _ Three 260) = [EighthAndUp]
-position (Fingering _ Three 262) = [EighthAndUp]
-position (Fingering _ Three 268) = [EighthAndUp]
-position (Fingering _ Three 271) = [EighthAndUp]
-position (Fingering _ Four 61) = [Half]
-position (Fingering _ Four 87) = [Half]
-position (Fingering _ Four 101) = [First]
-position (Fingering _ Four 114) = [First]
-position (Fingering _ Four 129) = [Second]
-position (Fingering _ Four 138) = [Second]
-position (Fingering _ Four 147) = [Third]
-position (Fingering _ Four 156) = [Third, Fourth]
-position (Fingering _ Four 168) = [Fourth]
-position (Fingering _ Four 180) = [Fourth, Fifth]
-position (Fingering _ Four 190) = [Fifth]
-position (Fingering _ Four 195) = [Sixth]
-position (Fingering _ Four 202) = [Sixth]
-position (Fingering _ Four 209) = [Seventh]
-position (Fingering _ Four 213) = [Seventh]
-position (Fingering _ Four 222) = [EighthAndUp]
-position (Fingering _ Four 228) = [EighthAndUp]
-position (Fingering _ Four 235) = [EighthAndUp]
-position (Fingering _ Four 241) = [EighthAndUp]
-position (Fingering _ Four 245) = [EighthAndUp]
-position (Fingering _ Four 251) = [EighthAndUp]
-position (Fingering _ Four 256) = [EighthAndUp]
-position (Fingering _ Four 260) = [EighthAndUp]
-position (Fingering _ Four 262) = [EighthAndUp]
-position (Fingering _ Four 268) = [EighthAndUp]
-position (Fingering _ Four 271) = [EighthAndUp]
+position (Fingering _ Open E5) = [Half .. EighthAndUp]
+position (Fingering _ One F5) = [Half, First]
+position (Fingering _ One Fs5) = [First]
+position (Fingering _ One G5) = [Second]
+position (Fingering _ One Gs5) = [Second, Third]
+position (Fingering _ One A5) = [Third]
+position (Fingering _ One As5) = [Third, Fourth]
+position (Fingering _ One B5) = [Fourth]
+position (Fingering _ One C6) = [Fourth, Fifth]
+position (Fingering _ One Cs6) = [Fifth]
+position (Fingering _ One D6) = [Sixth]
+position (Fingering _ One Ds6) = [Seventh]
+position (Fingering _ One E6) = [EighthAndUp]
+position (Fingering _ One F6) = [EighthAndUp]
+position (Fingering _ One Fs6) = [EighthAndUp]
+position (Fingering _ One G6) = [EighthAndUp]
+position (Fingering _ One Gs6) = [EighthAndUp]
+position (Fingering _ One A6) = [EighthAndUp]
+position (Fingering _ One As6) = [EighthAndUp]
+position (Fingering _ One B6) = [EighthAndUp]
+position (Fingering _ One C7) = [EighthAndUp]
+position (Fingering _ One Cs7) = [EighthAndUp]
+position (Fingering _ One D7) = [EighthAndUp]
+position (Fingering _ One Ds7) = [EighthAndUp]
+position (Fingering _ One E7) = [EighthAndUp]
+position (Fingering _ One F7) = [EighthAndUp]
+position (Fingering _ One Fs7) = [EighthAndUp]
+position (Fingering _ One G7) = [EighthAndUp]
+position (Fingering _ One Gs7) = [EighthAndUp]
+position (Fingering _ One A7) = [EighthAndUp]
+position (Fingering _ Two Fs5) = [Half]
+position (Fingering _ Two G5) = [First]
+position (Fingering _ Two Gs5) = [First, Second]
+position (Fingering _ Two A5) = [Second]
+position (Fingering _ Two As5) = [Second, Third]
+position (Fingering _ Two B5) = [Third]
+position (Fingering _ Two C6) = [Fourth]
+position (Fingering _ Two Cs6) = [Fourth]
+position (Fingering _ Two D6) = [Fifth]
+position (Fingering _ Two Ds6) = [Fifth]
+position (Fingering _ Two E6) = [Sixth]
+position (Fingering _ Two F6) = [Seventh]
+position (Fingering _ Two Fs6) = [Seventh]
+position (Fingering _ Two G6) = [EighthAndUp]
+position (Fingering _ Two Gs6) = [EighthAndUp]
+position (Fingering _ Two A6) = [EighthAndUp]
+position (Fingering _ Two As6) = [EighthAndUp]
+position (Fingering _ Two B6) = [EighthAndUp]
+position (Fingering _ Two C7) = [EighthAndUp]
+position (Fingering _ Two Cs7) = [EighthAndUp]
+position (Fingering _ Two D7) = [EighthAndUp]
+position (Fingering _ Two Ds7) = [EighthAndUp]
+position (Fingering _ Two E7) = [EighthAndUp]
+position (Fingering _ Two F7) = [EighthAndUp]
+position (Fingering _ Two Fs7) = [EighthAndUp]
+position (Fingering _ Two G7) = [EighthAndUp]
+position (Fingering _ Two Gs7) = [EighthAndUp]
+position (Fingering _ Two A7) = [EighthAndUp]
+position (Fingering _ Three G5) = [Half]
+position (Fingering _ Three Gs5) = [First]
+position (Fingering _ Three A5) = [First]
+position (Fingering _ Three As5) = [First, Second]
+position (Fingering _ Three B5) = [Second]
+position (Fingering _ Three C6) = [Second, Third]
+position (Fingering _ Three Cs6) = [Third, Fourth]
+position (Fingering _ Three D6) = [Fourth]
+position (Fingering _ Three Ds6) = [Fourth, Fifth]
+position (Fingering _ Three E6) = [Fifth]
+position (Fingering _ Three F6) = [Fifth]
+position (Fingering _ Three Fs6) = [Sixth]
+position (Fingering _ Three G6) = [Seventh]
+position (Fingering _ Three Gs6) = [Seventh]
+position (Fingering _ Three A6) = [EighthAndUp]
+position (Fingering _ Three As6) = [EighthAndUp]
+position (Fingering _ Three B6) = [EighthAndUp]
+position (Fingering _ Three C7) = [EighthAndUp]
+position (Fingering _ Three Cs7) = [EighthAndUp]
+position (Fingering _ Three D7) = [EighthAndUp]
+position (Fingering _ Three Ds7) = [EighthAndUp]
+position (Fingering _ Three E7) = [EighthAndUp]
+position (Fingering _ Three F7) = [EighthAndUp]
+position (Fingering _ Three Fs7) = [EighthAndUp]
+position (Fingering _ Three G7) = [EighthAndUp]
+position (Fingering _ Three Gs7) = [EighthAndUp]
+position (Fingering _ Three A7) = [EighthAndUp]
+position (Fingering _ Four Gs5) = [Half]
+position (Fingering _ Four A5) = [Half]
+position (Fingering _ Four As5) = [First]
+position (Fingering _ Four B5) = [First]
+position (Fingering _ Four C6) = [Second]
+position (Fingering _ Four Cs6) = [Second]
+position (Fingering _ Four D6) = [Third]
+position (Fingering _ Four Ds6) = [Third, Fourth]
+position (Fingering _ Four E6) = [Fourth]
+position (Fingering _ Four F6) = [Fourth, Fifth]
+position (Fingering _ Four Fs6) = [Fifth]
+position (Fingering _ Four G6) = [Sixth]
+position (Fingering _ Four Gs6) = [Sixth]
+position (Fingering _ Four A6) = [Seventh]
+position (Fingering _ Four As6) = [Seventh]
+position (Fingering _ Four B6) = [EighthAndUp]
+position (Fingering _ Four C7) = [EighthAndUp]
+position (Fingering _ Four Cs7) = [EighthAndUp]
+position (Fingering _ Four D7) = [EighthAndUp]
+position (Fingering _ Four Ds7) = [EighthAndUp]
+position (Fingering _ Four E7) = [EighthAndUp]
+position (Fingering _ Four F7) = [EighthAndUp]
+position (Fingering _ Four Fs7) = [EighthAndUp]
+position (Fingering _ Four G7) = [EighthAndUp]
+position (Fingering _ Four Gs7) = [EighthAndUp]
+position (Fingering _ Four A7) = [EighthAndUp]
 position _ = []
 
 -- Ranges of the pitches playable on each string
@@ -706,8 +757,8 @@ staticOctave = P "static octave" cost high
                 (One, Four) -> 0
                 (Open, _) -> 0
                 -- TODO make these more interesting
-                (One, Three) -> if f2 ^. distance >= 147 then 0 else low
-                (Two, Four) -> if f2 ^. distance >= 147 then 0 else low
+                (One, Three) -> if f2 ^. distance >= G7 then 0 else low
+                (Two, Four) -> if f2 ^. distance >= G7 then 0 else low
                 _ -> infinity
       _ -> 0
 
