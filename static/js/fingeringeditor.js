@@ -135,7 +135,9 @@ class FingeringEditor {
         ["-1", "0", "1", "2", "3", "4"].contains(e.textContent)
       );
     };
-    // rudimentary check for svg circle around string number
+    // Rudimentary check for svg circle around string number. The
+    // radius is set to 0 in osmd, but the svg element still exists
+    // and must be accounted for
     const isStringNumCircle = (e) => {
       return e.tagName === "path" && e.getAttribute("stroke-width") === "1.5";
     };
@@ -163,24 +165,12 @@ class FingeringEditor {
       }
 
       // svg string numbers
-      //
-      // OSMD/Vexflow natively displays these as numbers inside a
-      // circle but violinists are used to roman numerals.
-      // Furthermore, since we can now disambiguate between string
-      // numbers and finger numbers via the numeral system, we can do
-      // away with the circles since they can run into each other in
-      // chords. See
-      // https://github.com/jmorag/opensheetmusicdisplay/commit/d30baff1aad828bf75cd87b2f17348af0867b6fe
-
       i = j; // reset i to beginning of this chord
       while (fIndex < modifiers.length) {
-        if (isStringNumCircle(f)) {
-          f.setAttribute("visibility", "hidden");
-        } else {
+        if (!isStringNumCircle(f)) {
           f.setAttribute("index", i);
           // hide bogus string numbers
           f.textContent === "-1" && f.setAttribute("visibility", "hidden");
-          f.textContent = this.constructor.arabicToRoman(f.textContent);
           i++;
           this.svg_strings.push(f);
         }
