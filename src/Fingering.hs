@@ -608,12 +608,11 @@ p2s :: [Penalty2]
 p2s = [oneFingerHalfStep, samePosition, sameString]
 
 type Weights = Map Text Double
-infer :: Weights -> [UnassignedStep] -> [AssignedStep]
+infer :: Weights -> [UnassignedStep] -> (Double, [AssignedStep])
 infer weights steps =
   case sequence $ steps ^.. (traversed . to (allAssignments weights) . to NE.nonEmpty) of
     Nothing -> error "Could not assign fingering"
-    Just steps' -> case shortestPath steps' (applyP1s weights p1s) (applyP2s weights p2s) of
-      (c, path) -> traceShow c path
+    Just steps' -> shortestPath steps' (applyP1s weights p1s) (applyP2s weights p2s)
 
 high, medium, low :: Double
 high = 10

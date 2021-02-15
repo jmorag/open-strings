@@ -34,10 +34,11 @@ postInferR =
           timeout timeLimit (tryAny (evaluateDeep musicxml'))
         pure case result of
           Nothing -> object ["error" .= timeoutMsg]
-          Just (Right xml') ->
+          Just (Right (cost, xml')) ->
             object
               [ "success" .= True
               , "xml" .= renderText def xml'
+              , "cost" .= cost
               ]
           Just (Left e) -> object ["error" .= tshow e]
   where

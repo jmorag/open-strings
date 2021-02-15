@@ -17,16 +17,16 @@ import Fingering
 import Text.XML
 import Text.XML.Lens
 
-inferFingerings :: Document -> Weights -> Document
-inferFingerings doc weights = over (partsOf' (root . timeStep)) go doc
+inferFingerings :: Document -> Weights -> (Double, Document)
+inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
   where
     go steps =
-      let assignedSteps = infer weights (readTimeSteps steps)
+      let (cost, assignedSteps) = infer weights (readTimeSteps steps)
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
             map (\n -> (n ^. xmlRef . _1, n ^. fingerings')) assignedNotes
-       in assignFingers (zip [0 ..] steps) fingers
+       in (cost, assignFingers (zip [0 ..] steps) fingers)
 
 assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
 assignFingers e [] = map snd e
