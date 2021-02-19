@@ -13,6 +13,7 @@ import MusicXML
 import Text.Julius
 import Text.XML
 import Text.XML.Lens
+import qualified Data.Map as M
 
 data InferParams = InferParams
   { infer_xml :: !LText
@@ -149,15 +150,13 @@ getWorkR work_key = do
     renderId <- newIdent
     $(widgetFile "work")
 
-startingWeights :: Value
+startingWeights :: Weights Double
 startingWeights =
-  object
-    [ "same string" .= (- high)
-    , "same position" .= (- high)
-    , "open string" .= zero
-    , "fourth finger" .= zero
-    , "high position" .= zero
-    , "medium position" .= zero
+  M.fromList
+    [ ("same string", - high)
+    , ("same position", - high)
+    , ("open string", 0)
+    , ("fourth finger", 0)
+    , ("high position", 0)
+    , ("medium position", 0)
     ]
-  where
-    zero = 0 :: Double

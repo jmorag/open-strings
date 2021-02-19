@@ -7,7 +7,7 @@ const vue = new Vue({
     movement_id: (#{movements})[0].value,
     parts: #{parts},
     part: (#{parts})[0],
-    infer_weights: #{startingWeights},
+    infer_weights: #{toJSON startingWeights},
     xml_file: null,
     table_fields: [
       "movement",
