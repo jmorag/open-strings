@@ -20,6 +20,7 @@ import Text.XML.Lens
 inferFingerings :: Document -> Weights -> (Double, Document)
 inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
   where
+    go :: [Element] -> (Double, [Element])
     go steps =
       let (cost, assignedSteps) = infer weights (readTimeSteps steps)
           assignedNotes =
