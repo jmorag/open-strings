@@ -49,7 +49,8 @@ library
       src
   default-extensions: BangPatterns BinaryLiterals BlockArguments ConstraintKinds DataKinds DefaultSignatures DeriveAnyClass DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DerivingStrategies DerivingVia DoAndIfThenElse DuplicateRecordFields EmptyCase EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedLabels OverloadedStrings PartialTypeSignatures PatternGuards PatternSynonyms PolyKinds QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeOperators TypeSynonymInstances ViewPatterns
   build-depends:
-      aeson >=1.4 && <1.5
+      ad
+    , aeson >=1.4 && <1.5
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.11
@@ -88,6 +89,7 @@ library
     , raw-strings-qq
     , safe
     , sendgrid-v3
+    , sgd
     , shakespeare >=2.0 && <2.1
     , string-conversions
     , template-haskell
@@ -126,7 +128,8 @@ executable dhall-to-db
   default-extensions: BangPatterns BinaryLiterals BlockArguments ConstraintKinds DataKinds DefaultSignatures DeriveAnyClass DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DerivingStrategies DerivingVia DoAndIfThenElse DuplicateRecordFields EmptyCase EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedLabels OverloadedStrings PartialTypeSignatures PatternGuards PatternSynonyms PolyKinds QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeOperators TypeSynonymInstances ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=1.4 && <1.5
+      ad
+    , aeson >=1.4 && <1.5
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.11
@@ -166,6 +169,7 @@ executable dhall-to-db
     , raw-strings-qq
     , safe
     , sendgrid-v3
+    , sgd
     , shakespeare >=2.0 && <2.1
     , string-conversions
     , template-haskell
@@ -201,7 +205,8 @@ executable fingerdb
   default-extensions: BangPatterns BinaryLiterals BlockArguments ConstraintKinds DataKinds DefaultSignatures DeriveAnyClass DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DerivingStrategies DerivingVia DoAndIfThenElse DuplicateRecordFields EmptyCase EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedLabels OverloadedStrings PartialTypeSignatures PatternGuards PatternSynonyms PolyKinds QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeOperators TypeSynonymInstances ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson >=1.4 && <1.5
+      ad
+    , aeson >=1.4 && <1.5
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.11
@@ -241,6 +246,7 @@ executable fingerdb
     , raw-strings-qq
     , safe
     , sendgrid-v3
+    , sgd
     , shakespeare >=2.0 && <2.1
     , string-conversions
     , template-haskell
@@ -280,7 +286,8 @@ test-suite fingerdb-test
   default-extensions: BangPatterns BinaryLiterals BlockArguments ConstraintKinds DataKinds DefaultSignatures DeriveAnyClass DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DerivingStrategies DerivingVia DoAndIfThenElse DuplicateRecordFields EmptyCase EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedLabels OverloadedStrings PartialTypeSignatures PatternGuards PatternSynonyms PolyKinds QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeOperators TypeSynonymInstances ViewPatterns
   ghc-options: -Wall
   build-depends:
-      aeson >=1.4 && <1.5
+      ad
+    , aeson >=1.4 && <1.5
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.11
@@ -321,6 +328,7 @@ test-suite fingerdb-test
     , raw-strings-qq
     , safe
     , sendgrid-v3
+    , sgd
     , shakespeare >=2.0 && <2.1
     , string-conversions
     , template-haskell
