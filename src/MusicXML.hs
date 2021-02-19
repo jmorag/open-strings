@@ -17,7 +17,7 @@ import Fingering
 import Text.XML
 import Text.XML.Lens
 
-inferFingerings :: Document -> Weights -> (Double, Document)
+inferFingerings :: Document -> Weights Double -> (Double, Document)
 inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
   where
     go :: [Element] -> (Double, [Element])

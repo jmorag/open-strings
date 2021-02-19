@@ -23,6 +23,7 @@ module Fingering (
   medium,
   high,
   Weights,
+  inferWeights,
 ) where
 
 import ClassyPrelude hiding (Element, second)
@@ -33,6 +34,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Graph.ShortestPath
+import Numeric.AD (stochasticGradientDescent)
 import Text.XML.Lens
 
 data Finger = Open | One | Two | Three | Four
@@ -614,22 +616,14 @@ infer weights steps =
     Nothing -> error "Could not assign fingering"
     Just steps' -> shortestPath infinity steps' (applyP1s weights p1s) (applyP2s weights p2s)
 
--- inferWeights :: Weights -> [AssignedStep] -> (Double, Weights)
--- inferWeights initialWeights assigned = case mkGrid initialWeights of
---   [] -> (0, initialWeights)
---   grid -> L.minimumBy (compare `on` fst) (map cost grid)
---   where
---     cost ws = (weightCost assigned ws, ws)
-
-weightCost :: Num a => [AssignedStep] -> Weights a -> a
-weightCost assigned ws = pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
-
--- mkGrid :: Num a => Weights a -> [Weights a]
--- mkGrid initialWeights =
---   -- TODO: better weight distribution
---   let wList = M.toList initialWeights & map (fmap (\x -> map (x +) [-5 .. 5]))
---       (labels, values) = unzip wList
---    in map M.fromList $ map (zip labels) (sequenceA values)
+-- | Given a corpus of fingered passages and an initial weight configuration, run SGD
+-- to find the weight configuration that minimizes the cost function
+inferWeights :: [[AssignedStep]] -> Weights Double -> Weights Double
+inferWeights fingeringCorpus =
+  (L.last)
+    . stochasticGradientDescent objective fingeringCorpus
+  where
+    objective assigned ws = pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
 
 infinity, high, medium, low :: Num a => a
 infinity = 1000000000000000
