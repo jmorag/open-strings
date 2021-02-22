@@ -79,9 +79,9 @@ deref = snd
 -- | Get the MIDI pitch number from the xml note element
 xmlPitch :: Element -> Maybe Pitch
 xmlPitch note = do
-  pitchEl <- note ^? deep (el "pitch")
+  pitchEl <- note ^? deep (ell "pitch")
   step <-
-    pitchEl ^? deep (el "step") . text >>= \case
+    pitchEl ^? deep (ell "step") . text >>= \case
       "C" -> Just 12
       "D" -> Just 14
       "E" -> Just 16
@@ -90,21 +90,21 @@ xmlPitch note = do
       "A" -> Just 21
       "B" -> Just 23
       _ -> Nothing
-  alter <- (pitchEl ^? deep (el "alter") . text >>= readMay) <|> pure 0
-  octave <- pitchEl ^? deep (el "octave") . text >>= readMay
+  alter <- (pitchEl ^? deep (ell "alter") . text >>= readMay) <|> pure 0
+  octave <- pitchEl ^? deep (ell "octave") . text >>= readMay
   pure $ step + alter + (12 * octave)
 
 -- | Read a fingering constraint from a note element
 xmlConstraint :: Element -> Constraint
 xmlConstraint note =
-  let f = case note ^? deep (el "fingering") . text of
+  let f = case note ^? deep (ell "fingering") . text of
         Just "0" -> Just Open
         Just "1" -> Just One
         Just "2" -> Just Two
         Just "3" -> Just Three
         Just "4" -> Just Four
         _ -> Nothing
-      s = case note ^? deep (el "string") . text of
+      s = case note ^? deep (ell "string") . text of
         Just "1" -> Just E
         Just "2" -> Just A
         Just "3" -> Just D
@@ -640,7 +640,7 @@ trill = P "trill" cost high
     cost step = case step ^. timestep of
       Rest -> 0
       Single (Note x (Identity f)) ->
-        case deref x ^? deep (failing (el "trill-mark") (el "wavy-line")) of
+        case deref x ^? deep (failing (ell "trill-mark") (ell "wavy-line")) of
           Just _ -> case f ^. finger of
             Open -> high
             One -> 0
