@@ -36,6 +36,7 @@ import Handler.Home
 import Handler.IMSLP
 import Handler.Pieces
 import Handler.Upload
+import Handler.Survey
 import Import
 import Language.Haskell.TH.Syntax (qLocation)
 import Network.HTTP.Client.TLS (getGlobalManager)

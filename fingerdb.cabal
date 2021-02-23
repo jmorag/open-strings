@@ -34,6 +34,7 @@ library
       Handler.Home
       Handler.IMSLP
       Handler.Pieces
+      Handler.Survey
       Handler.Upload
       Import
       Import.NoFoundation
