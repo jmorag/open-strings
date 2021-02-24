@@ -112,7 +112,7 @@ library
     , yesod-form >=1.6 && <1.7
     , yesod-static >=1.6 && <1.7
   if (flag(dev)) || (flag(library-only))
-    ghc-options: -Wall -fwarn-tabs -O0
+    ghc-options: -Wno-deprecations -fwarn-tabs -O0
     cpp-options: -DDEVELOPMENT
   else
     ghc-options: -Wall -fwarn-tabs -O2
