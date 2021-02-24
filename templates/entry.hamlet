@@ -1,7 +1,6 @@
 <div #entry-container>
-  <div .d-flex .justify-content-between>
-    <h2>#{title}
-    <a href=@{WorkR (fromSqlKey (movementWorkId movement))}>Back
+  <h2>
+    <a href=@{WorkR (fromSqlKey (movementWorkId movement))}>#{title}
   <h3 .font-weight-light>#{movementNumber movement}. #{movementName movement}
   $if S.size (workInstrumentation work) > 1
     <div .d-flex .justify-content-between>
@@ -16,7 +15,6 @@
   <b-form-group v-else v-bind:validated="validated">
     <b-form-textarea v-model="description" placeholder="Add a description" max-rows=1 required v-bind:validated="validated">
   <!-- Submission and reset buttons -->
-  <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
   <div #editor v-show="edited">
     <b-overlay v-bind:show="loading" rounded="sm">
       <b-form v-on:submit.prevent="submit" novalidate>
@@ -53,4 +51,4 @@
                   max="10"
                   type="number">
     <p #editing-instructions v-show="edited">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
-<div ##{renderId}>
+<div ##{renderId} .card>

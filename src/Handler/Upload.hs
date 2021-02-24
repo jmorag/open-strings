@@ -67,7 +67,7 @@ postUploadR =
             end_measure = start_measure + lengthOf (root . measureNumbers) musicxml - 1
         user_id <- requireAuthId
         now <- liftIO getCurrentTime
-        runDB . insert_ $
+        entryId <- runDB . insert $
           Entry
             start_measure
             end_measure
@@ -77,7 +77,7 @@ postUploadR =
             (toSqlKey movement_id)
             now
             description
-        pure $ object ["success" .= True]
+        pure $ object ["success" .= True, "entry_id" .= entryId]
 
 getAddWorkR :: Handler Html
 getAddWorkR = defaultLayout do
@@ -134,9 +134,7 @@ getWorkR work_key = do
   composer <- runDB $ get404 (workComposerId work)
   entries <- getEntriesR work_key
   csrf <- fromMaybe "" . reqToken <$> getRequest
-  mentryId <- lookupGetParam "entry-id"
-  let entryId = fromMaybe Null (fmap Number . readMay =<< mentryId)
-      title = mkTitle composer work
+  let title = mkTitle composer work
   (parts, movements) <- workData work_key
   user_id <- maybeAuthId
   defaultLayout do

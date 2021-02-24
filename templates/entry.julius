@@ -13,7 +13,6 @@ const vue = new Vue({
     validated: false,
     edited: false,
     loading: false,
-    show_success: false,
     show_alert: false,
     alert_message: "",
     disable_submit: true,
@@ -78,15 +77,14 @@ const vue = new Vue({
         body: JSON.stringify(body)
       });
       const json = await resp.json();
-      this.loading = false;
       if (json.error) {
         this.alert_message = json.error;
         this.show_alert = true;
+        this.loading = false;
         return;
       }
       if (json.success) {
-        this.show_success = true;
-        return;
+        window.location.href = `/entry/${json.entry_id}`;
       }
     }
   },

@@ -7,6 +7,6 @@
   width: auto;
 }
 
-.slider {
-  vertical-align: middle;
+##{renderId} {
+  margin-top: 20px;
 }

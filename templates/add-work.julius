@@ -11,7 +11,6 @@ const vue = new Vue({
     show_alert: false,
     alert_message: "",
     loading: false,
-    show_success: false,
     work_id: 0,
     validated: false,
   },
@@ -36,7 +35,7 @@ const vue = new Vue({
       return part.match(regex);
     },
     async add_work(e) {
-      if (!this.instrumentation || !this.composer || !this.title) {
+      if (!(this.instrumentation.length > 0) || !this.composer || !this.title) {
         this.validated = true;
         return;
       }
@@ -55,25 +54,27 @@ const vue = new Vue({
         body: JSON.stringify(body),
       });
       const json = await resp.json();
-      this.loading = false;
       if (json.error) {
         this.work_id = json.work_id;
-        this.show_alert = true;
         this.alert_message = json.error;
+        this.show_alert = true;
+        this.loading = false;
         return;
       }
-      this.work_id = json.work_id;
-      this.show_success = true;
+      // Don't set loading to false before navigating so buttons stay disabled
+      window.location.href = `/work/${json.work_id}`;
     },
+
     clear(e) {
       this.title = "";
       this.$refs.autocomplete.value = this.composer = "";
       this.instrumentation = [];
       this.work_movements = [];
       this.imslp = true;
-      this.show_alert = this.show_success = false;
+      this.show_alert = false;
       this.validated = false;
     },
+
     reset(e) {
       this.clear();
       this.url = "";

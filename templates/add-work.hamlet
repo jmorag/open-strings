@@ -7,7 +7,7 @@
         <label for="piece-url">URL
         <b-form-input type="url" #piece-url v-model="url" placeholder="URL" autofocus
           autocomplete="on" v-bind:formatter="decodeURI" >
-        <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. If not, leave this blank.
+        <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. Otherwise, leave this blank.
       <b-form-group v-bind:validated="validated">
         <b-form-row>
           <b-form-group .col>
@@ -35,7 +35,7 @@
               <b-input-group-append>
                 <b-button tabindex="-1" variant="outline-secondary" @click="work_movements.splice(i, 1)">x
             <b-button @click="work_movements.splice(work_movements.length, 0, '')"
-              block size="sm" variant="outline-secondary">Add movement
+              block size="md" variant="outline-secondary">Add movement
           <b-form-group .col>
             <label #instrumentation-label for="piece-instrumentation">Instrumentation <span style='color: #007bff'>(?)</span>
             <b-form-tags
@@ -68,4 +68,3 @@
         <b-overlay v-bind:show="loading" rounded="sm">
           <b-button variant="primary" type="submit">Add work to database
           <b-button variant="secondary" type="reset">Clear
-  <b-alert v-bind:show="show_success" variant="success" dismissible @dismissed="reset">Successfully added work! View it <a v-bind:href=`/work/${work_id}`>here</a>.

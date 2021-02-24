@@ -53,7 +53,7 @@ const mru_table = new Vue({
   },
   methods: {
     navigate(item, _index, _event) {
-      window.location.href = `/work/${item.work_id}?entry-id=${item.entry_id}`;
+      window.location.href = `/entry/${item.entry_id}`;
     }
   }
 });

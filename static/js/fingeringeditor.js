@@ -1,5 +1,6 @@
 class FingeringEditor {
-  constructor(nodeId) {
+  constructor(nodeId, clean) {
+    this.clean = clean;
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
     this.index = 0;
@@ -17,6 +18,7 @@ class FingeringEditor {
       this.set_stavenotes(svg);
       this.set_noteheads(svg);
       this.set_fingerings_and_strings(svg);
+      if (clean) this.resetFingerings();
     });
   }
 
@@ -135,12 +137,6 @@ class FingeringEditor {
         ["-1", "0", "1", "2", "3", "4"].contains(e.textContent)
       );
     };
-    // Rudimentary check for svg circle around string number. The
-    // radius is set to 0 in osmd, but the svg element still exists
-    // and must be accounted for
-    const isStringNumCircle = (e) => {
-      return e.tagName === "path" && e.getAttribute("stroke-width") === "1.5";
-    };
 
     let i = 0;
     this.svg_fingerings = [];
@@ -152,30 +148,26 @@ class FingeringEditor {
       if (fIndex === -1) {
         continue; // probably a rest
       }
-      let f = modifiers[fIndex];
       // svg finger numbers
-      while (isFingering(f)) {
+      for (let f = modifiers[fIndex]; isFingering(f); f = modifiers[++fIndex]) {
         f.setAttribute("index", i);
         i++;
         // hide bogus fingerings
         f.textContent === "-1" && f.setAttribute("visibility", "hidden");
         this.svg_fingerings.push(f);
-        fIndex++;
-        f = modifiers[fIndex];
       }
 
       // svg string numbers
       i = j; // reset i to beginning of this chord
-      while (fIndex < modifiers.length) {
-        if (!isStringNumCircle(f)) {
+      for (let f = modifiers[fIndex]; fIndex < modifiers.length; f = modifiers[++fIndex]) {
+        // skip all non-text elements
+        if (f.tagName !== "path") {
           f.setAttribute("index", i);
           // hide bogus string numbers
           f.textContent === "-1" && f.setAttribute("visibility", "hidden");
           i++;
           this.svg_strings.push(f);
         }
-        fIndex++;
-        f = modifiers[fIndex];
       }
     }
   }
@@ -265,8 +257,10 @@ class FingeringEditor {
       string.textContent = "-1";
     });
     this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-    this.svg_noteheads[0].setAttribute("fill", this.focused);
-    this.index = 0;
+    if (!this.clean) {
+      this.svg_noteheads[0].setAttribute("fill", this.focused);
+      this.index = 0;
+    }
   }
 
   handleKeypress(e) {
@@ -330,6 +324,14 @@ class FingeringEditor {
   clear() {
     this.observer.disconnect();
     this.dom_node.innerHTML = "";
+  }
+
+  hide() {
+    this.dom_node.setAttribute("style", "visibility: hidden");
+  }
+
+  unHide() {
+    this.dom_node.removeAttribute("style");
   }
 
   enable() {
