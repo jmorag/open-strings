@@ -13,6 +13,7 @@ import MusicXML
 import Text.Julius
 import Text.XML
 import Text.XML.Lens
+import qualified Data.Set as S
 
 data InferParams = InferParams
   { infer_xml :: !LText
@@ -135,9 +136,7 @@ getWorkR work_key = do
   csrf <- fromMaybe "" . reqToken <$> getRequest
   mentryId <- lookupGetParam "entry-id"
   let entryId = fromMaybe Null (fmap Number . readMay =<< mentryId)
-      title =
-        takeWhile (/= ',') (composerName composer) <> ": "
-          <> replaceUnderscores (workTitle work)
+      title = mkTitle composer work
   (parts, movements) <- workData work_key
   user_id <- maybeAuthId
   defaultLayout do
@@ -147,6 +146,32 @@ getWorkR work_key = do
     wId <- newIdent
     renderId <- newIdent
     $(widgetFile "work")
+
+mkTitle :: Composer -> Work -> Text
+mkTitle composer work =
+  takeWhile (/= ',') (composerName composer) <> ": "
+    <> replaceUnderscores (workTitle work)
+
+getEntryR :: Int64 -> Handler Html
+getEntryR entry_key = do
+  let entryId = toSqlKey entry_key
+  (entry, movement, work, composer, uploadedBy) <- runDB do
+    e <- get404 entryId
+    m <- get404 (entryMovementId e)
+    w <- get404 (movementWorkId m)
+    c <- get404 (workComposerId w)
+    u <- get404 (entryUploadedBy e)
+    pure (e, m, w, c, u)
+  let title = mkTitle composer work
+      time = toJSON (entryCreatedAt entry)
+  uploadedByName <- formatUsername (Entity (entryUploadedBy entry) uploadedBy)
+  csrf <- fromMaybe "" . reqToken <$> getRequest
+  defaultLayout do
+    renderId <- newIdent
+    setTitle (toHtml title)
+    addScript (StaticR js_opensheetmusicdisplay_min_js)
+    addScript (StaticR js_fingeringeditor_js)
+    $(widgetFile "entry")
 
 startingWeights :: Value
 startingWeights =

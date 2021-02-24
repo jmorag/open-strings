@@ -128,5 +128,14 @@ getEntriesR workId = do
       )
       entries
 
+formatUsername :: Entity User -> Handler Text
+formatUsername (Entity userId user) = case userType user of
+  Email -> pure $ takeWhile (/= '@') $ userIdent user
+  OAuth -> do
+    oauth <- runDB (getBy (UniqueOAuthUserId userId))
+    pure case oauth of
+      Just (Entity _ o) -> fromMaybe "Anonymous" $ oAuthUserName o
+      _ -> "Anonymous"
+
 getMusicXMLR :: Int64 -> Handler LText
 getMusicXMLR entryId = entryMusicxml <$> runDB (get404 (toSqlKey entryId))

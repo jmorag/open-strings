@@ -1,5 +1,5 @@
 <div ##{wId}>
-  <h2 style="text-align: center">#{title}
+  <h2 .text-center>#{title}
   <b-form v-on:submit.prevent="submit" novalidate>
     <!-- Existing uploads table -->
     <b-form-group>
