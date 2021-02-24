@@ -506,14 +506,13 @@ allAssignments weights (Step ns dur) = map (flip Step dur) (go ns)
   where
     staticCost = applyP1s weights p1s
     note x f = Note x (Identity f)
-    ret step =
-      let cost = staticCost (Step step dur)
-       in if cost < infinity then pure step else mzero
+    prune step = staticCost (Step step dur) < infinity
 
     go :: TimeStep Set -> [TimeStep Identity]
     go unassigned = case possible of
       [] -> error (show unassigned)
-      _ -> possible
+      [determined] -> [determined]
+      _ -> filter prune possible
       where
         possible = case unassigned of
           Rest -> [Rest]
@@ -521,18 +520,18 @@ allAssignments weights (Step ns dur) = map (flip Step dur) (go ns)
           DoubleStop (Note x1 fs1) (Note x2 fs2) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
-            ret $ DoubleStop (note x1 f1) (note x2 f2)
+            pure $ DoubleStop (note x1 f1) (note x2 f2)
           TripleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
             f3 <- S.toList fs3
-            ret $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
+            pure $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
           QuadrupleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) (Note x4 fs4) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
             f3 <- S.toList fs3
             f4 <- S.toList fs4
-            ret $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
+            pure $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
 
 --------------------------------------------------------------------------------
 -- Intervals
