@@ -1,7 +1,7 @@
 <h2 .text-center>#{title}
 <div ##{wId}>
   <b-card no-body>
-    <b-tabs card justify>
+    <b-tabs card justify fill>
       <b-tab title="View existing uploads" @click="editor.hide()">
         <b-table
           selectable
