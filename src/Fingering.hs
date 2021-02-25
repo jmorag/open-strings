@@ -608,20 +608,26 @@ p2s :: Num a => [Penalty2 a]
 p2s = [oneFingerHalfStep, samePosition, sameString]
 
 type Weights a = Map Text a
-infer :: Weights Double -> [UnassignedStep] -> (Double, [AssignedStep])
-infer weights steps =
-  case sequence $ steps ^.. (traversed . to (allAssignments infinity weights) . to NE.nonEmpty) of
+inferFingerings' :: Weights Double -> [UnassignedStep] -> (Double, [AssignedStep])
+inferFingerings' weights steps =
+  case mkAssignments steps of
     Nothing -> error "Could not assign fingering"
     Just steps' -> shortestPath infinity steps' (applyP1s weights p1s) (applyP2s weights p2s)
 
+mkAssignments :: [UnassignedStep] -> Maybe [NE.NonEmpty AssignedStep]
+mkAssignments steps = traverse (NE.nonEmpty . allAssignments) steps
+
 -- | Given a corpus of fingered passages and an initial weight configuration, run SGD
 -- to find the weight configuration that minimizes the cost function
-inferWeights :: [[AssignedStep]] -> Weights Double -> Weights Double
-inferWeights fingeringCorpus =
-  (L.last)
+inferWeights' :: [[AssignedStep]] -> Weights Double -> Weights Double
+inferWeights' fingeringCorpus =
+  (L.!! 1000)
     . stochasticGradientDescent objective fingeringCorpus
   where
-    objective assigned ws = pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
+    objective assigned ws =
+      pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
+        -- weight squared term to bias towards center
+        + L.sum (fmap (\w -> w * w) ws)
 
 infinity, high, medium, low :: Num a => a
 infinity = 1000000000000000
