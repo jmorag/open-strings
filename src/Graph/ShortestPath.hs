@@ -52,13 +52,23 @@ getPath vec =
     go Nothing = []
     go (Just p) = vertex p : go (previous p)
 
-initialize :: Num a => a -> [NonEmpty state] -> (state -> a) -> [NonEmpty (GraphNode state a)]
-initialize infinity graph singleCost =
-  map (fmap (\f -> Node f infinity (singleCost f) Nothing)) graph
+initialize ::
+  (Show state, Num a, Ord a) =>
+  a ->
+  [NonEmpty state] ->
+  (state -> a) ->
+  [NonEmpty (GraphNode state a)]
+initialize infinity graph singleCost = map (pruneVertices . fmap mkNode) graph
+  where
+    mkNode f = Node f infinity (singleCost f) Nothing
+    pruneVertices (s :| ss) =
+      case filter (\node -> staticCost node < infinity) (s : ss) of
+        [] -> error $ "No possible fingering for note " <> show (map vertex (s : ss))
+        (s' : ss') -> s' :| ss'
 
 shortestPath ::
   forall state a.
-  (Ord state, Num a, Ord a) =>
+  (Ord state, Num a, Ord a, Show state) =>
   a ->
   [NonEmpty state] ->
   (state -> a) ->

@@ -4,7 +4,7 @@
 module Fingering (
   XmlRef,
   deref,
-  infer,
+  inferFingerings',
   Fingering (..),
   fingerings',
   xmlRef,
@@ -16,6 +16,8 @@ module Fingering (
   Step (..),
   Note (..),
   AssignedNote,
+  AssignedStep,
+  UnassignedStep,
   mkNote,
   notes,
   allAssignments,
@@ -23,7 +25,7 @@ module Fingering (
   medium,
   high,
   Weights,
-  inferWeights,
+  inferWeights',
 ) where
 
 import ClassyPrelude hiding (Element, second)
@@ -503,18 +505,15 @@ mkNote ref =
     Nothing -> Rest
 
 -- The cartesian product of all the possibleFingerings for a given timestep
-allAssignments :: (Ord a, Num a) => a -> Weights a -> UnassignedStep -> [AssignedStep]
-allAssignments threshold weights (Step ns dur) = map (flip Step dur) (go ns)
+allAssignments :: UnassignedStep -> [AssignedStep]
+allAssignments (Step ns dur) = map (flip Step dur) (go ns)
   where
-    staticCost = applyP1s weights p1s
     note x f = Note x (Identity f)
-    prune step = staticCost (Step step dur) < infinity
 
     go :: TimeStep Set -> [TimeStep Identity]
     go unassigned = case possible of
       [] -> error (show unassigned)
-      [determined] -> [determined]
-      _ -> filter prune possible
+      _ -> possible
       where
         possible = case unassigned of
           Rest -> [Rest]
