@@ -84,6 +84,7 @@ getEntriesR workId = do
           [ asc (movement ^. MovementNumber)
           , asc (entry ^. EntryPart)
           , asc (entry ^. EntryMeasure_start)
+          , desc (entry ^. EntryCreatedAt)
           ]
         pure
           ( movement ^. MovementNumber

@@ -182,15 +182,33 @@ instance Yesod App where
     Bool ->
     Handler AuthResult
   -- Routes not requiring authentication.
-  isAuthorized (AuthR _) _ = return Authorized
-  isAuthorized ComposersR _ = return Authorized
-  isAuthorized WorksR _ = return Authorized
-  isAuthorized HomeR _ = return Authorized
-  isAuthorized FaviconR _ = return Authorized
-  isAuthorized RobotsR _ = return Authorized
-  isAuthorized (StaticR _) _ = return Authorized
-  isAuthorized UploadR _ = return Authorized
-  isAuthorized _ _ = trace "REMOVE CATCHALL IN PRODUCTION" (return Authorized)
+  isAuthorized route write = case route of
+    AuthR _ -> unrestricted
+    ComposersR -> unrestricted
+    WorksR -> unrestricted
+    HomeR -> unrestricted
+    FaviconR -> unrestricted
+    RobotsR -> unrestricted
+    StaticR _ -> unrestricted
+    UploadR -> isLoggedIn
+    EntryR _ -> unrestricted
+    AddWorkR -> if write then isLoggedIn else unrestricted
+    WorkR _ -> unrestricted
+    SurveyR -> isLoggedIn
+    IMSLPR _ -> unrestricted
+    EntriesR _ -> unrestricted
+    MusicXMLR _ -> unrestricted
+    -- TODO: this is blocked right now in javascript on the client but
+    -- we should make this more robust since allowing anyone without
+    -- an account to spam the API is undesirable
+    InferR -> unrestricted
+    InferWeightsR -> unrestricted
+    where
+      unrestricted = return Authorized
+      isLoggedIn = maybeAuthId <&> \case
+        Nothing -> AuthenticationRequired
+        Just _ -> Authorized
+
 
   -- This function creates static content files in the static folder
   -- and names them based on a hash of their content. This allows
@@ -230,6 +248,7 @@ instance Yesod App where
 
   makeLogger :: App -> IO Logger
   makeLogger = pure . appLogger
+
 
 -- How to run database actions.
 instance YesodPersist App where

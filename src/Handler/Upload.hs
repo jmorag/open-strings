@@ -186,6 +186,7 @@ getEntryR entry_key = do
       time = toJSON (entryCreatedAt entry)
   uploadedByName <- formatUsername (Entity (entryUploadedBy entry) uploadedBy)
   csrf <- fromMaybe "" . reqToken <$> getRequest
+  user_id <- maybeAuthId
   defaultLayout do
     renderId <- newIdent
     setTitle (toHtml title)

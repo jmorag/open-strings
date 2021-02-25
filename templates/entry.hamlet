@@ -11,7 +11,10 @@
   <hr>
   <div v-if="!edited" .d-flex .justify-content-between>
     <p .lead>{{ description }}
-    <b-button variant="primary" @click="description = ''; editor.enable(); edited = true">Edit fingerings
+    $maybe _ <- user_id
+      <b-button variant="primary" @click="description = ''; editor.enable(); edited = true">Edit fingerings
+    $nothing
+      <a href=@{AuthR LoginR}>Log in here to edit fingerings
   <b-form-group v-else v-bind:validated="validated">
     <b-form-textarea v-model="description" placeholder="Add a description" max-rows=1 required v-bind:validated="validated">
   <!-- Submission and reset buttons -->

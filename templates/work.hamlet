@@ -10,7 +10,6 @@
           show-empty
           small
           empty-text="No passages uploaded for this work yet"
-          caption="View a passage or add your own below"
           hover
           outlined
           no-local-sorting
@@ -19,7 +18,7 @@
           v-bind:primary_key="'entry_id'"
           @row-clicked="gotoEntry">
       <b-overlay v-bind:show="loading" rounded="sm">
-        <b-tab title="Upload a new passage" @click="editor.unHide()">
+        <b-tab title="Upload a new passage" @click="editor.unHide()" v-bind:active="entries.length === 0">
           $maybe _ <- user_id
             <b-form v-on:submit.prevent="submit" novalidate>
               <!-- Radios for movements and part select -->
