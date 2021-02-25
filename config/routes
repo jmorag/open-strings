@@ -32,3 +32,5 @@
 /api/musicxml/#Int64 MusicXMLR GET
 
 /api/infer InferR POST
+
+/api/infer-weights InferWeightsR POST

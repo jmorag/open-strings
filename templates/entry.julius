@@ -24,7 +24,7 @@ const vue = new Vue({
   },
 
   methods: {
-    async infer(e) {
+    async inferFingerings(e) {
       const s = new XMLSerializer();
       const body = {
         infer_xml: s.serializeToString(this.editor.musicxml),
@@ -47,12 +47,44 @@ const vue = new Vue({
         if (json.success) {
           this.description = "Inferred";
           this.editor.clear()
-          this.renderXml(new Blob([json.xml])); // TODO: make this better
+          this.editor.render(json.xml, 1);
           return;
         }
       } catch (e) {
         this.alert_message = `${e}`;
         this.show_alert = true;
+        return;
+      }
+    },
+
+    async inferWeights() {
+      const s = new XMLSerializer();
+      const body = {
+        infer_xml: s.serializeToString(this.editor.musicxml),
+        infer_weights: this.infer_weights,
+      };
+      this.loading = true;
+      try {
+        const resp = await fetch("@{InferWeightsR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body)
+        });
+        const json = await resp.json();
+        this.loading = false;
+        if (json.error) {
+          this.alert_message = json.error;
+          this.show_alert = true;
+          return;
+        }
+        if (json.success) {
+          this.infer_weights = json.infer_weights;
+          return;
+        }
+      } catch (e) {
+        this.alert_message = `${e}`;
+        this.show_alert = true;
+        this.loading = false;
         return;
       }
     },

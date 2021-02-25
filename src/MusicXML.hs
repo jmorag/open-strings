@@ -3,6 +3,7 @@ module MusicXML (
   measureNumbers,
   readTimeSteps,
   inferFingerings,
+  inferWeights,
 ) where
 
 import ClassyPrelude hiding (Element)
@@ -22,12 +23,27 @@ inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
   where
     go :: [Element] -> (Double, [Element])
     go steps =
-      let (cost, assignedSteps) = infer weights (readTimeSteps steps)
+      let (cost, assignedSteps) = inferFingerings' weights (readTimeSteps steps)
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
             map (\n -> (n ^. xmlRef . _1, n ^. fingerings')) assignedNotes
        in (cost, assignFingers (zip [0 ..] steps) fingers)
+
+inferWeights :: Document -> Weights Double -> Either Text (Weights Double)
+inferWeights doc initialWeights = go (doc ^.. root . timeStep)
+  where
+    go :: [Element] -> Either Text (Weights Double)
+    go steps = case traverse getSingleAnnotation $ readTimeSteps steps of
+      Nothing ->
+        Left "Cannot deduce preferences. In order to infer weights, all fingers and strings must be specified."
+      Just assignedSteps -> Right $ inferWeights' [assignedSteps] initialWeights
+
+    getSingleAnnotation :: UnassignedStep -> Maybe (AssignedStep)
+    getSingleAnnotation s = case allAssignments s of
+      [ann] -> Just ann
+      _ -> Nothing
+
 
 assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
 assignFingers e [] = map snd e

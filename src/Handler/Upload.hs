@@ -4,6 +4,8 @@ module Handler.Upload where
 
 import Control.Lens (lengthOf)
 import Data.Aeson.Types
+import qualified Data.Map as M
+import qualified Data.Set as S
 import Database.Esqueleto (fromSqlKey, toSqlKey)
 import Fingering (Weights, high, low, medium)
 import Handler.Pieces
@@ -13,8 +15,6 @@ import MusicXML
 import Text.Julius
 import Text.XML
 import Text.XML.Lens
-import qualified Data.Set as S
-import qualified Data.Map as M
 
 data InferParams = InferParams
   { infer_xml :: !LText
@@ -30,8 +30,8 @@ postInferR =
     Success InferParams {..} -> case parseText def infer_xml of
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
-        let musicxml' = inferFingerings musicxml infer_weights
         $logInfo "Inferring fingerings"
+        let musicxml' = inferFingerings musicxml infer_weights
         result <-
           timeout timeLimit (tryAny (evaluateDeep musicxml'))
         pure case result of
@@ -47,6 +47,25 @@ postInferR =
     timeLimit = 15 * (10 ^ (6 :: Int)) -- 15 seconds
     timeoutMsg :: Text
     timeoutMsg = "Inference timed out. Try annotating some fingerings yourself or uploading a shorter passage"
+
+postInferWeightsR :: Handler Value
+postInferWeightsR =
+  parseCheckJsonBody >>= \case
+    Error e -> pure $ object ["error" .= e]
+    Success InferParams {..} -> case parseText def infer_xml of
+      Left e -> pure $ object ["error" .= tshow e]
+      Right musicxml -> do
+        $logInfo "Inferring weights"
+        let weights' = inferWeights musicxml startingWeights
+        result <- tryAny (evaluateDeep weights')
+        pure . object $ case result of
+          Left e -> ["error" .= tshow e]
+          Right eWeights -> case eWeights of
+            Left e -> ["error" .= e]
+            Right weights ->
+              [ "success" .= True
+              , "infer_weights" .= toJSON (fmap (round @_ @Int) weights)
+              ]
 
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64
@@ -69,16 +88,17 @@ postUploadR =
             end_measure = start_measure + lengthOf (root . measureNumbers) musicxml - 1
         user_id <- requireAuthId
         now <- liftIO getCurrentTime
-        entryId <- runDB . insert $
-          Entry
-            start_measure
-            end_measure
-            part
-            (renderText def musicxml')
-            user_id
-            (toSqlKey movement_id)
-            now
-            description
+        entryId <-
+          runDB . insert $
+            Entry
+              start_measure
+              end_measure
+              part
+              (renderText def musicxml')
+              user_id
+              (toSqlKey movement_id)
+              now
+              description
         pure $ object ["success" .= True, "entry_id" .= entryId]
 
 getAddWorkR :: Handler Html
