@@ -7,7 +7,7 @@ const vue = new Vue({
   el: "#entry-container",
   data: {
     editor: new FingeringEditor(#{renderId}),
-    infer_weights: #{startingWeights},
+    infer_weights: #{toJSON startingWeights},
     description: #{entryDescription entry},
     uploadedBy: `Uploaded by #{rawJS uploadedByName} ${formatDate(#{time})}`,
     validated: false,

@@ -4,7 +4,7 @@ import Data.Aeson.Types (emptyArray)
 import qualified Data.Text as T
 import Database.Esqueleto hiding (Value)
 import qualified Database.Esqueleto as E
-import Database.Esqueleto.Internal.Sql (unsafeSqlFunction)
+import Database.Esqueleto.Internal.Internal (unsafeSqlFunction)
 import Import hiding ((==.))
 import Model.UserType
 

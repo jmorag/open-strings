@@ -23,6 +23,7 @@ module Fingering (
   medium,
   high,
   Weights,
+  inferWeights,
 ) where
 
 import ClassyPrelude hiding (Element, second)
@@ -33,6 +34,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Graph.ShortestPath
+import Numeric.AD (stochasticGradientDescent)
 import Text.XML.Lens
 
 data Finger = Open | One | Two | Three | Four
@@ -245,40 +247,40 @@ halfStepPosition baseLen baseFreq freq = baseLen * (1 - (baseFreq / freq))
 -- has a vibrating length of 330mm.
 measurementSeries :: Vector Double
 measurementSeries =
-  halfStepFreqs 440 & map (halfStepPosition 330 440) & take 30 & V.fromList
-
--- >>> measurementSeries
---   [ 0 -- e
---   , 18.521476815041137 -- f
---   , 36.00342301368804 -- f#
---   , 52.50418296627425 -- g
---   , 68.0788264252471 -- g#
---   , 82.77933231534762 -- a
---   , 96.65476220843938 -- a#
---   , 109.7514240619444 -- b
---   , 122.113026767346 -- c
---   , 133.78082602455106 -- c#
---   , 144.79376202895352 -- d
---   , 155.18858943071635 -- d#
---   , 165.00000000000009 -- e
---   , 174.26073840752065 -- f
---   , 183.0017115068441 -- f#
---   , 191.25209148313715 -- g
---   , 199.0394132126236 -- g#
---   , 206.38966615767384 -- a
---   , 213.3273811042197 -- a#
---   , 219.8757120309722 -- b
---   , 226.056513383673 -- c
---   , 231.89041301227553 -- c#
---   , 237.3968810144768 -- d
---   , 242.5942947153582 -- d#
---   , 247.50000000000003 -- e
---   , 252.13036920376032 -- f
---   , 256.50085575342206 -- f#
---   , 260.6260457415686 -- g
---   , 264.5197066063118 -- g#
---   , 268.19483307883695 -- a
---   ]
+  -- There's no point to calculating this at runtime
+  -- halfStepFreqs 440 & map (halfStepPosition 330 440) & take 30
+  V.fromList
+    [ 0 -- e
+    , 18.521476815041137 -- f
+    , 36.00342301368804 -- f#
+    , 52.50418296627425 -- g
+    , 68.0788264252471 -- g#
+    , 82.77933231534762 -- a
+    , 96.65476220843938 -- a#
+    , 109.7514240619444 -- b
+    , 122.113026767346 -- c
+    , 133.78082602455106 -- c#
+    , 144.79376202895352 -- d
+    , 155.18858943071635 -- d#
+    , 165.00000000000009 -- e
+    , 174.26073840752065 -- f
+    , 183.0017115068441 -- f#
+    , 191.25209148313715 -- g
+    , 199.0394132126236 -- g#
+    , 206.38966615767384 -- a
+    , 213.3273811042197 -- a#
+    , 219.8757120309722 -- b
+    , 226.056513383673 -- c
+    , 231.89041301227553 -- c#
+    , 237.3968810144768 -- d
+    , 242.5942947153582 -- d#
+    , 247.50000000000003 -- e
+    , 252.13036920376032 -- f
+    , 256.50085575342206 -- f#
+    , 260.6260457415686 -- g
+    , 264.5197066063118 -- g#
+    , 268.19483307883695 -- a
+    ]
 
 -- Patterns to make matching on the measurement series easier
 -- TODO: matching on doubles like this is probably crazy unsafe...
@@ -462,10 +464,10 @@ validPlacement Fingering {..} constraint = case constraint of
   Finger f -> f == _finger
   Specified f s -> f == _finger && s == _string
 
-data Penalty a = P
+data Penalty step a = P
   { _pName :: Text
-  , _pCost :: a -> Double
-  , _pWeight :: Double
+  , _pCost :: step -> a
+  , _pWeight :: a
   }
 
 makeLenses ''Penalty
@@ -474,14 +476,14 @@ type Penalty1 = Penalty AssignedStep
 
 type Penalty2 = Penalty (AssignedStep, AssignedStep)
 
-applyP1s :: Weights -> [Penalty1] -> AssignedStep -> Double
+applyP1s :: Num a => Weights a -> [Penalty1 a] -> AssignedStep -> a
 applyP1s weights ps step = sum $ map cost ps
   where
     cost p =
       let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
        in (p ^. pCost) step * weight
 
-applyP2s :: Weights -> [Penalty2] -> AssignedStep -> AssignedStep -> Double
+applyP2s :: Num a => Weights a -> [Penalty2 a] -> AssignedStep -> AssignedStep -> a
 applyP2s weights ps step1 step2 = sum $ map cost ps
   where
     cost p =
@@ -501,8 +503,8 @@ mkNote ref =
     Nothing -> Rest
 
 -- The cartesian product of all the possibleFingerings for a given timestep
-allAssignments :: Weights -> UnassignedStep -> [AssignedStep]
-allAssignments weights (Step ns dur) = map (flip Step dur) (go ns)
+allAssignments :: (Ord a, Num a) => a -> Weights a -> UnassignedStep -> [AssignedStep]
+allAssignments threshold weights (Step ns dur) = map (flip Step dur) (go ns)
   where
     staticCost = applyP1s weights p1s
     note x f = Note x (Identity f)
@@ -577,7 +579,7 @@ third p1 p2 = _m3 p1 p2 || _M3 p1 p2
 sixth p1 p2 = _m6 p1 p2 || _M6 p1 p2
 seventh p1 p2 = _m7 p1 p2 || _M7 p1 p2
 
-p1s :: [Penalty1]
+p1s :: Num a => [Penalty1 a]
 p1s =
   singles
     <> doubleStops
@@ -587,7 +589,7 @@ p1s =
        , staticQuadrupleStop
        ]
 
-singles, doubleStops :: [Penalty1]
+singles, doubleStops :: Num a => [Penalty1 a]
 singles = [highPosition, mediumPosition, fourthFinger, openString]
 doubleStops =
   [ staticUnison
@@ -603,26 +605,35 @@ doubleStops =
   , staticTenth
   ]
 
-p2s :: [Penalty2]
+p2s :: Num a => [Penalty2 a]
 p2s = [oneFingerHalfStep, samePosition, sameString]
 
-type Weights = Map Text Double
-infer :: Weights -> [UnassignedStep] -> [AssignedStep]
+type Weights a = Map Text a
+infer :: Weights Double -> [UnassignedStep] -> (Double, [AssignedStep])
 infer weights steps =
-  case sequence $ steps ^.. (traversed . to (allAssignments weights) . to NE.nonEmpty) of
+  case sequence $ steps ^.. (traversed . to (allAssignments infinity weights) . to NE.nonEmpty) of
     Nothing -> error "Could not assign fingering"
-    Just steps' -> case shortestPath steps' (applyP1s weights p1s) (applyP2s weights p2s) of
-      (c, path) -> traceShow c path
+    Just steps' -> shortestPath infinity steps' (applyP1s weights p1s) (applyP2s weights p2s)
 
-high, medium, low :: Double
+-- | Given a corpus of fingered passages and an initial weight configuration, run SGD
+-- to find the weight configuration that minimizes the cost function
+inferWeights :: [[AssignedStep]] -> Weights Double -> Weights Double
+inferWeights fingeringCorpus =
+  (L.last)
+    . stochasticGradientDescent objective fingeringCorpus
+  where
+    objective assigned ws = pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
+
+infinity, high, medium, low :: Num a => a
+infinity = 1000000000000000
 high = 10
 medium = 5
 low = 1
 
-binarize :: Bool -> Double
+binarize :: Num a => Bool -> a
 binarize b = if b then 1 else 0
 
-trill :: Penalty1
+trill :: Num a => Penalty1 a
 trill = P "trill" cost high
   where
     cost step = case step ^. timestep of
@@ -641,24 +652,24 @@ trill = P "trill" cost high
       -- there should never be trills on triple/quadruple stops...
       _ -> 0
 
-highPosition :: Penalty1
+highPosition :: Num a => Penalty1 a
 highPosition = P "high position" cost medium
   where
     cost step =
       binarize $ anyOf (notes . fingerings' . to position . traversed) (>= EighthAndUp) step
 
-mediumPosition :: Penalty1
+mediumPosition :: Num a => Penalty1 a
 mediumPosition = P "medium position" cost low
   where
     cost step =
       binarize $ anyOf (notes . fingerings' . to position . traversed) (>= Fourth) step
 
-fourthFinger :: Penalty1
+fourthFinger :: Num a => Penalty1 a
 fourthFinger = P "fourth finger" cost 0
   where
     cost step = binarize $ step ^? timestep . _Single . fingerings' . finger == Just Four
 
-openString :: Penalty1
+openString :: Num a => Penalty1 a
 openString = P "open string" cost 0
   where
     cost step = binarize $ anyOf (notes . fingerings' . finger) (== Open) step
@@ -666,7 +677,7 @@ openString = P "open string" cost 0
 --------------------------------------------------------------------------------
 -- Double Stops
 --------------------------------------------------------------------------------
-chordAdjacent :: Penalty1
+chordAdjacent :: Num a => Penalty1 a
 chordAdjacent = P "chords on adjacent strings" cost high
   where
     cost step =
@@ -679,7 +690,7 @@ chordAdjacent = P "chords on adjacent strings" cost high
         [G, D, A, E] -> 0
         _ -> infinity
 
-staticThird :: Penalty1
+staticThird :: Num a => Penalty1 a
 staticThird = P "static third" cost high
   where
     cost step = case step ^. timestep of
@@ -708,7 +719,7 @@ staticThird = P "static third" cost high
                 _ -> infinity
       _ -> 0
 
-staticMinorSixth :: Penalty1
+staticMinorSixth :: Num a => Penalty1 a
 staticMinorSixth = P "static minor sixth" cost high
   where
     cost step = case step ^. timestep of
@@ -725,7 +736,7 @@ staticMinorSixth = P "static minor sixth" cost high
                 _ -> infinity
       _ -> 0
 
-staticMajorSixth :: Penalty1
+staticMajorSixth :: Num a => Penalty1 a
 staticMajorSixth = P "static major sixth" cost high
   where
     cost step = case step ^. timestep of
@@ -744,7 +755,7 @@ staticMajorSixth = P "static major sixth" cost high
                 _ -> infinity
       _ -> 0
 
-staticOctave :: Penalty1
+staticOctave :: Num a => Penalty1 a
 staticOctave = P "static octave" cost high
   where
     cost step = case step ^. timestep of
@@ -761,7 +772,7 @@ staticOctave = P "static octave" cost high
                 _ -> infinity
       _ -> 0
 
-staticTenth :: Penalty1
+staticTenth :: Num a => Penalty1 a
 staticTenth = P "static tenth (or any interval greater than an octave)" cost high
   where
     cost step = case step ^. timestep of
@@ -775,7 +786,7 @@ staticTenth = P "static tenth (or any interval greater than an octave)" cost hig
                 _ -> infinity
       _ -> 0
 
-staticUnison :: Penalty1
+staticUnison :: Num a => Penalty1 a
 staticUnison = P "static unison" cost high
   where
     cost step = case step ^. timestep of
@@ -791,7 +802,7 @@ staticUnison = P "static unison" cost high
                 _ -> infinity
       _ -> 0
 
-staticSecond :: Penalty1
+staticSecond :: Num a => Penalty1 a
 staticSecond = P "static second" cost high
   where
     cost step = case step ^. timestep of
@@ -806,7 +817,7 @@ staticSecond = P "static second" cost high
                 _ -> infinity
       _ -> 0
 
-staticFourth :: Penalty1
+staticFourth :: Num a => Penalty1 a
 staticFourth = P "static fourth" cost high
   where
     cost step = case step ^. timestep of
@@ -823,7 +834,7 @@ staticFourth = P "static fourth" cost high
                 _ -> infinity
       _ -> 0
 
-staticFifth :: Penalty1
+staticFifth :: Num a => Penalty1 a
 staticFifth = P "static fifth" cost high
   where
     cost step = case step ^. timestep of
@@ -841,7 +852,7 @@ staticFifth = P "static fifth" cost high
                 _ -> infinity
       _ -> 0
 
-staticMinorSeventh :: Penalty1
+staticMinorSeventh :: Num a => Penalty1 a
 staticMinorSeventh = P "static minor seventh" cost high
   where
     cost step = case step ^. timestep of
@@ -860,7 +871,7 @@ staticMinorSeventh = P "static minor seventh" cost high
                 _ -> infinity
       _ -> 0
 
-staticMajorSeventh :: Penalty1
+staticMajorSeventh :: Num a => Penalty1 a
 staticMajorSeventh = P "static major seventh" cost high
   where
     cost step = case step ^. timestep of
@@ -880,7 +891,7 @@ staticMajorSeventh = P "static major seventh" cost high
 -- Triple/Quadruple Stops
 --------------------------------------------------------------------------------
 
-staticTripleStop :: Penalty1
+staticTripleStop :: Num a => Penalty1 a
 staticTripleStop = P "static triple stop" cost high
   where
     cost step =
@@ -894,7 +905,7 @@ staticTripleStop = P "static triple stop" cost high
                in if f1 == f3 && f1 /= Open then infinity else 0
         _ -> 0
 
-staticQuadrupleStop :: Penalty1
+staticQuadrupleStop :: Num a => Penalty1 a
 staticQuadrupleStop = P "static quadruple stop" cost high
   where
     cost step =
@@ -916,7 +927,7 @@ staticQuadrupleStop = P "static quadruple stop" cost high
 --------------------------------------------------------------------------------
 -- Penalty2s
 --------------------------------------------------------------------------------
-oneFingerHalfStep :: Penalty2
+oneFingerHalfStep :: Num a => Penalty2 a
 oneFingerHalfStep = P "one finger half step shift" cost (- low)
   where
     cost (Step (Single n1) _, Step (Single n2) _)
@@ -929,14 +940,14 @@ oneFingerHalfStep = P "one finger half step shift" cost (- low)
     -- TODO: double stops
     cost _ = 0
 
-samePosition :: Penalty2
+samePosition :: Num a => Penalty2 a
 samePosition = P "same position" cost (- high)
   where
     cost steps =
       let positions = steps ^.. both . notes . fingerings' . to position
        in binarize $ not (null (F.foldr1 L.intersect positions))
 
-sameString :: Penalty2
+sameString :: Num a => Penalty2 a
 sameString = P "same string" cost (- high)
   where
     cost (x, y) = case (x ^. timestep, y ^. timestep) of

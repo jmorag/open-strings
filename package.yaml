@@ -2,6 +2,7 @@ name: fingerdb
 version: "0.0.0"
 
 dependencies:
+  - ad
   - aeson >=1.4 && <1.5
   - base >=4.9.1.0 && <5
   - blaze-html
@@ -41,6 +42,7 @@ dependencies:
   - raw-strings-qq
   - safe
   - sendgrid-v3
+  - sgd
   - shakespeare >=2.0 && <2.1
   - string-conversions
   - template-haskell
