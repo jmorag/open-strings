@@ -40,6 +40,7 @@
               <b-col sm="8">
                 <b-form-input
                   .slider
+                  tabIndex="-1"
                   v-bind:id=`${name}`
                   v-model="infer_weights[`${name}`]"
                   number
