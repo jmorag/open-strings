@@ -42,7 +42,6 @@ dependencies:
   - raw-strings-qq
   - safe
   - sendgrid-v3
-  - sgd
   - shakespeare >=2.0 && <2.1
   - string-conversions
   - template-haskell
