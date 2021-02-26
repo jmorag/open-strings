@@ -419,9 +419,9 @@ Click on the link below to reset your password.
       . getBy
       . UniqueEmailUserId
 
-  setVerifyKey uid key = liftHandler $ runDB do
+  setVerifyKey uid k = liftHandler $ runDB do
     emailUser <- getBy404 (UniqueEmailUserId uid)
-    update (entityKey emailUser) [EmailUserVerkey =. Just key]
+    update (entityKey emailUser) [EmailUserVerkey =. Just k]
 
   verifyAccount uid = liftHandler $
     runDB $ do

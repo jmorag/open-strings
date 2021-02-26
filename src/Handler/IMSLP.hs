@@ -17,9 +17,9 @@ findMovements :: Document -> [Text]
 findMovements doc =
   doc
     ^.. root
-      . deep (el "tr")
-      . taking 1 (filtered (\tr -> Just "Movements/Sections" == tr ^? deep (el "span" . text)))
-      . failing (deep (el "li" . text)) (deep (el "dd" . text))
+      . deep (named "tr")
+      . taking 1 (filtered (\tr -> Just "Movements/Sections" == tr ^? deep (named "span" . text)))
+      . failing (deep (named "li" . text)) (deep (named "dd" . text))
       . to (T.strip . dropKeys . dropRomanNumerals . T.strip . fixSpaces)
   where
     fixSpaces = T.map \c -> if isSpace c then ' ' else c
@@ -30,9 +30,9 @@ findInstrumentation :: Document -> [Text]
 findInstrumentation doc =
   doc
     ^.. root
-      . deep (el "tr")
-      . filtered (\tr -> tr ^? deep (el "th" . text) . to T.strip == Just "Instrumentation")
-      . deep (el "td")
+      . deep (named "tr")
+      . filtered (\tr -> tr ^? deep (named "th" . text) . to T.strip == Just "Instrumentation")
+      . deep (named "td")
       -- Biplate is deeply magical.
       -- Gets all of the text like things from the td element
       . biplate

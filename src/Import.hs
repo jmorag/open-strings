@@ -6,7 +6,6 @@ import Data.Char
 import qualified Data.Text as T
 import Foundation as Import
 import Import.NoFoundation as Import
-import Model as Import
 
 addAutocomplete :: WidgetFor App ()
 addAutocomplete = do
