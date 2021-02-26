@@ -1,5 +1,5 @@
-<h2 .text-center>#{title}
 <div ##{wId}>
+  <h2 .text-center>#{title}
   <b-card no-body>
     <b-tabs card justify fill>
       <b-tab title="View existing uploads" @click="editor.hide()">
@@ -17,31 +17,32 @@
           v-bind:items="entries"
           v-bind:primary_key="'entry_id'"
           @row-clicked="gotoEntry">
-      <b-overlay v-bind:show="loading" rounded="sm">
-        <b-tab title="Upload a new passage" @click="editor.unHide()" v-bind:active="entries.length === 0">
-          $maybe _ <- user_id
-            <b-form v-on:submit.prevent="submit" novalidate>
-              <!-- Radios for movements and part select -->
-              <b-form-group v-bind:validated="validated">
-                <b-form-row>
-                  <b-col md="auto" v-show="movements.length > 1">
-                    <b-form-group label="Movements">
-                      <b-form-radio-group v-model="movement_id" v-bind:options="movements"
-                        stacked buttons button-variant="outline-primary" #movements-select>
-                  <b-col md="auto" v-show="parts.length > 0">
-                    <b-form-group label="Parts">
-                      <b-form-radio-group v-model=part v-bind:options="parts"
-                        buttons button-variant="outline-primary">
-                  <b-col .ml-auto>
-                    <label for="start-measure">Starting Measure
-                    <b-form-input #start-measure type="number" v-model.number="start_measure" min=1 autocomplete="off" required>
-              <b-form-group v-bind:validated="validated">
-                <b-form-file v-model="xml_file" accept=".musicxml" required>
-              <!-- Submission buttons -->
-              <b-form-group>
-                <b-button variant="primary" type="submit" #submit>Upload
-                <b-alert v-bind:show="show_alert" variant="danger">
-                  <span v-html="alert_message">
-          $nothing
-            <p>You must be logged in to upload a passage. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+      <b-tab title="Upload a new passage" @click="editor.unHide()" v-bind:active="entries.length === 0">
+        $maybe _ <- user_id
+          <b-form v-on:submit.prevent="submit" novalidate>
+            <!-- Radios for movements and part select -->
+            <b-form-group v-bind:validated="validated">
+              <b-form-row>
+                <b-col md="auto" v-show="movements.length > 1">
+                  <b-form-group label="Movements">
+                    <b-form-radio-group v-model="movement_id" v-bind:options="movements"
+                      stacked buttons button-variant="outline-primary" #movements-select>
+                <b-col md="auto" v-show="parts.length > 0">
+                  <b-form-group label="Parts">
+                    <b-form-radio-group v-model=part v-bind:options="parts"
+                      buttons button-variant="outline-primary">
+                <b-col mr="auto">
+                <b-col mr="2">
+                  <label for="start-measure">Starting Measure
+                  <b-form-input #start-measure type="number" v-model.number="start_measure" min=1 autocomplete="off" required>
+            <b-form-group v-bind:validated="validated">
+              <b-form-file v-model="xml_file" accept=".musicxml" required>
+            <!-- Submission buttons -->
+            <b-form-group>
+              <b-button variant="primary" type="submit" #submit>Upload
+              <b-alert v-bind:show="show_alert" variant="danger">
+                <span v-html="alert_message">
+        $nothing
+          <p>You must be logged in to upload a passage. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+  <b-overlay v-bind:show="loading" rounded="sm" no-wrap fixed>
 <div ##{renderId} .card>

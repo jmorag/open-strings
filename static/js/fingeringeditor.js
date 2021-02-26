@@ -12,13 +12,16 @@ class FingeringEditor {
     this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
     this.handleClick = this.handleClick.bind(this);
+    // We need this extra variable so the state persists window size change
+    this.enabled = false;
     // Defined here so that we can disconnect it when calling clear
-    this.observer = new MutationObserver((_) => {
+    this.observer = new MutationObserver((mutation) => {
       const svg = document.querySelector("svg");
       this.set_stavenotes(svg);
       this.set_noteheads(svg);
       this.set_fingerings_and_strings(svg);
-      if (clean) this.resetFingerings();
+      if (this.clean) this.resetFingerings();
+      if (this.enabled) this.enable();
     });
   }
 
@@ -139,6 +142,12 @@ class FingeringEditor {
     };
 
     let i = 0;
+    // OSMD re-renders on window size change, destroying all
+    // annotations. Fortunately, they are persisted on write to the
+    // underlying musicxml, so we can recover them and re-apply them
+    // here
+    const xml_fingerings = this.xml.querySelectorAll("fingering");
+    const xml_strings = this.xml.querySelectorAll("string");
     this.svg_fingerings = [];
     this.svg_strings = [];
     for (const s of this.svg_stavenotes) {
@@ -146,11 +155,12 @@ class FingeringEditor {
       let j = i; // save index so we can reset for string numbers
       let fIndex = modifiers.findIndex(isFingering);
       if (fIndex === -1) {
-        continue; // probably a rest
+        continue; // Fingering not found, probably a rest
       }
       // svg finger numbers
       for (let f = modifiers[fIndex]; isFingering(f); f = modifiers[++fIndex]) {
         f.setAttribute("index", i);
+        f.textContent = xml_fingerings[i].textContent;
         i++;
         // hide bogus fingerings
         f.textContent === "-1" && f.setAttribute("visibility", "hidden");
@@ -163,6 +173,7 @@ class FingeringEditor {
         // skip all non-text elements
         if (f.tagName !== "path") {
           f.setAttribute("index", i);
+          f.textContent = xml_strings[i].textContent;
           // hide bogus string numbers
           f.textContent === "-1" && f.setAttribute("visibility", "hidden");
           i++;
@@ -339,13 +350,20 @@ class FingeringEditor {
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[0].setAttribute("fill", this.focused);
+    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
     window.addEventListener("keydown", this.handleKeypress);
     window.addEventListener("mouseup", this.handleClick);
+    this.enabled = true;
+  }
+
+  disable() {
+    const svg = document.querySelector("svg");
+    svg.setAttribute("tabindex", "-1");
+    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.enabled = false;
   }
 
   async render(xml_string, start_measure) {
-    this.index = 0;
     const offset = parseInt(start_measure, 10) - 1;
     this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);

@@ -2,6 +2,12 @@
   vertical-align: middle;
 }
 
+.manual {
+  text-align: right;
+  width: auto;
+  vertical-align: middle;
+}
+
 ##{renderId} {
   margin-top: 20px;
 }
