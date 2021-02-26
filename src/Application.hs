@@ -8,62 +8,62 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Application
-  ( getApplicationDev,
-    appMain,
-    develMain,
-    makeFoundation,
-    makeLogWare,
+module Application (
+  getApplicationDev,
+  appMain,
+  develMain,
+  makeFoundation,
+  makeLogWare,
 
-    -- * for GHCI
-    handler,
-    db,
-  )
-where
+  -- * for GHCI
+  handler,
+  db,
+) where
 
 import Control.Monad.Logger (LoggingT, liftLoc, runLoggingT)
-import Database.Persist.Postgresql
-  ( createPostgresqlPool,
-    pgConnStr,
-    pgPoolSize,
-    rawExecute,
-    runSqlPool,
-  )
+import Database.Persist.Postgresql (
+  createPostgresqlPool,
+  pgConnStr,
+  pgPoolSize,
+  rawExecute,
+  runSqlPool,
+ )
+
 -- Import all relevant handler modules here.
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
 import Handler.Home
 import Handler.IMSLP
 import Handler.Pieces
-import Handler.Upload
 import Handler.Survey
+import Handler.Upload
 import Import
 import Language.Haskell.TH.Syntax (qLocation)
 import Network.HTTP.Client.TLS (getGlobalManager)
 import Network.Wai (Middleware)
-import Network.Wai.Handler.Warp
-  ( Settings,
-    defaultSettings,
-    defaultShouldDisplayException,
-    runSettings,
-    setHost,
-    setOnException,
-    setPort,
-  )
+import Network.Wai.Handler.Warp (
+  Settings,
+  defaultSettings,
+  defaultShouldDisplayException,
+  runSettings,
+  setHost,
+  setOnException,
+  setPort,
+ )
 import Network.Wai.Middleware.ForceSSL
-import Network.Wai.Middleware.RequestLogger
-  ( Destination (Logger),
-    IPAddrSource (..),
-    OutputFormat (..),
-    destination,
-    mkRequestLogger,
-    outputFormat,
-  )
-import System.Log.FastLogger
-  ( defaultBufSize,
-    newStdoutLoggerSet,
-    toLogStr,
-  )
+import Network.Wai.Middleware.RequestLogger (
+  Destination (Logger),
+  IPAddrSource (..),
+  OutputFormat (..),
+  destination,
+  mkRequestLogger,
+  outputFormat,
+ )
+import System.Log.FastLogger (
+  defaultBufSize,
+  newStdoutLoggerSet,
+  toLogStr,
+ )
 import Text.RawString.QQ
 
 -- This line actually creates our YesodDispatch instance. It is the second half
@@ -130,11 +130,10 @@ makeApplication foundation = do
   -- Create the WAI application and apply middlewares
   appPlain <- toWaiAppPlain foundation
   return $
-#ifdef DEVELOPMENT
-    logWare $ defaultMiddlewaresNoLogging appPlain
-#else
-    forceSSL $ logWare $ defaultMiddlewaresNoLogging appPlain
+#ifndef DEVELOPMENT
+    forceSSL $
 #endif
+    logWare $ defaultMiddlewaresNoLogging appPlain
 
 makeLogWare :: App -> IO Middleware
 makeLogWare foundation =
@@ -148,8 +147,8 @@ makeLogWare foundation =
                 ( if appIpFromHeader $ appSettings foundation
                     then FromFallback
                     else FromSocket
-                ),
-        destination = Logger $ loggerSet $ appLogger foundation
+                )
+      , destination = Logger $ loggerSet $ appLogger foundation
       }
 
 -- | Warp settings for the given foundation value.
