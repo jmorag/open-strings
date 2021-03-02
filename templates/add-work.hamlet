@@ -3,18 +3,29 @@
     {{ alert_message }} View it <a v-bind:href=`/work/${work_id}`>here</a>.
   <b-form v-on:submit.prevent="add_work" v-on:reset.prevent="reset" novalidate>
     <b-form-group>
-      <b-form-group>
-        <label for="piece-url">URL
-        <b-form-input type="url" #piece-url v-model="url" placeholder="URL" autofocus
-          autocomplete="on" v-bind:formatter="decodeURI" >
-        <small for="piece-url">If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. Otherwise, leave this blank.
+      <b-form-group label-for="piece-url" label="URL">
+        <b-form-input
+          type="url"
+          #piece-url
+          v-model.trim="url"
+          placeholder="URL"
+          autofocus
+          autocomplete="on"
+          v-bind:formatter="decodeURI"
+          >
+        <template v-slot:description>If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. Otherwise, leave this blank.
       <b-form-group v-bind:validated="validated">
         <b-form-row>
-          <b-form-group .col>
-            <label for="piece-title">Title
-            <b-form-input type="text" autocomplete="off" #piece-title v-model="title" placeholder="Title" required>
-          <b-form-group .col>
-            <label for="piece-composer">Composer
+          <b-form-group label-for="piece-title" label="Title" .col>
+            <b-form-input
+              type="text"
+              autocomplete="off"
+              #piece-title
+              v-model.trim="title"
+              placeholder="Title"
+              required
+              >
+          <b-form-group label-for="piece-composer" label="Composer" .col>
             <autocomplete
               required
               ref="autocomplete"
@@ -26,10 +37,9 @@
               v-bind:get-result-value="result => result.label"
               v-bind:search="search"
               >
-            <small for="piece-composer">Enter the composer as <em>last-name</em>, <em>first-name</em> <em>middle-name</em>.
+            <template v-slot:description>Enter the composer as <em>last-name</em>, <em>first-name</em> <em>middle-name</em>.
         <b-form-row>
-          <b-form-group .col>
-            <label for="piece-movements">Movements
+          <b-form-group label-for="piece-movements" label="Movements" .col>
             <b-input-group v-for="(movement, i) in work_movements" v-bind:key="i" v-bind:prepend="`${i+1}`" #piece-movements>
               <b-form-input v-model.trim="work_movements[i]" v-bind:spellcheck="false" autofocus autocomplete="off">
               <b-input-group-append>

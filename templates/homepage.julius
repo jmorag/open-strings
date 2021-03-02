@@ -17,8 +17,6 @@ const vue = new Vue({
     update(results, _selectedIndex) {
       if (this.$refs.autocomplete.value.length < 2) {
         this.work_id = 0;
-        this.movements = [];
-        this.parts = [];
       }
       this.show_add_work_link =
         results.length === 0 &&

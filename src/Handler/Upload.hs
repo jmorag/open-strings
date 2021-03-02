@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NumDecimals #-}
 
 module Handler.Upload where
 
@@ -32,8 +33,7 @@ postInferR =
       Right musicxml -> do
         $logInfo "Inferring fingerings"
         let musicxml' = inferFingerings musicxml infer_weights
-        result <-
-          timeout timeLimit (tryAny (evaluateDeep musicxml'))
+        result <- timeout 15e6 (tryAny (evaluateDeep musicxml'))
         pure case result of
           Nothing -> object ["error" .= timeoutMsg]
           Just (Right (cost, xml')) ->
@@ -44,7 +44,6 @@ postInferR =
               ]
           Just (Left e) -> object ["error" .= tshow e]
   where
-    timeLimit = 15 * (10 ^ (6 :: Int)) -- 15 seconds
     timeoutMsg :: Text
     timeoutMsg = "Inference timed out. Try annotating some fingerings yourself or uploading a shorter passage"
 
