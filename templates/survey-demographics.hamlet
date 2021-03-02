@@ -1,0 +1,34 @@
+<h1>Demographics
+<div #demographics>
+  <b-form method="POST">
+    <b-form-group required>
+      <input name="_token" value="#{csrf}" type="hidden">
+      <b-form-group
+        label-cols="4"
+        label-for="years-experience"
+        label="How many years have you been playing the violin?">
+        <b-form-input name="years_experience" #years-experience type="number" max=125>
+      <b-form-group
+        label-for="last-work"
+        label="What piece have you played recently that you feel indicates your skill level?">
+        <autocomplete
+          name="last_work"
+          #last-work
+          ref="autocomplete"
+          v-bind:debounce-time="300"
+          auto-select
+          @update="update"
+          v-bind:search="search"
+          v-bind:get-result-value="getResultValue">
+        <small for="work-title">Search by composer name and title, ex. beethoven violin concerto
+        <div v-show="show_add_work_link">
+          <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
+
+      <b-form-group
+        label-for="violinist-type"
+        label="Are you a (check all that apply):">
+        <b-form-checkbox-group
+          name="violinist_type"
+          #violinist-type
+          stacked
+          v-bind:options="options">

@@ -1,0 +1,36 @@
+const vue = new Vue({
+  el: "#demographics",
+  data: {
+    options: [
+      { text: "Amateur", value: "Amateur" },
+      { text: "Student, beginner", value: "StudentBeginner" },
+      { text: "Student, intermediate", value: "StudentIntermediate" },
+      { text: "Student, advanced", value: "StudentAdvanced" },
+      { text: "Professional, solo", value: "ProfessionalSolo" },
+      { text: "Professional, chamber", value: "ProfessionalChamber" },
+      { text: "Professional, orchestra", value: "ProfessionalOrchestra" },
+    ],
+    work_id: 0,
+    show_add_work_link: false,
+  },
+  components: { Autocomplete },
+  methods: {
+    async search(input) {
+      if (input.length < 2) {
+        return [];
+      }
+      const data = await fetch(`@{WorksR}?term=${input}`);
+      const suggestions = await data.json();
+      return suggestions;
+    },
+    getResultValue(result) {
+      return result.label;
+    },
+    update(results, _selectedIndex) {
+      this.show_add_work_link =
+        results.length === 0 &&
+        !this.work_id &&
+        this.$refs.autocomplete.value.length >= 2;
+    },
+  },
+})

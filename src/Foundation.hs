@@ -192,9 +192,10 @@ instance Yesod App where
     StaticR _ -> unrestricted
     UploadR -> isLoggedIn
     EntryR _ -> unrestricted
-    AddWorkR -> if write then isLoggedIn else unrestricted
+    AddWorkR -> unrestricted
     WorkR _ -> unrestricted
-    SurveyR -> isLoggedIn
+    SurveyR -> unrestricted
+    SurveyDemographicsR -> unrestricted
     IMSLPR _ -> unrestricted
     EntriesR _ -> unrestricted
     MusicXMLR _ -> unrestricted
@@ -289,7 +290,7 @@ instance YesodAuth App where
           now <- liftIO getCurrentTime
           let extract traversal =
                 getUserResponseJSON @Value creds ^? _Right . traversal . _String
-          uid <- insert $ User (credsIdent creds) (if credsPlugin creds == "email-verify" then Email else OAuth) now
+          uid <- insert $ User (credsIdent creds) (if credsPlugin creds == "email-verify" then Email else OAuth) now False
           case credsPlugin creds of
             "email-verify" ->
               Authenticated uid
@@ -339,7 +340,7 @@ instance YesodAuthEmail App where
 
   addUnverified email verkey =
     liftIO getCurrentTime >>= \now -> liftHandler $ runDB do
-      uid <- insert $ User email Email now
+      uid <- insert $ User email Email now False
       insert_ $
         EmailUser
           { emailUserUserId = uid

@@ -40,6 +40,7 @@ library
       Import.NoFoundation
       Model
       Model.Parts
+      Model.Survey
       Model.UserType
       MusicXML
       Settings
