@@ -45,6 +45,7 @@ library
       MusicXML
       Settings
       Settings.StaticFiles
+      Yesod.Auth.OAuth2.Google.Custom
   other-modules:
       Paths_fingerdb
   hs-source-dirs:

@@ -28,7 +28,7 @@ import Text.Shakespeare.Text (stext)
 import Yesod.Auth.Dummy
 import Yesod.Auth.Email
 import Yesod.Auth.OAuth2
-import Yesod.Auth.OAuth2.Google
+import Yesod.Auth.OAuth2.Google.Custom
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Yesod.Default.Util (addStaticContentExternal)
@@ -250,7 +250,6 @@ instance Yesod App where
   makeLogger :: App -> IO Logger
   makeLogger = pure . appLogger
 
-
 -- How to run database actions.
 instance YesodPersist App where
   type YesodPersistBackend App = SqlBackend
@@ -313,16 +312,22 @@ instance YesodAuth App where
   -- You can add other plugins like Google Email, email or OAuth here
   authPlugins :: App -> [AuthPlugin App]
   authPlugins app =
-    [ oauth2GoogleScoped
+    [ oauth2GoogleScopedWidget
+        googleWidget
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
         (appGoogleOauthClientSecret (appSettings app))
-    , authEmail
+     , authEmail
     ]
       ++ extraAuthPlugins
     where
       -- Enable authDummy login if enabled.
       extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+      googleWidget = [whamlet|
+<span .btn .btn-primary>
+  <img src=@{StaticR img_btn_google_light_normal_svg}>
+  Sign in with Google
+|]
 
 -- | Access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
