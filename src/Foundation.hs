@@ -196,6 +196,7 @@ instance Yesod App where
     WorkR _ -> unrestricted
     SurveyR -> unrestricted
     SurveyDemographicsR -> unrestricted
+    SurveyFingeringR _ -> unrestricted
     IMSLPR _ -> unrestricted
     EntriesR _ -> unrestricted
     MusicXMLR _ -> unrestricted
@@ -206,10 +207,10 @@ instance Yesod App where
     InferWeightsR -> unrestricted
     where
       unrestricted = return Authorized
-      isLoggedIn = maybeAuthId <&> \case
-        Nothing -> AuthenticationRequired
-        Just _ -> Authorized
-
+      isLoggedIn =
+        maybeAuthId <&> \case
+          Nothing -> AuthenticationRequired
+          Just _ -> Authorized
 
   -- This function creates static content files in the static folder
   -- and names them based on a hash of their content. This allows

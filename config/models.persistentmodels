@@ -39,6 +39,7 @@ Composer sql=composers
   name Text
   url Text Maybe
   UniqueComposerName name
+  uploadedBy UserId Maybe
   deriving Show
 
 Work sql=works
@@ -47,6 +48,7 @@ Work sql=works
   instrumentation (Set Part)
   composerId ComposerId
   UniqueWork composerId title
+  uploadedBy UserId Maybe
   deriving Show
 
 Movement sql=movements
@@ -77,10 +79,11 @@ SurveyDemographics
 SurveyFingering json
   entryId EntryId
   surveyId SurveyDemographicsId
+  -- these should all be between 0 and 4
   comfort Int
   expressivity Int
   idiomatic Int
+  fingeringGuess Int
   isAlgorithm Bool
-  fingeringGuess FingeringTypeGuess
   other Text Maybe
   deriving Show

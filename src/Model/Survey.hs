@@ -16,12 +16,3 @@ data ViolinistType
   deriving anyclass (FromJSON, ToJSON)
 derivePersistField "ViolinistType"
 
-data FingeringTypeGuess
-  = DefinitelyAlgorithm
-  | MaybeAlgorithm
-  | Unsure
-  | MaybeHuman
-  | DefinitelyHuman
-  deriving (Generic, Show, Eq, Read)
-  deriving anyclass (FromJSON, ToJSON)
-derivePersistField "FingeringTypeGuess"

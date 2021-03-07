@@ -1,5 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NumDecimals #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Handler.Upload where
 
@@ -102,7 +102,9 @@ postUploadR =
 
 getAddWorkR :: Handler Html
 getAddWorkR = defaultLayout do
+  setTitle "Add Work"
   csrf <- fromMaybe "" . reqToken <$> getRequest
+  user_id <- maybeAuthId
   addAutocomplete
   addWorkId <- newIdent
   $(widgetFile "add-work")
@@ -120,12 +122,17 @@ data AddWorkParams = AddWorkParams
 instance FromJSON AddWorkParams
 
 postAddWorkR :: Handler Value
-postAddWorkR =
+postAddWorkR = do
+  user_id <- maybeAuthId
   parseCheckJsonBody >>= \case
     Error e -> pure $ object ["error" .= e]
     Success AddWorkParams {..} -> runDB do
       composerId <-
-        insertBy $ Composer (addUnderscores work_composer) (addUnderscores <$> composer_url)
+        insertBy $
+          Composer
+            (addUnderscores work_composer)
+            (addUnderscores <$> composer_url)
+            user_id
       work <-
         insertBy $
           Work
@@ -133,11 +140,12 @@ postAddWorkR =
             work_url
             work_instrumentation
             (either entityKey id composerId)
+            user_id
       case work of
         Left (Entity workId _) ->
           pure $
             object
-              [ "error" .= ("Work already in database" :: Text)
+              [ "already_uploaded" .= True
               , "work_id" .= fromSqlKey workId
               ]
         Right workId -> do
@@ -145,7 +153,16 @@ postAddWorkR =
             [] -> insert_ $ Movement 0 "" workId
             [m] -> insert_ $ Movement 0 m workId
             ms -> insertMany_ $ zipWith (\i m -> Movement i m workId) [1 ..] ms
-          pure $ object ["work_id" .= fromSqlKey workId]
+          -- NOTE: this depends on the internal implementation of
+          -- https://hackage.haskell.org/package/yesod-core-1.6.18.8/docs/src/Yesod.Core.Handler.html#redirectUltDest
+          -- which we hijack to use redirects in javascript
+          let ultDestKey = "_ULT"
+          renderUrl <- getUrlRender
+          mdest <- lookupSession ultDestKey
+          deleteSession ultDestKey
+          let dest = fromMaybe (renderUrl $ WorkR (fromSqlKey workId)) mdest
+          $logInfo dest
+          pure $ object ["destination" .= dest]
 
 getWorkR :: Int64 -> Handler Html
 getWorkR work_key = do
@@ -174,6 +191,7 @@ mkTitle composer work =
 getEntryR :: Int64 -> Handler Html
 getEntryR entry_key = do
   let entryId = toSqlKey entry_key
+  -- TODO: use a real join
   (entry, movement, work, composer, uploadedBy) <- runDB do
     e <- get404 entryId
     m <- get404 (entryMovementId e)
