@@ -10,7 +10,8 @@
         <b-form-input name="years_experience" #years-experience type="number" max=125>
       <b-form-group
         label-for="last-work"
-        label="What piece have you played recently that you feel indicates your skill level?">
+        label="What piece have you played recently that you feel indicates your skill level?"
+        description="Search by composer name and title, ex. beethoven violin concerto">
         <autocomplete
           name="last_work"
           #last-work
@@ -20,10 +21,8 @@
           @update="update"
           v-bind:search="search"
           v-bind:get-result-value="getResultValue">
-        <small for="work-title">Search by composer name and title, ex. beethoven violin concerto
-        <div v-show="show_add_work_link">
-          <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
-
+      <div v-show="show_add_work_link">
+        <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
       <b-form-group
         label-for="violinist-type"
         label="Are you a (check all that apply):">
@@ -32,3 +31,4 @@
           #violinist-type
           stacked
           v-bind:options="options">
+    <b-button variant="primary" type="submit">Continue

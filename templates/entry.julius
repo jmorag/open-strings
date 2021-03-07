@@ -18,9 +18,9 @@ const vue = new Vue({
     disable_submit: true,
   },
 
-  mounted: async function() {
+  mounted: function() {
     // the xml on the server already has measure numbers set
-    this.editor.render(#{entryMusicxml entry}, 1)
+    this.editor.render(#{entryMusicxml entry}, 1);
   },
 
   methods: {
@@ -51,7 +51,7 @@ const vue = new Vue({
           return;
         }
       } catch (e) {
-        this.alert_message = `${e}`;
+        this.alert_message = e;
         this.show_alert = true;
         return;
       }
@@ -82,7 +82,7 @@ const vue = new Vue({
           return;
         }
       } catch (e) {
-        this.alert_message = `${e}`;
+        this.alert_message = e;
         this.show_alert = true;
         this.loading = false;
         return;

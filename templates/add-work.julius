@@ -9,7 +9,6 @@ const vue = new Vue({
     work_movements: [],
     imslp: true,
     show_alert: false,
-    alert_message: "",
     loading: false,
     work_id: 0,
     validated: false,
@@ -54,15 +53,14 @@ const vue = new Vue({
         body: JSON.stringify(body),
       });
       const json = await resp.json();
-      if (json.error) {
+      if (json.already_uploaded) {
         this.work_id = json.work_id;
-        this.alert_message = json.error;
         this.show_alert = true;
         this.loading = false;
         return;
       }
       // Don't set loading to false before navigating so buttons stay disabled
-      window.location.href = `/work/${json.work_id}`;
+      window.location.href = json.destination;
     },
 
     clear(e) {

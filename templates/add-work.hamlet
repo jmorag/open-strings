@@ -1,6 +1,6 @@
 <div ##{addWorkId}>
   <b-alert v-bind:show="show_alert" variant="danger" dismissible @dismissed="reset">
-    {{ alert_message }} View it <a v-bind:href=`/work/${work_id}`>here</a>.
+    This work is already in the database. View it <a v-bind:href=`/work/${work_id}`>here</a>.
   <b-form v-on:submit.prevent="add_work" v-on:reset.prevent="reset" novalidate>
     <b-form-group>
       <b-form-group label-for="piece-url" label="URL">
@@ -41,7 +41,7 @@
         <b-form-row>
           <b-form-group label-for="piece-movements" label="Movements" .col>
             <b-input-group v-for="(movement, i) in work_movements" v-bind:key="i" v-bind:prepend="`${i+1}`" #piece-movements>
-              <b-form-input v-model.trim="work_movements[i]" v-bind:spellcheck="false" autofocus autocomplete="off">
+              <b-form-input v-model.trim="work_movements[i]" v-bind:spellcheck="false" autocomplete="off">
               <b-input-group-append>
                 <b-button tabindex="-1" variant="outline-secondary" @click="work_movements.splice(i, 1)">x
             <b-button @click="work_movements.splice(work_movements.length, 0, '')"
@@ -74,7 +74,10 @@
                 \ to refer to a standard orchestral string section and #
                 <kbd>quartet
                 \ for a string quartet.
-      <b-form-group>
-        <b-overlay v-bind:show="loading" rounded="sm">
-          <b-button variant="primary" type="submit">Add work to database
-          <b-button variant="secondary" type="reset">Clear
+      $maybe _ <- user_id
+        <b-form-group>
+            <b-button variant="primary" type="submit">Add work to database
+            <b-button variant="secondary" type="reset">Clear
+      $nothing
+        <p>You must be logged in to upload a work to the database. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+  <b-overlay v-bind:show="loading" rounded="sm" no-wrap fixed>
