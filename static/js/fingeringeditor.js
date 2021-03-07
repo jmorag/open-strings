@@ -66,7 +66,7 @@ class FingeringEditor {
 
     // Remove empty strings
     xml.querySelectorAll("notations>technical>string").forEach((string) => {
-      if (string.textContent === "X") {
+      if (string.textContent === "-1") {
         const technical = string.parentNode;
         const notations = technical.parentNode;
         const note = notations.parentNode;
@@ -173,9 +173,9 @@ class FingeringEditor {
         // skip all non-text elements
         if (f.tagName !== "path") {
           f.setAttribute("index", i);
-          f.textContent = xml_strings[i].textContent;
+          f.textContent = this.constructor.arabicToRoman(xml_strings[i].textContent);
           // hide bogus string numbers
-          f.textContent === "-1" && f.setAttribute("visibility", "hidden");
+          f.textContent === "X" && f.setAttribute("visibility", "hidden");
           i++;
           this.svg_strings.push(f);
         }
