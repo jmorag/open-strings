@@ -6,6 +6,15 @@ $newline never
 \<!--[if gt IE 8]><!-->
 <html class="no-js" lang="en"> <!--<![endif]-->
   <head>
+    <!-- Taken from https://realfavicongenerator.net/favicon_result?file_id=p1f076f7pt6ds3sr17njlkcmu6#.YEU6TepOnEE -->
+    <link rel="apple-touch-icon" sizes="180x180" href=@{StaticR apple_touch_icon_png}>
+    <link rel="icon" type="image/png" sizes="32x32" href=@{StaticR favicon_32x32_png}>
+    <link rel="icon" type="image/png" sizes="16x16" href=@{StaticR favicon_16x16_png}>
+    <link rel="manifest" href=@{StaticR site_webmanifest}>
+    <link rel="mask-icon" href=@{StaticR safari_pinned_tab_svg} color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+
     <meta charset="UTF-8">
 
     <title>#{pageTitle pc}
