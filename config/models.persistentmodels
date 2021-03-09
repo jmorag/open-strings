@@ -69,7 +69,7 @@ Entry sql=entries
   description Text
   deriving Show
 
-SurveyDemographics
+SurveyDemographics json
   userId UserId
   years_experience Int
   violinist_type (Set ViolinistType)

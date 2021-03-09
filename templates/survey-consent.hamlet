@@ -9,7 +9,10 @@
 <p .small>Participation in this study is voluntary. You may refuse to participate or withdraw at any time without penalty. For interviews, questionnaires, or surveys, you have the right to skip or not answer any questions you prefer not to answer. Information not containing identifiers may be used in future research, shared with other researchers, or placed in a data repository without your additional consent.
 <p .small>If there is anything about the study or your participation that is unclear or that you do not understand, if you have questions or wish to report a research-related problem, you may contact <a href="mailto:jm8463@nyu.edu?subject='OpenStrings survey inquiry'">Joseph Morag</a> or the faculty sponsor, <a href="mailto:bm106@nyu.edu?subject='OpenStrings survey inquiry'">Brian McFee</a>.
 <p .small>For questions about your rights as a research participant, you may contact the <a href="https://www.nyu.edu/about/leadership-university-administration/office-of-the-president/office-of-the-provost/research-engineering-technology-scholarship/research-compliance-administration/university-committee-involving-human-subjects.html">University Committee on Activities Involving Human Subjects</a> (UCAIHS), New York University, 665 Broadway, Suite 804, New York, New York, 10012, at <a href="mailto:ask.humansubjects@nyu.edu?subject=IRB-FY2021-5264">ask.humansubjects@nyu.edu</a> or (212) 998-4808. Please reference the study number (IRB-FY2021-5264) in your communication.
-<form method="POST">
-  <input name="_token" value="#{csrf}" type="hidden">
-  <button .btn .btn-primary type="submit">I agree, take the survey
-  <a .btn .btn-secondary href=@{HomeR}>Go back
+$maybe _ <- user_id
+  <form method="POST">
+    <input name="_token" value="#{csrf}" type="hidden">
+    <button .btn .btn-primary type="submit">I agree, take the survey
+    <a .btn .btn-secondary href=@{HomeR}>Go back
+$nothing
+  Please <a href=@{AuthR LoginR}>login</a> in order to take the survey.

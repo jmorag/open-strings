@@ -17,8 +17,8 @@
 
 /entry/#Int64 EntryR GET
 
-/survey SurveyR GET
-/survey/demographics SurveyDemographicsR GET
+/survey SurveyR GET POST
+/survey/demographics SurveyDemographicsR GET POST
 /survey/fingering/#Int64 SurveyFingeringR GET
 
 -- API routes not returning html

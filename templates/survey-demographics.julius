@@ -11,7 +11,11 @@ const vue = new Vue({
       { text: "Professional, orchestra", value: "ProfessionalOrchestra" },
     ],
     work_id: 0,
+    years_experience: "",
+    violinist_type: [],
     show_add_work_link: false,
+    validated: false,
+    error: "",
   },
   components: { Autocomplete },
   methods: {
@@ -31,6 +35,34 @@ const vue = new Vue({
         results.length === 0 &&
         !this.work_id &&
         this.$refs.autocomplete.value.length >= 2;
+    },
+    autocompleteSubmit({ value }) { this.work_id = value; },
+    async submit() {
+      if (!this.work_id || this.years_experience === "" || this.violinist_type.length === 0) {
+        this.validated = true;
+        return
+      }
+      const body = {
+        userId: #{toJSON $ fromSqlKey user_id},
+        years_experience: this.years_experience,
+        violinist_type: this.violinist_type,
+        most_recent_piece: this.work_id,
+      };
+      try {
+        const resp = await fetch("@{SurveyDemographicsR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body),
+        });
+        const json = await resp.json();
+        if (json.error) {
+          this.error = json.error;
+          return
+        }
+        window.location.href = json.destination;
+      } catch (e) {
+        this.error = e;
+      }
     },
   },
 })

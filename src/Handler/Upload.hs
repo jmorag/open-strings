@@ -183,11 +183,6 @@ getWorkR work_key = do
     renderId <- newIdent
     $(widgetFile "work")
 
-mkTitle :: Composer -> Work -> Text
-mkTitle composer work =
-  takeWhile (/= ',') (composerName composer) <> ": "
-    <> replaceUnderscores (workTitle work)
-
 getEntryR :: Int64 -> Handler Html
 getEntryR entry_key = do
   let entryId = toSqlKey entry_key

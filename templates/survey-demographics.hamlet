@@ -1,23 +1,27 @@
 <h1>Demographics
 <div #demographics>
-  <b-form method="POST">
-    <b-form-group required>
-      <input name="_token" value="#{csrf}" type="hidden">
+  <b-alert variant="danger" v-bind:show="!!error">{{ error }}
+  <b-form v-on:submit.prevent="submit" novalidate>
+    <b-form-group>
       <b-form-group
-        label-cols="4"
+        v-bind:validated="validated"
+        label-cols="6"
         label-for="years-experience"
         label="How many years have you been playing the violin?">
-        <b-form-input name="years_experience" #years-experience type="number" max=125>
+        <b-form-input required name="years_experience" #years-experience type="number" max=125 v-model.number="years_experience">
       <b-form-group
         label-for="last-work"
         label="What piece have you played recently that you feel indicates your skill level?"
-        description="Search by composer name and title, ex. beethoven violin concerto">
+        description="Search by composer name and title, ex. beethoven violin concerto"
+        >
         <autocomplete
+          v-bind:state="validated ? work_id !== 0 : null"
           name="last_work"
           #last-work
           ref="autocomplete"
           v-bind:debounce-time="300"
           auto-select
+          @submit="autocompleteSubmit"
           @update="update"
           v-bind:search="search"
           v-bind:get-result-value="getResultValue">
@@ -27,8 +31,10 @@
         label-for="violinist-type"
         label="Are you a (check all that apply):">
         <b-form-checkbox-group
+          v-bind:state="validated ? violinist_type.length > 0 : null"
           name="violinist_type"
           #violinist-type
           stacked
+          v-model="violinist_type"
           v-bind:options="options">
     <b-button variant="primary" type="submit">Continue
