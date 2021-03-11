@@ -98,6 +98,7 @@ postUploadR =
               (toSqlKey movement_id)
               now
               description
+              Nothing
         pure $ object ["success" .= True, "entry_id" .= entryId]
 
 getAddWorkR :: Handler Html

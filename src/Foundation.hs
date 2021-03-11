@@ -126,6 +126,12 @@ instance Yesod App where
                 , menuItemRoute = HomeR
                 , menuItemAccessCallback = True
                 }
+          , NavbarLeft $
+              MenuItem
+                { menuItemLabel = "Survey"
+                , menuItemRoute = SurveyR
+                , menuItemAccessCallback = isJust muser
+                }
           , NavbarRight $
               MenuItem
                 { menuItemLabel = "Login"
@@ -195,8 +201,9 @@ instance Yesod App where
     AddWorkR -> unrestricted
     WorkR _ -> unrestricted
     SurveyR -> unrestricted
-    SurveyDemographicsR -> unrestricted
-    SurveyFingeringR _ -> unrestricted
+    SurveyDemographicsR -> isLoggedIn
+    SurveyFingeringR _ -> isLoggedIn
+    SurveyDoneR -> unrestricted
     IMSLPR _ -> unrestricted
     EntriesR _ -> unrestricted
     MusicXMLR _ -> unrestricted
