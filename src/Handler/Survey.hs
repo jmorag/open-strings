@@ -51,7 +51,7 @@ postSurveyDemographicsR =
   parseCheckJsonBody >>= \case
     Error e -> pure $ object ["error" .= e]
     Success (demographics@SurveyDemographics {..}) -> do
-      runDB do
+      void $ runDB do
         upsertBy
           (UniqueUserId surveyDemographicsUserId)
           demographics
@@ -96,7 +96,7 @@ postSurveyFingeringR entry_key =
   parseCheckJsonBody >>= \case
     Error e -> pure $ object ["error" .= e]
     Success (response@SurveyFingering {..}) -> do
-      runDB do
+      void $ runDB do
         upsertBy
           (UniqueSurveyResponse surveyFingeringEntryId surveyFingeringSurveyId)
           response
