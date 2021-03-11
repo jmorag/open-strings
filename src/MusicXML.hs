@@ -27,7 +27,7 @@ inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
-            map (\n -> (n ^. xmlRef . _1, n ^. fingerings')) assignedNotes
+            map (\n -> (n ^. xmlRef . _1, n ^. fingering)) assignedNotes
        in (cost, assignFingers (zip [0 ..] steps) fingers)
 
 inferWeights :: Document -> Weights Double -> Either Text (Weights Double)
