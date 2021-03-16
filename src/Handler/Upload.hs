@@ -101,15 +101,6 @@ postUploadR =
               Nothing
         pure $ object ["success" .= True, "entry_id" .= entryId]
 
-getAddWorkR :: Handler Html
-getAddWorkR = defaultLayout do
-  setTitle "Add Work"
-  csrf <- fromMaybe "" . reqToken <$> getRequest
-  user_id <- maybeAuthId
-  addAutocomplete
-  addWorkId <- newIdent
-  $(widgetFile "add-work")
-
 data AddWorkParams = AddWorkParams
   { work_url :: !(Maybe Text)
   , work_title :: !Text

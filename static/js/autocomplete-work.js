@@ -145,7 +145,7 @@ Vue.component("autocomplete-work", {
       const data = await fetch(`/api/works?term=${input}`);
       const suggestions = await data.json();
       return suggestions.length === 0 && this.work_id === 0
-        ? [{ label: `${input} not found. Add piece data manually`, value: -1 }]
+        ? [{ label: `"${input}" not found. Add piece data manually`, value: -1 }]
         : suggestions;
     },
 
@@ -192,7 +192,7 @@ Vue.component("autocomplete-work", {
         composer_url: this.composer_url,
       };
       this.loading = true;
-      const resp = await fetch("/add-work", {
+      const resp = await fetch("/api/add-work", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

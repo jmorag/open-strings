@@ -34,10 +34,6 @@ getSurveyDemographicsR = do
   csrf <- fromMaybe "" . reqToken <$> getRequest
   Entity user_id user <- requireAuth
   unless (userSurveyAgree user) $ redirect SurveyR
-  -- This is so that if go to the add-work page, we get redirected
-  -- back here afterwards. TODO: make add-work a modal so this becomes
-  -- unnecessary
-  setUltDestCurrent
   defaultLayout do
     addAutocomplete
     setTitle "Demographics"
