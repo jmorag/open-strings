@@ -154,16 +154,11 @@ postAddWorkR = do
             [] -> insert_ $ Movement 0 "" workId
             [m] -> insert_ $ Movement 0 m workId
             ms -> insertMany_ $ zipWith (\i m -> Movement i m workId) [1 ..] ms
-          -- NOTE: this depends on the internal implementation of
-          -- https://hackage.haskell.org/package/yesod-core-1.6.18.8/docs/src/Yesod.Core.Handler.html#redirectUltDest
-          -- which we hijack to use redirects in javascript
-          let ultDestKey = "_ULT"
-          renderUrl <- getUrlRender
-          mdest <- lookupSession ultDestKey
-          deleteSession ultDestKey
-          let dest = fromMaybe (renderUrl $ WorkR (fromSqlKey workId)) mdest
-          $logInfo dest
-          pure $ object ["destination" .= dest]
+          pure $
+            object
+              [ "label" .= (work_composer <> ": " <> work_title)
+              , "work_id" .= (fromSqlKey workId)
+              ]
 
 getWorkR :: Int64 -> Handler Html
 getWorkR work_key = do
