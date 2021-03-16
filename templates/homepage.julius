@@ -1,37 +1,10 @@
 const vue = new Vue({
   el: "##{rawJS searchId}",
-  data: {
-    show_add_work_link: false,
-    work_id: 0
-  },
-  components: { Autocomplete },
   methods: {
-    async search(input) {
-      if (input.length < 2) {
-        return [];
-      }
-      const data = await fetch(`@{WorksR}?term=${input}`);
-      const suggestions = await data.json();
-      return suggestions;
+    goto_work(work_id) {
+      window.location.href = `/work/${work_id}`;
     },
-    update(results, _selectedIndex) {
-      if (this.$refs.autocomplete.value.length < 2) {
-        this.work_id = 0;
-        this.movements = [];
-        this.parts = [];
-      }
-      this.show_add_work_link =
-        results.length === 0 &&
-        !this.work_id &&
-        this.$refs.autocomplete.value.length >= 2;
-    },
-    getResultValue(result) {
-      return result.label;
-    },
-    async autocompleteSubmit({ value }) {
-      window.location.href = `/work/${value}`;
-    }
-  }
+  },
 });
 
 const mru_table = new Vue({
@@ -46,14 +19,14 @@ const mru_table = new Vue({
         formatter: ({ user, time }) => {
           const d = new Date(time);
           return `${user} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`;
-        }
-      }
+        },
+      },
     ],
-    items: #{entries}
+    items: #{ entries },
   },
   methods: {
     navigate(item, _index, _event) {
-      window.location.href = `/work/${item.work_id}?entry-id=${item.entry_id}`;
-    }
-  }
+      window.location.href = `/entry/${item.entry_id}`;
+    },
+  },
 });

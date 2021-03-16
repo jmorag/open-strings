@@ -31,7 +31,7 @@ approot:        "_env:YESOD_APPROOT:http://127.0.0.1:3001"
 database-url: "_env:DATABASE_URL:postgres://joseph@localhost:5432/fingerdb"
 database-pool-size: "_env:DB_POOL:10"
 
-copyright: Joseph Morag, 2020
+copyright: Joseph Morag, 2020-2021
 analytics: "_env:GOOGLE_ANALYTICS:G-0000000000"
 
 # these should ONLY be passed as environment vars

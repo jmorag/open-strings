@@ -1,0 +1,49 @@
+const vue = new Vue({
+  el: "#demographics",
+  data: {
+    options: [
+      { text: "Amateur", value: "Amateur" },
+      { text: "Student, beginner", value: "StudentBeginner" },
+      { text: "Student, intermediate", value: "StudentIntermediate" },
+      { text: "Student, advanced", value: "StudentAdvanced" },
+      { text: "Professional, solo", value: "ProfessionalSolo" },
+      { text: "Professional, chamber", value: "ProfessionalChamber" },
+      { text: "Professional, orchestra", value: "ProfessionalOrchestra" },
+    ],
+    work_id: 0,
+    years_experience: "",
+    violinist_type: [],
+    validated: false,
+    error: "",
+  },
+  methods: {
+    async submit() {
+      if (this.$refs.add_work.show_add_work_modal) return;
+      if (this.work_id === 0 || this.years_experience === "" || this.violinist_type.length === 0) {
+        this.validated = true;
+        return
+      }
+      const body = {
+        userId: #{toJSON $ fromSqlKey user_id},
+        years_experience: this.years_experience,
+        violinist_type: this.violinist_type,
+        most_recent_piece: this.work_id,
+      };
+      try {
+        const resp = await fetch("@{SurveyDemographicsR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body),
+        });
+        const json = await resp.json();
+        if (json.error) {
+          this.error = json.error;
+          return
+        }
+        window.location.href = json.destination;
+      } catch (e) {
+        this.error = e;
+      }
+    },
+  },
+})

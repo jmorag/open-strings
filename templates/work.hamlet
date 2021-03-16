@@ -1,80 +1,48 @@
 <div ##{wId}>
-  <h2 style="text-align: center">#{title}
-  <b-form v-on:submit.prevent="submit" novalidate>
-    <!-- Existing uploads table -->
-    <b-form-group>
-      <b-table
-        selectable
-        select-mode="single"
-        ref=table
-        show-empty
-        small
-        empty-text="No fingerings uploaded for this work yet"
-        caption="View a fingering or add your own below"
-        hover
-        outlined
-        no-local-sorting
-        v-bind:fields="table_fields"
-        v-bind:items="entries"
-        v-bind:primary_key="'entry_id'"
-        @row-clicked="fetchXml">
-      <b-form-file v-model="xml_file" accept=".musicxml">
-    <!-- Radios for movements and part select -->
-    <b-form-group v-bind:validated="validated">
-      <b-form-row>
-        <b-col md="auto" v-show="movements.length > 1">
-          <b-form-group label="Movements">
-            <b-form-radio-group v-model="movement_id" v-bind:options="movements"
-              stacked buttons button-variant="outline-primary" #movements-select>
-        <b-col md="auto" v-show="parts.length > 0">
-          <b-form-group label="Parts">
-            <b-form-radio-group v-model=part v-bind:options="parts"
-              buttons button-variant="outline-primary">
-        <b-col .ml-auto>
-          <label for="start-measure">Starting Measure
-          <b-form-input #start-measure type="number" v-model.number="start_measure" min=1 autocomplete="off" required>
-    <!-- Submission and reset buttons -->
-    <b-alert v-bind:show="show_success" variant="success" dismissible>Successfully uploaded fingering
-    <div #editor v-show="show_editor">
-      $maybe _ <- user_id
-        <b-overlay v-bind:show="loading" rounded="sm">
-          <b-form-group v-bind:validated="validated">
-            <b-form-textarea v-model="description" placeholder="Add a description" max-rows=2 required v-bind:validated="validated">
-          <b-form-group>
-            <b-button variant="primary" type="submit" #submit>Upload
-            <b-button variant="secondary" @click="description = ''; editor.enable(); show_instructions = true">Edit fingerings
-            <b-button variant="info" @click="description = ''; editor.resetFingerings(); editor.enable(); show_instructions = true">Clear fingerings
-            <b-button variant="success" @click="infer" v-show="show_instructions">Infer fingerings
-            <b-alert v-bind:show="show_alert" variant="danger">
-              <span v-html="alert_message">
-          <p #slider-instructions v-show="show_instructions">Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
-          <b-form-group v-show="show_instructions">
-            <b-container fluid>
-              <b-row .my-1 v-for="(weight, name) in infer_weights" v-bind:key="name">
-                <b-col sm="2">
-                  <label v-bind:for=`${name}` .text-capitalize .font-weight-bold> {{ name }}
-                <b-col sm="8">
-                  <b-form-input
-                    .slider
-                    v-bind:id=`${name}`
-                    v-model="infer_weights[`${name}`]"
-                    number
-                    type="range"
-                    min="-10"
-                    max="10">
-                <b-col sm="2">
-                  <b-form-input
-                    .manual
-                    v-bind:id=`${name}_manual`
-                    v-model="infer_weights[`${name}`]"
-                    number
-                    size="sm"
-                    style="{vertical_align: middle}"
-                    min="-10"
-                    max="10"
-                    type="number">
-        <p #editing-instructions v-show="show_instructions">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
-      $nothing
-        <p>You must be logged in to upload a fingering. <a href=@{AuthR LoginR}>Login or sign up here.</a>
-
-<div ##{renderId}>
+  <h2 .text-center>#{title}
+  <b-card no-body>
+    <b-tabs card justify fill>
+      <b-tab title="View existing uploads" @click="editor.hide()">
+        <b-table
+          selectable
+          select-mode="single"
+          ref=table
+          show-empty
+          small
+          empty-text="No passages uploaded for this work yet"
+          hover
+          outlined
+          no-local-sorting
+          v-bind:fields="table_fields"
+          v-bind:items="entries"
+          v-bind:primary_key="'entry_id'"
+          @row-clicked="gotoEntry">
+      <b-tab title="Upload a new passage" @click="editor.unHide()" v-bind:active="entries.length === 0">
+        $maybe _ <- user_id
+          <b-form v-on:submit.prevent="submit" novalidate>
+            <!-- Radios for movements and part select -->
+            <b-form-group v-bind:validated="validated">
+              <b-form-row>
+                <b-col md="auto" v-show="movements.length > 1">
+                  <b-form-group label="Movements">
+                    <b-form-radio-group v-model="movement_id" v-bind:options="movements"
+                      stacked buttons button-variant="outline-primary" #movements-select>
+                <b-col md="auto" v-show="parts.length > 0">
+                  <b-form-group label="Parts">
+                    <b-form-radio-group v-model=part v-bind:options="parts"
+                      buttons button-variant="outline-primary">
+                <b-col mr="auto">
+                <b-col mr="2">
+                  <label for="start-measure">Starting Measure
+                  <b-form-input #start-measure type="number" v-model.number="start_measure" min=1 autocomplete="off" required>
+            <b-form-group v-bind:validated="validated">
+              <b-form-file v-model="xml_file" accept=".musicxml" required>
+            <!-- Submission buttons -->
+            <b-form-group>
+              <b-button variant="primary" type="submit" #submit>Upload
+              <b-alert v-bind:show="show_alert" variant="danger">
+                <span v-html="alert_message">
+        $nothing
+          <p>You must be logged in to upload a passage. <a href=@{AuthR LoginR}>Login or sign up here.</a>
+  <b-overlay v-bind:show="loading" rounded="sm" no-wrap fixed>
+<div ##{renderId} .card>

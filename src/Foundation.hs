@@ -28,7 +28,7 @@ import Text.Shakespeare.Text (stext)
 import Yesod.Auth.Dummy
 import Yesod.Auth.Email
 import Yesod.Auth.OAuth2
-import Yesod.Auth.OAuth2.Google
+import Yesod.Auth.OAuth2.Google.Custom
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Yesod.Default.Util (addStaticContentExternal)
@@ -126,6 +126,12 @@ instance Yesod App where
                 , menuItemRoute = HomeR
                 , menuItemAccessCallback = True
                 }
+          , NavbarLeft $
+              MenuItem
+                { menuItemLabel = "Survey"
+                , menuItemRoute = SurveyR
+                , menuItemAccessCallback = isJust muser
+                }
           , NavbarRight $
               MenuItem
                 { menuItemLabel = "Login"
@@ -182,15 +188,36 @@ instance Yesod App where
     Bool ->
     Handler AuthResult
   -- Routes not requiring authentication.
-  isAuthorized (AuthR _) _ = return Authorized
-  isAuthorized ComposersR _ = return Authorized
-  isAuthorized WorksR _ = return Authorized
-  isAuthorized HomeR _ = return Authorized
-  isAuthorized FaviconR _ = return Authorized
-  isAuthorized RobotsR _ = return Authorized
-  isAuthorized (StaticR _) _ = return Authorized
-  isAuthorized UploadR _ = return Authorized
-  isAuthorized _ _ = trace "REMOVE CATCHALL IN PRODUCTION" (return Authorized)
+  isAuthorized route write = case route of
+    AuthR _ -> unrestricted
+    ComposersR -> unrestricted
+    WorksR -> unrestricted
+    HomeR -> unrestricted
+    FaviconR -> unrestricted
+    RobotsR -> unrestricted
+    StaticR _ -> unrestricted
+    UploadR -> isLoggedIn
+    EntryR _ -> unrestricted
+    AddWorkR -> unrestricted
+    WorkR _ -> unrestricted
+    SurveyR -> unrestricted
+    SurveyDemographicsR -> isLoggedIn
+    SurveyFingeringR _ -> isLoggedIn
+    SurveyDoneR -> unrestricted
+    IMSLPR _ -> unrestricted
+    EntriesR _ -> unrestricted
+    MusicXMLR _ -> unrestricted
+    -- TODO: this is blocked right now in javascript on the client but
+    -- we should make this more robust since allowing anyone without
+    -- an account to spam the API is undesirable
+    InferR -> unrestricted
+    InferWeightsR -> unrestricted
+    where
+      unrestricted = return Authorized
+      isLoggedIn =
+        maybeAuthId <&> \case
+          Nothing -> AuthenticationRequired
+          Just _ -> Authorized
 
   -- This function creates static content files in the static folder
   -- and names them based on a hash of their content. This allows
@@ -270,7 +297,7 @@ instance YesodAuth App where
           now <- liftIO getCurrentTime
           let extract traversal =
                 getUserResponseJSON @Value creds ^? _Right . traversal . _String
-          uid <- insert $ User (credsIdent creds) (if credsPlugin creds == "email-verify" then Email else OAuth) now
+          uid <- insert $ User (credsIdent creds) (if credsPlugin creds == "email-verify" then Email else OAuth) now False
           case credsPlugin creds of
             "email-verify" ->
               Authenticated uid
@@ -293,16 +320,22 @@ instance YesodAuth App where
   -- You can add other plugins like Google Email, email or OAuth here
   authPlugins :: App -> [AuthPlugin App]
   authPlugins app =
-    [ oauth2GoogleScoped
+    [ oauth2GoogleScopedWidget
+        googleWidget
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
         (appGoogleOauthClientSecret (appSettings app))
-    , authEmail
+     , authEmail
     ]
       ++ extraAuthPlugins
     where
       -- Enable authDummy login if enabled.
       extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+      googleWidget = [whamlet|
+<span .btn .btn-primary>
+  <img src=@{StaticR img_btn_google_light_normal_svg}>
+  Sign in with Google
+|]
 
 -- | Access function to determine if a user is logged in.
 isAuthenticated :: Handler AuthResult
@@ -320,7 +353,7 @@ instance YesodAuthEmail App where
 
   addUnverified email verkey =
     liftIO getCurrentTime >>= \now -> liftHandler $ runDB do
-      uid <- insert $ User email Email now
+      uid <- insert $ User email Email now False
       insert_ $
         EmailUser
           { emailUserUserId = uid
@@ -400,9 +433,9 @@ Click on the link below to reset your password.
       . getBy
       . UniqueEmailUserId
 
-  setVerifyKey uid key = liftHandler $ runDB do
+  setVerifyKey uid k = liftHandler $ runDB do
     emailUser <- getBy404 (UniqueEmailUserId uid)
-    update (entityKey emailUser) [EmailUserVerkey =. Just key]
+    update (entityKey emailUser) [EmailUserVerkey =. Just k]
 
   verifyAccount uid = liftHandler $
     runDB $ do
@@ -442,26 +475,26 @@ Click on the link below to reset your password.
   getEmail = liftHandler . runDB . fmap (fmap userIdent) . get
 
   emailLoginHandler toParent = do
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     $(widgetFile "login-email")
 
   registerHandler = do
     toParent <- getRouteToParent
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     authLayout do
       setTitle "Register a new account"
       $(widgetFile "register-account")
 
   forgotPasswordHandler = do
     toParent <- getRouteToParent
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     authLayout do
       setTitle "Password Reset"
       $(widgetFile "password-reset")
 
   setPasswordHandler needOld = do
     toParent <- getRouteToParent
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     selectRep do
       provideRep $ authLayout do
         setTitle "Set Password"

@@ -3,6 +3,7 @@ module MusicXML (
   measureNumbers,
   readTimeSteps,
   inferFingerings,
+  inferWeights,
 ) where
 
 import ClassyPrelude hiding (Element)
@@ -17,16 +18,32 @@ import Fingering
 import Text.XML
 import Text.XML.Lens
 
-inferFingerings :: Document -> Weights -> Document
-inferFingerings doc weights = over (partsOf' (root . timeStep)) go doc
+inferFingerings :: Document -> Weights Double -> (Double, Document)
+inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
   where
+    go :: [Element] -> (Double, [Element])
     go steps =
-      let assignedSteps = infer weights (readTimeSteps steps)
+      let (cost, assignedSteps) = inferFingerings' weights (readTimeSteps steps)
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
-            map (\n -> (n ^. xmlRef . _1, n ^. fingerings')) assignedNotes
-       in assignFingers (zip [0 ..] steps) fingers
+            map (\n -> (n ^. xmlRef . _1, n ^. fingering)) assignedNotes
+       in (cost, assignFingers (zip [0 ..] steps) fingers)
+
+inferWeights :: Document -> Weights Double -> Either Text (Weights Double)
+inferWeights doc initialWeights = go (doc ^.. root . timeStep)
+  where
+    go :: [Element] -> Either Text (Weights Double)
+    go steps = case traverse getSingleAnnotation $ readTimeSteps steps of
+      Nothing ->
+        Left "Cannot deduce preferences. In order to infer weights, all fingers and strings must be specified."
+      Just assignedSteps -> Right $ inferWeights' [assignedSteps] initialWeights
+
+    getSingleAnnotation :: UnassignedStep -> Maybe (AssignedStep)
+    getSingleAnnotation s = case allAssignments s of
+      [ann] -> Just ann
+      _ -> Nothing
+
 
 assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
 assignFingers e [] = map snd e
@@ -38,12 +55,12 @@ assignFingers [] _ = error "Length of fingerings exceeds length of note elements
 
 -- Unlawful lens to get immediate child of an xml element and
 -- create a new one if the target doesn't exist
-child :: Name -> Lens' Element Element
+child :: Text -> Lens' Element Element
 child nm = lens getter setter
   where
-    getter e = fromMaybe (Element nm mempty []) $ e ^? plate . el nm
-    setter e new = case e ^? plate . el nm of
-      Just _ -> set (singular (plate . el nm)) new e
+    getter e = fromMaybe (Element (Name nm Nothing Nothing) mempty []) $ e ^? plate . ell nm
+    setter e new = case e ^? plate . ell nm of
+      Just _ -> set (singular (plate . ell nm)) new e
       Nothing -> over nodes ((_Element # new) :) e
 
 setFingering :: Fingering -> Element -> Element
@@ -62,7 +79,7 @@ setFingering fingering noteEl =
         & child "notations" . child "technical" . child "string" .~ stringEl
 
 timeStep :: Traversal' Element Element
-timeStep = deep $ el "note" `failing` el "backup" `failing` el "forward"
+timeStep = deep $ ell "note" `failing` ell "backup" `failing` ell "forward"
 
 readTimeSteps :: [Element] -> [Step Set]
 readTimeSteps es = addGraceNotes graceNotes noGrace
@@ -126,8 +143,8 @@ calculateDuration e = case e ^?! name of
   n -> error $ "Impossible timestep element " <> show n
 
 chord, grace :: Element -> Bool
-chord = has (deep (el "chord"))
-grace = has (deep (el "grace"))
+chord = has (deep (ell "chord"))
+grace = has (deep (ell "grace"))
 
 dur :: Element -> Int
 dur e =
@@ -135,7 +152,7 @@ dur e =
     then 0
     else
       fromMaybe (error "Duration element missing from non-grace note") $
-        e ^? deep (el "duration") . text . to readMay . _Just
+        e ^? deep (ell "duration") . text . to readMay . _Just
 
 -- | Shift measure numbers to start at the given point
 adjustMeasures :: Int -> Document -> Document
@@ -144,7 +161,7 @@ adjustMeasures beg = iset (root . measureNumbers) (+ beg)
 measureNumbers :: IndexedTraversal' Int Element Int
 measureNumbers =
   indexing $
-    deep (el "measure")
+    deep (ell "measure")
       . filtered (\measure -> measure ^? attr "implicit" /= Just "yes")
       . attr "number"
       . unpacked

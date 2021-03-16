@@ -11,13 +11,21 @@
 
 /upload-fingering UploadR POST
 
-/add-work AddWorkR GET POST
 
 /work/#Int64 WorkR GET
+
+/entry/#Int64 EntryR GET
+
+/survey SurveyR GET POST
+/survey/demographics SurveyDemographicsR GET POST
+/survey/fingering/#Int64 SurveyFingeringR GET POST
+/survey/complete SurveyDoneR GET
 
 -- API routes not returning html
 
 /api/composers ComposersR GET
+
+/api/add-work AddWorkR POST
 
 /api/works WorksR GET
 
@@ -28,3 +36,5 @@
 /api/musicxml/#Int64 MusicXMLR GET
 
 /api/infer InferR POST
+
+/api/infer-weights InferWeightsR POST

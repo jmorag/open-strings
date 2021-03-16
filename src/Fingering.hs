@@ -1,12 +1,13 @@
 {-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Fingering (
   XmlRef,
   deref,
-  infer,
+  inferFingerings',
   Fingering (..),
-  fingerings',
+  fingering,
   xmlRef,
   finger,
   string,
@@ -16,6 +17,8 @@ module Fingering (
   Step (..),
   Note (..),
   AssignedNote,
+  AssignedStep,
+  UnassignedStep,
   mkNote,
   notes,
   allAssignments,
@@ -23,6 +26,7 @@ module Fingering (
   medium,
   high,
   Weights,
+  inferWeights',
 ) where
 
 import ClassyPrelude hiding (Element, second)
@@ -33,6 +37,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Graph.ShortestPath
+import Numeric.AD (stochasticGradientDescent)
 import Text.XML.Lens
 
 data Finger = Open | One | Two | Three | Four
@@ -77,9 +82,9 @@ deref = snd
 -- | Get the MIDI pitch number from the xml note element
 xmlPitch :: Element -> Maybe Pitch
 xmlPitch note = do
-  pitchEl <- note ^? deep (el "pitch")
+  pitchEl <- note ^? deep (ell "pitch")
   step <-
-    pitchEl ^? deep (el "step") . text >>= \case
+    pitchEl ^? deep (ell "step") . text >>= \case
       "C" -> Just 12
       "D" -> Just 14
       "E" -> Just 16
@@ -88,21 +93,21 @@ xmlPitch note = do
       "A" -> Just 21
       "B" -> Just 23
       _ -> Nothing
-  alter <- (pitchEl ^? deep (el "alter") . text >>= readMay) <|> pure 0
-  octave <- pitchEl ^? deep (el "octave") . text >>= readMay
+  alter <- (pitchEl ^? deep (ell "alter") . text >>= readMay) <|> pure 0
+  octave <- pitchEl ^? deep (ell "octave") . text >>= readMay
   pure $ step + alter + (12 * octave)
 
 -- | Read a fingering constraint from a note element
 xmlConstraint :: Element -> Constraint
 xmlConstraint note =
-  let f = case note ^? deep (el "fingering") . text of
+  let f = case note ^? deep (ell "fingering") . text of
         Just "0" -> Just Open
         Just "1" -> Just One
         Just "2" -> Just Two
         Just "3" -> Just Three
         Just "4" -> Just Four
         _ -> Nothing
-      s = case note ^? deep (el "string") . text of
+      s = case note ^? deep (ell "string") . text of
         Just "1" -> Just E
         Just "2" -> Just A
         Just "3" -> Just D
@@ -136,8 +141,14 @@ data Note f = Note {_xmlRef :: XmlRef, _fingerings :: f Fingering}
 
 makeLenses ''Note
 
-fingerings' :: Lens' AssignedNote Fingering
-fingerings' = fingerings . _Wrapped
+fingering :: Lens' AssignedNote Fingering
+fingering = fingerings . _Wrapped
+
+fgr :: Lens' AssignedNote Finger
+fgr = fingering . finger
+
+str :: Lens' AssignedNote VString
+str = fingering . string
 
 type AssignedNote = Note Identity
 
@@ -245,40 +256,40 @@ halfStepPosition baseLen baseFreq freq = baseLen * (1 - (baseFreq / freq))
 -- has a vibrating length of 330mm.
 measurementSeries :: Vector Double
 measurementSeries =
-  halfStepFreqs 440 & map (halfStepPosition 330 440) & take 30 & V.fromList
-
--- >>> measurementSeries
---   [ 0 -- e
---   , 18.521476815041137 -- f
---   , 36.00342301368804 -- f#
---   , 52.50418296627425 -- g
---   , 68.0788264252471 -- g#
---   , 82.77933231534762 -- a
---   , 96.65476220843938 -- a#
---   , 109.7514240619444 -- b
---   , 122.113026767346 -- c
---   , 133.78082602455106 -- c#
---   , 144.79376202895352 -- d
---   , 155.18858943071635 -- d#
---   , 165.00000000000009 -- e
---   , 174.26073840752065 -- f
---   , 183.0017115068441 -- f#
---   , 191.25209148313715 -- g
---   , 199.0394132126236 -- g#
---   , 206.38966615767384 -- a
---   , 213.3273811042197 -- a#
---   , 219.8757120309722 -- b
---   , 226.056513383673 -- c
---   , 231.89041301227553 -- c#
---   , 237.3968810144768 -- d
---   , 242.5942947153582 -- d#
---   , 247.50000000000003 -- e
---   , 252.13036920376032 -- f
---   , 256.50085575342206 -- f#
---   , 260.6260457415686 -- g
---   , 264.5197066063118 -- g#
---   , 268.19483307883695 -- a
---   ]
+  -- There's no point to calculating this at runtime
+  -- halfStepFreqs 440 & map (halfStepPosition 330 440) & take 30
+  V.fromList
+    [ 0 -- e
+    , 18.521476815041137 -- f
+    , 36.00342301368804 -- f#
+    , 52.50418296627425 -- g
+    , 68.0788264252471 -- g#
+    , 82.77933231534762 -- a
+    , 96.65476220843938 -- a#
+    , 109.7514240619444 -- b
+    , 122.113026767346 -- c
+    , 133.78082602455106 -- c#
+    , 144.79376202895352 -- d
+    , 155.18858943071635 -- d#
+    , 165.00000000000009 -- e
+    , 174.26073840752065 -- f
+    , 183.0017115068441 -- f#
+    , 191.25209148313715 -- g
+    , 199.0394132126236 -- g#
+    , 206.38966615767384 -- a
+    , 213.3273811042197 -- a#
+    , 219.8757120309722 -- b
+    , 226.056513383673 -- c
+    , 231.89041301227553 -- c#
+    , 237.3968810144768 -- d
+    , 242.5942947153582 -- d#
+    , 247.50000000000003 -- e
+    , 252.13036920376032 -- f
+    , 256.50085575342206 -- f#
+    , 260.6260457415686 -- g
+    , 264.5197066063118 -- g#
+    , 268.19483307883695 -- a
+    ]
 
 -- Patterns to make matching on the measurement series easier
 -- TODO: matching on doubles like this is probably crazy unsafe...
@@ -441,10 +452,11 @@ ePitches = (76, 105)
 
 allFingerings :: Pitch -> [Fingering]
 allFingerings p = do
-  (str, (low, _high)) <- zip [E, A, D, G] [ePitches, aPitches, dPitches, gPitches]
+  (s, (low, _high)) <-
+    zip [E, A, D, G] [ePitches, aPitches, dPitches, gPitches]
   case measurementSeries V.!? (p - low) of
     Nothing -> []
-    Just dist -> map (flip (Fingering str) dist) case p - low of
+    Just dist -> map (flip (Fingering s) dist) case p - low of
       -- At the low and high ends of the string, we can't use certain fingers
       -- TODO: decide high end
       0 -> [Open]
@@ -462,10 +474,10 @@ validPlacement Fingering {..} constraint = case constraint of
   Finger f -> f == _finger
   Specified f s -> f == _finger && s == _string
 
-data Penalty a = P
+data Penalty step a = P
   { _pName :: Text
-  , _pCost :: a -> Double
-  , _pWeight :: Double
+  , _pCost :: step -> a
+  , _pWeight :: a
   }
 
 makeLenses ''Penalty
@@ -474,14 +486,14 @@ type Penalty1 = Penalty AssignedStep
 
 type Penalty2 = Penalty (AssignedStep, AssignedStep)
 
-applyP1s :: Weights -> [Penalty1] -> AssignedStep -> Double
+applyP1s :: Num a => Weights a -> [Penalty1 a] -> AssignedStep -> a
 applyP1s weights ps step = sum $ map cost ps
   where
     cost p =
       let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
        in (p ^. pCost) step * weight
 
-applyP2s :: Weights -> [Penalty2] -> AssignedStep -> AssignedStep -> Double
+applyP2s :: Num a => Weights a -> [Penalty2 a] -> AssignedStep -> AssignedStep -> a
 applyP2s weights ps step1 step2 = sum $ map cost ps
   where
     cost p =
@@ -501,14 +513,10 @@ mkNote ref =
     Nothing -> Rest
 
 -- The cartesian product of all the possibleFingerings for a given timestep
-allAssignments :: Weights -> UnassignedStep -> [AssignedStep]
-allAssignments weights (Step ns dur) = map (flip Step dur) (go ns)
+allAssignments :: UnassignedStep -> [AssignedStep]
+allAssignments (Step ns dur) = map (flip Step dur) (go ns)
   where
-    staticCost = applyP1s weights p1s
     note x f = Note x (Identity f)
-    ret step =
-      let cost = staticCost (Step step dur)
-       in if cost < infinity then pure step else mzero
 
     go :: TimeStep Set -> [TimeStep Identity]
     go unassigned = case possible of
@@ -521,18 +529,18 @@ allAssignments weights (Step ns dur) = map (flip Step dur) (go ns)
           DoubleStop (Note x1 fs1) (Note x2 fs2) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
-            ret $ DoubleStop (note x1 f1) (note x2 f2)
+            pure $ DoubleStop (note x1 f1) (note x2 f2)
           TripleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
             f3 <- S.toList fs3
-            ret $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
+            pure $ TripleStop (note x1 f1) (note x2 f2) (note x3 f3)
           QuadrupleStop (Note x1 fs1) (Note x2 fs2) (Note x3 fs3) (Note x4 fs4) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
             f3 <- S.toList fs3
             f4 <- S.toList fs4
-            ret $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
+            pure $ QuadrupleStop (note x1 f1) (note x2 f2) (note x3 f3) (note x4 f4)
 
 --------------------------------------------------------------------------------
 -- Intervals
@@ -578,7 +586,7 @@ third p1 p2 = _m3 p1 p2 || _M3 p1 p2
 sixth p1 p2 = _m6 p1 p2 || _M6 p1 p2
 seventh p1 p2 = _m7 p1 p2 || _M7 p1 p2
 
-p1s :: [Penalty1]
+p1s :: Num a => [Penalty1 a]
 p1s =
   singles
     <> doubleStops
@@ -588,49 +596,68 @@ p1s =
        , staticQuadrupleStop
        ]
 
-singles, doubleStops :: [Penalty1]
+singles, doubleStops :: Num a => [Penalty1 a]
 singles = [highPosition, mediumPosition, fourthFinger, openString]
 doubleStops =
   [ staticUnison
   , staticSecond
   , staticThird
+  , staticMajorThird4_3
   , staticFourth
   , staticFifth
-  , staticMinorSixth
+  , staticSixth
   , staticMajorSixth
+  , staticSeventh
   , staticMinorSeventh
   , staticMajorSeventh
   , staticOctave
   , staticTenth
   ]
 
-p2s :: [Penalty2]
-p2s = [oneFingerHalfStep, samePosition, sameString]
+p2s :: Num a => [Penalty2 a]
+p2s = [oneFingerHalfStep, samePosition, sameString, augmentedSecond]
 
-type Weights = Map Text Double
-infer :: Weights -> [UnassignedStep] -> [AssignedStep]
-infer weights steps =
-  case sequence $ steps ^.. (traversed . to (allAssignments weights) . to NE.nonEmpty) of
+type Weights a = Map Text a
+inferFingerings' :: Weights Double -> [UnassignedStep] -> (Double, [AssignedStep])
+inferFingerings' weights steps =
+  case mkAssignments steps of
     Nothing -> error "Could not assign fingering"
-    Just steps' -> case shortestPath steps' (applyP1s weights p1s) (applyP2s weights p2s) of
-      (c, path) -> traceShow c path
+    Just steps' -> shortestPath infinity steps' (applyP1s weights p1s) (applyP2s weights p2s)
 
-high, medium, low :: Double
+mkAssignments :: [UnassignedStep] -> Maybe [NE.NonEmpty AssignedStep]
+mkAssignments steps = traverse (NE.nonEmpty . allAssignments) steps
+
+-- | Given a corpus of fingered passages and an initial weight configuration, run SGD
+-- to find the weight configuration that minimizes the cost function
+inferWeights' :: [[AssignedStep]] -> Weights Double -> Weights Double
+inferWeights' fingeringCorpus =
+  (L.!! 1000)
+    . stochasticGradientDescent objective fingeringCorpus
+  where
+    objective assigned ws =
+      pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
+        -- weight squared term to bias towards center
+        + L.sum (fmap (\w -> w * w) ws)
+
+infinity, high, medium, low :: Num a => a
+infinity = 1000000000000000
 high = 10
 medium = 5
 low = 1
 
-binarize :: Bool -> Double
+binarize :: Num a => Bool -> a
 binarize b = if b then 1 else 0
 
-trill :: Penalty1
+trill :: Num a => Penalty1 a
 trill = P "trill" cost high
   where
     cost step = case step ^. timestep of
       Rest -> 0
-      Single (Note x (Identity f)) ->
-        case deref x ^? deep (failing (el "trill-mark") (el "wavy-line")) of
-          Just _ -> case f ^. finger of
+      Single n ->
+        case n
+          ^? xmlRef . to deref
+            . deep (failing (ell "trill-mark") (ell "wavy-line")) of
+          Just _ -> case n ^. fgr of
             Open -> high
             One -> 0
             Two -> 0
@@ -642,271 +669,235 @@ trill = P "trill" cost high
       -- there should never be trills on triple/quadruple stops...
       _ -> 0
 
-highPosition :: Penalty1
+highPosition :: Num a => Penalty1 a
 highPosition = P "high position" cost medium
   where
     cost step =
-      binarize $ anyOf (notes . fingerings' . to position . traversed) (>= EighthAndUp) step
+      binarize $ anyOf (notes . fingering . to position . traversed) (>= EighthAndUp) step
 
-mediumPosition :: Penalty1
+mediumPosition :: Num a => Penalty1 a
 mediumPosition = P "medium position" cost low
   where
     cost step =
-      binarize $ anyOf (notes . fingerings' . to position . traversed) (>= Fourth) step
+      binarize $ anyOf (notes . fingering . to position . traversed) (>= Fourth) step
 
-fourthFinger :: Penalty1
+fourthFinger :: Num a => Penalty1 a
 fourthFinger = P "fourth finger" cost 0
   where
-    cost step = binarize $ step ^? timestep . _Single . fingerings' . finger == Just Four
+    cost step = binarize $ step ^? timestep . _Single . fgr == Just Four
 
-openString :: Penalty1
+openString :: Num a => Penalty1 a
 openString = P "open string" cost 0
   where
-    cost step = binarize $ anyOf (notes . fingerings' . finger) (== Open) step
+    cost step = binarize $ anyOf (notes . fgr) (== Open) step
 
 --------------------------------------------------------------------------------
 -- Double Stops
 --------------------------------------------------------------------------------
-chordAdjacent :: Penalty1
+chordAdjacent :: Num a => Penalty1 a
 chordAdjacent = P "chords on adjacent strings" cost high
   where
     cost step =
-      case sort $ step ^.. notes . fingerings' . string of
+      case sort $ step ^.. notes . str of
         [] -> 0 -- rest
         [_] -> 0
-        [s1, s2] -> if fromEnum s2 - fromEnum s1 == 1 then 0 else infinity
+        [s1, s2] | fromEnum s2 - fromEnum s1 == 1 -> 0
         [G, D, A] -> 0
         [D, A, E] -> 0
         [G, D, A, E] -> 0
         _ -> infinity
 
-staticThird :: Penalty1
+staticMajorThird4_3 :: Num a => Penalty1 a
+staticMajorThird4_3 = P "static major third 4-3" cost medium
+  where
+    cost (Step (DoubleStop n1 n2) _)
+      | _M3 n1 n2 =
+        let higherThan pos =
+              anyOf
+                (traversed . fingering . to position . traversed)
+                (>= pos)
+                [n1, n2]
+         in case (n1 ^. fgr, n2 ^. fgr) of
+              (Four, Three) -> if higherThan Fourth then 1 else high
+              _ -> 0
+    cost _ = 0
+
+staticThird :: Num a => Penalty1 a
 staticThird = P "static third" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | third n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (Three, One) -> 0
-                (Four, Two) -> 0
-                (_, Open) -> 0
-                (Open, _) -> 0
-                (Four, One)
-                  | allOf (both . to position . traversed) (<= First) (f1, f2) -> low
-                  | otherwise -> medium
-                -- TODO: Make these more comprehensive
-                (Four, Three)
-                  | f2 ^. distance - f1 ^. distance <= 40 -> low
-                  | otherwise -> high
-                (Three, Two)
-                  | f2 ^. distance - f1 ^. distance <= 35 -> low
-                  | otherwise -> high
-                (Two, One)
-                  | f2 ^. distance - f1 ^. distance <= 30 -> low
-                  | otherwise -> high
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | third n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (Three, One) -> 0
+        (Four, Two) -> 0
+        (_, Open) -> 0
+        (Open, _) -> 0
+        (f1, f2) | f1 <= f2 -> infinity
+        _ -> 0
+    cost _ = 0
 
-staticMinorSixth :: Penalty1
-staticMinorSixth = P "static minor sixth" cost high
+staticSixth :: Num a => Penalty1 a
+staticSixth = P "static sixth" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _m6 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, Two) -> 0
-                (Two, Three) -> 0
-                (Three, Four) -> 0
-                (_, Open) -> low
-                (Open, _) -> low
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | sixth n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (One, Two) -> 0
+        (Two, Three) -> 0
+        (Three, Four) -> 0
+        (_, Open) -> low
+        (Open, _) -> low
+        (f1, f2) | f1 >= f2 -> infinity
+        _ -> 0
+    cost _ = 0
 
-staticMajorSixth :: Penalty1
+staticMajorSixth :: Num a => Penalty1 a
 staticMajorSixth = P "static major sixth" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _m6 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, Two) -> 0
-                (Two, Three) -> 0
-                (Three, Four) -> 0
-                (One, Three) -> low
-                (Two, Four) -> low
-                (_, Open) -> low
-                (Open, _) -> low
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _M6 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (One, Three) -> low
+        (Two, Four) -> low
+        (One, Four) -> high
+        _ -> 0
+    cost _ = 0
 
-staticOctave :: Penalty1
+staticOctave :: Num a => Penalty1 a
 staticOctave = P "static octave" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _p8 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, Four) -> 0
-                (Open, _) -> 0
-                -- TODO make these more interesting
-                (One, Three) -> if f2 ^. distance >= G7 then 0 else low
-                (Two, Four) -> if f2 ^. distance >= G7 then 0 else low
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _p8 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (One, Four) -> 0
+        (Open, _) -> 0
+        -- TODO make these more interesting
+        (One, Three) -> if n2 ^. fingering . distance >= G7 then 0 else low
+        (Two, Four) -> if n2 ^. fingering . distance >= G7 then 0 else low
+        _ -> infinity
+    cost _ = 0
 
-staticTenth :: Penalty1
+staticTenth :: Num a => Penalty1 a
 staticTenth = P "static tenth (or any interval greater than an octave)" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _m9 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, Four) -> 0
-                (Open, _) -> 0
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _m9 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (One, Four) -> 0
+        (Open, _) -> 0
+        (_, Open) -> high
+        _ -> infinity
+    cost _ = 0
 
-staticUnison :: Penalty1
+staticUnison :: Num a => Penalty1 a
 staticUnison = P "static unison" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _p1 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in -- Make sure that f1 refers to the lower string
-              case (min f1 f2 ^. finger, max f1 f2 ^. finger) of
-                (Four, One) -> 0
-                (Open, _) -> 0
-                (_, Open) -> 0
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _)
+      | _p1 n1 n2 =
+        let f1 = n1 ^. fingering
+            f2 = n2 ^. fingering
+         in -- Make sure that f1 refers to the lower string
+            case (min f1 f2 ^. finger, max f1 f2 ^. finger) of
+              (Four, One) -> 0
+              (Open, _) -> 0
+              (_, Open) -> 0
+              _ -> infinity
+    cost _ = 0
 
-staticSecond :: Penalty1
+staticSecond :: Num a => Penalty1 a
 staticSecond = P "static second" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | second n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (Four, One) -> 0
-                (Open, _) -> 0
-                (_, Open) -> 0
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | second n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (Four, One) -> 0
+        (Open, _) -> 0
+        (_, Open) -> 0
+        _ -> infinity
+    cost _ = 0
 
-staticFourth :: Penalty1
+staticFourth :: Num a => Penalty1 a
 staticFourth = P "static fourth" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _p4 n1 n2 || _a4 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (Two, One) -> 0
-                (Three, Two) -> 0
-                (Four, Three) -> 0
-                (Open, _) -> 0
-                (_, Open) -> 0
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _a4 n1 n2 || _p4 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (Two, One) -> 0
+        (Three, Two) -> 0
+        (Four, Three) -> 0
+        (Open, _) -> 0
+        (_, Open) -> 0
+        _ -> infinity
+    cost _ = 0
 
-staticFifth :: Penalty1
+staticFifth :: Num a => Penalty1 a
 staticFifth = P "static fifth" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | _p5 n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, One) -> 0
-                (Two, Two) -> 0
-                (Three, Three) -> 0
-                (Four, Four) -> 0
-                (Open, _) -> 0
-                (_, Open) -> 0
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _p5 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (f1, f2) | f1 == f2 -> 0
+        (Open, _) -> 0
+        (_, Open) -> 0
+        _ -> infinity
+    cost _ = 0
 
-staticMinorSeventh :: Penalty1
+staticSeventh :: Num a => Penalty1 a
+staticSeventh = P "static seventh" cost high
+  where
+    cost (Step (DoubleStop n1 n2) _) | seventh n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (Open, _) -> 0
+        (_, Open) -> 0
+        (f1, f2) | f1 >= f2 -> infinity
+        _ -> 0
+    cost _ = 0
+
+staticMinorSeventh :: Num a => Penalty1 a
 staticMinorSeventh = P "static minor seventh" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | seventh n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, Three) -> 0
-                (Two, Four) -> 0
-                (Open, _) -> 0
-                (_, Open) -> 0
-                (One, Two) -> low
-                (Two, Three) -> low
-                (Three, Four) -> medium
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _m7 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (One, Three) -> 0
+        (Two, Four) -> 0
+        (One, Two) -> low
+        (Two, Three) -> low
+        (Three, Four) -> medium
+        _ -> 0
+    cost _ = 0
 
-staticMajorSeventh :: Penalty1
+staticMajorSeventh :: Num a => Penalty1 a
 staticMajorSeventh = P "static major seventh" cost high
   where
-    cost step = case step ^. timestep of
-      DoubleStop n1 n2
-        | seventh n1 n2 ->
-          let f1 = n1 ^. fingerings'
-              f2 = n2 ^. fingerings'
-           in case (f1 ^. finger, f2 ^. finger) of
-                (One, Three) -> 0
-                (Two, Four) -> 0
-                (Open, _) -> 0
-                (_, Open) -> 0
-                _ -> infinity
-      _ -> 0
+    cost (Step (DoubleStop n1 n2) _) | _M7 n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (One, Three) -> 0
+        (Two, Four) -> 0
+        _ -> 0
+    cost _ = 0
 
 --------------------------------------------------------------------------------
 -- Triple/Quadruple Stops
 --------------------------------------------------------------------------------
 
-staticTripleStop :: Penalty1
+staticTripleStop :: Num a => Penalty1 a
 staticTripleStop = P "static triple stop" cost high
   where
     cost step =
-      case sortOn (view (fingerings' . string)) $
+      case sortOn (view str) $
         step ^.. timestep . _TripleStop . each of
         ns@[n1, n2, n3] ->
           -- TODO: fixme pass weights to all penalty functions
           applyP1s mempty doubleStops (set timestep (DoubleStop n1 n2) step)
             + applyP1s mempty doubleStops (set timestep (DoubleStop n2 n3) step)
-            + let [f1, _, f3] = ns ^.. traversed . fingerings' . finger
+            + let [f1, _, f3] = ns ^.. traversed . fgr
                in if f1 == f3 && f1 /= Open then infinity else 0
         _ -> 0
 
-staticQuadrupleStop :: Penalty1
+staticQuadrupleStop :: Num a => Penalty1 a
 staticQuadrupleStop = P "static quadruple stop" cost high
   where
     cost step =
-      case sortOn (view (fingerings' . string)) $
+      case sortOn (view str) $
         step ^.. timestep . _QuadrupleStop . each of
         ns@[n1, n2, n3, n4] ->
           -- TODO: fixme pass weights to all penalty functions
           applyP1s mempty doubleStops (set timestep (DoubleStop n1 n2) step)
             + applyP1s mempty doubleStops (set timestep (DoubleStop n2 n3) step)
             + applyP1s mempty doubleStops (set timestep (DoubleStop n3 n4) step)
-            + let [f1, f2, f3, f4] = ns ^.. traversed . fingerings' . finger
+            + let [f1, f2, f3, f4] = ns ^.. traversed . fgr
                in if any
                     (\(x, y) -> x == y && x /= Open)
                     [(f1, f3), (f2, f4), (f1, f4)]
@@ -917,34 +908,40 @@ staticQuadrupleStop = P "static quadruple stop" cost high
 --------------------------------------------------------------------------------
 -- Penalty2s
 --------------------------------------------------------------------------------
-oneFingerHalfStep :: Penalty2
+oneFingerHalfStep :: Num a => Penalty2 a
 oneFingerHalfStep = P "one finger half step shift" cost (- low)
   where
     cost (Step (Single n1) _, Step (Single n2) _)
-      | and
-          [ _m2 n1 n2
-          , n1 ^. fingerings' . finger == n2 ^. fingerings' . finger
-          , n1 ^. fingerings' . string == n2 ^. fingerings' . string
-          ] =
-        1
+      | and [_m2 n1 n2, n1 ^. fgr == n2 ^. fgr, n1 ^. str == n2 ^. str] = 1
     -- TODO: double stops
     cost _ = 0
 
-samePosition :: Penalty2
+samePosition :: Num a => Penalty2 a
 samePosition = P "same position" cost (- high)
   where
     cost steps =
-      let positions = steps ^.. both . notes . fingerings' . to position
+      let positions = steps ^.. both . notes . fingering . to position
        in binarize $ not (null (F.foldr1 L.intersect positions))
 
-sameString :: Penalty2
+augmentedSecond :: Num a => Penalty2 a
+augmentedSecond = P "augmented second 1-2, 2-3" cost medium
+  where
+    cost (x, y) = case (x ^. timestep, y ^. timestep) of
+      (Single n1, Single n2) ->
+        binarize $
+          _m3 n1 n2 && (n1 ^. fgr, n2 ^. fgr)
+            `elem` [(One, Two), (Two, One), (Two, Three), (Three, Two)]
+      _ -> 0
+
+sameString :: Num a => Penalty2 a
 sameString = P "same string" cost (- high)
   where
     cost (x, y) = case (x ^. timestep, y ^. timestep) of
-      (Single n1, Single n2) -> binarize $ n1 ^. s == n2 ^. s
+      (Single n1, Single n2) -> binarize $ n1 ^. str == n2 ^. str
       (DoubleStop n11 n12, DoubleStop n21 n22) ->
-        binarize $ n11 ^. s == n21 ^. s && n12 ^. s == n22 ^. s
-      (Single n1, DoubleStop n21 n22) -> binarize $ (n1 ^. s) `elem` [n21 ^. s, n22 ^. s]
-      (DoubleStop n11 n12, Single n2) -> binarize $ (n2 ^. s) `elem` [n11 ^. s, n12 ^. s]
+        binarize $ n11 ^. str == n21 ^. str && n12 ^. str == n22 ^. str
+      (Single n1, DoubleStop n21 n22) ->
+        binarize $ (n1 ^. str) `elem` [n21 ^. str, n22 ^. str]
+      (DoubleStop n11 n12, Single n2) ->
+        binarize $ (n2 ^. str) `elem` [n11 ^. str, n12 ^. str]
       _ -> 0
-    s = fingerings' . string

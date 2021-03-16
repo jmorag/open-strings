@@ -1,0 +1,129 @@
+const formatDate = (time) => {
+    const d = new Date(time);
+    return `on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`
+}
+
+const vue = new Vue({
+  el: "#entry-container",
+  data: {
+    editor: new FingeringEditor(#{renderId}),
+    infer_weights: #{toJSON startingWeights},
+    description: #{entryDescription entry},
+    uploadedBy: `Uploaded by #{rawJS uploadedByName} ${formatDate(#{time})}`,
+    validated: false,
+    edited: false,
+    loading: false,
+    show_alert: false,
+    alert_message: "",
+    disable_submit: true,
+  },
+
+  mounted: function() {
+    // the xml on the server already has measure numbers set
+    this.editor.render(#{entryMusicxml entry}, 1);
+  },
+
+  methods: {
+    async inferFingerings(e) {
+      const s = new XMLSerializer();
+      const body = {
+        infer_xml: s.serializeToString(this.editor.musicxml),
+        infer_weights: this.infer_weights,
+      };
+      this.loading = true;
+      try {
+        const resp = await fetch("@{InferR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body)
+        });
+        const json = await resp.json();
+        this.loading = false;
+        if (json.error) {
+          this.alert_message = json.error;
+          this.show_alert = true;
+          return;
+        }
+        if (json.success) {
+          this.description = "Inferred";
+          this.editor.clear()
+          this.editor.render(json.xml, 1);
+          return;
+        }
+      } catch (e) {
+        this.alert_message = e;
+        this.show_alert = true;
+        return;
+      }
+    },
+
+    async inferWeights() {
+      const s = new XMLSerializer();
+      const body = {
+        infer_xml: s.serializeToString(this.editor.musicxml),
+        infer_weights: this.infer_weights,
+      };
+      this.loading = true;
+      try {
+        const resp = await fetch("@{InferWeightsR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body)
+        });
+        const json = await resp.json();
+        this.loading = false;
+        if (json.error) {
+          this.alert_message = json.error;
+          this.show_alert = true;
+          return;
+        }
+        if (json.success) {
+          this.infer_weights = json.infer_weights;
+          return;
+        }
+      } catch (e) {
+        this.alert_message = e;
+        this.show_alert = true;
+        this.loading = false;
+        return;
+      }
+    },
+
+    async submit(e) {
+      if (!this.description) {
+        this.validated = true;
+        return;
+      }
+      const s = new XMLSerializer();
+      const body = {
+        movement_id: #{toJSON (fromSqlKey (entryMovementId entry))},
+        part: #{showPart (entryPart entry)},
+        start_measure: #{toJSON (entryMeasure_start entry)},
+        xml: s.serializeToString(this.editor.musicxml),
+        description: this.description
+      };
+      this.loading = true;
+      const resp = await fetch("@{UploadR}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+        body: JSON.stringify(body)
+      });
+      const json = await resp.json();
+      if (json.error) {
+        this.alert_message = json.error;
+        this.show_alert = true;
+        this.loading = false;
+        return;
+      }
+      if (json.success) {
+        window.location.href = `/entry/${json.entry_id}`;
+      }
+    }
+  },
+
+  watch: {
+    loading: function(loading) {
+      loading ? this.editor.disable() : this.editor.enable();
+    },
+  },
+})

@@ -6,6 +6,7 @@ User sql=users
   type UserType
   UniqueUser ident
   createdAt UTCTime
+  surveyAgree Bool default=False
   deriving Typeable
   deriving Show
 
@@ -38,6 +39,7 @@ Composer sql=composers
   name Text
   url Text Maybe
   UniqueComposerName name
+  uploadedBy UserId Maybe
   deriving Show
 
 Work sql=works
@@ -46,6 +48,7 @@ Work sql=works
   instrumentation (Set Part)
   composerId ComposerId
   UniqueWork composerId title
+  uploadedBy UserId Maybe
   deriving Show
 
 Movement sql=movements
@@ -64,4 +67,27 @@ Entry sql=entries
   movementId MovementId
   createdAt UTCTime
   description Text
+  -- We use this field to determine which entries to use for the survey
+  isAlgorithm Bool Maybe
+  deriving Show
+
+SurveyDemographics json
+  userId UserId
+  years_experience Int
+  violinist_type (Set ViolinistType)
+  most_recent_piece WorkId
+  -- every user can take one survey
+  UniqueUserId userId
+  deriving Show
+
+SurveyFingering json
+  entryId EntryId
+  surveyId SurveyDemographicsId
+  UniqueSurveyResponse entryId surveyId
+  -- these should all be between 0 and 4
+  comfort Int
+  expressivity Int
+  idiomatic Int
+  fingering_guess Int
+  other Text Maybe
   deriving Show

@@ -1,0 +1,78 @@
+const vue = new Vue({
+  el: "#survey-question",
+  data: {
+    editor: new FingeringEditor("sheet-music"),
+    comfort_options: [
+      { text: "Very uncomfortable", value: 0 },
+      { text: "Mildly uncomfortable", value: 1 },
+      { text: "Unsure", value: 2 },
+      { text: "Somewhat comfortable", value: 3 },
+      { text: "Very comfortable", value: 4 },
+    ],
+    expressivity_options: [
+      { text: "Not at all expressive", value: 0 },
+      { text: "Mostly not expressive", value: 1 },
+      { text: "Unsure", value: 2 },
+      { text: "Somewhat expressive", value: 3 },
+      { text: "Very expressive", value: 4 },
+    ],
+    idiomatic_options: [
+      { text: "Totally unidiomatic", value: 0 },
+      { text: "Mostly unidiomatic", value: 1 },
+      { text: "Unsure", value: 2 },
+      { text: "Somewhat idiomatic", value: 3 },
+      { text: "Very idiomatic", value: 4 },
+    ],
+    guess_options: [
+      { text: "Definitely a computer", value: 0 },
+      { text: "Probably a computer", value: 1 },
+      { text: "Unsure", value: 2 },
+      { text: "Probably a human", value: 3 },
+      { text: "Definitely a human", value: 4 },
+    ],
+    validated: false,
+    comfort: null,
+    expressivity: null,
+    idiomatic: null,
+    fingering_guess: null,
+    other: null,
+    error: "",
+  },
+  mounted: function() {
+    // the xml on the server already has measure numbers set
+    this.editor.render(#{entryMusicxml entry}, 1);
+  },
+  methods: {
+    async submit() {
+      const { comfort, expressivity, idiomatic, fingering_guess, other } = this;
+      if (!comfort || !expressivity || !idiomatic || !fingering_guess) {
+          this.validated = true;
+          return;
+      }
+      const body = {
+        entryId: #{toJSON entry_key},
+        surveyId: #{toJSON $ fromSqlKey surveyId},
+        comfort,
+        expressivity,
+        idiomatic,
+        fingering_guess,
+        other,
+      };
+      try {
+        const resp = await fetch("@{SurveyFingeringR entry_key}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body),
+        });
+        const json = await resp.json();
+        if (json.error) {
+          this.error = json.error;
+          return
+        }
+        window.location.href = json.destination;
+      } catch(e) {
+        this.error = e;
+      }
+    }
+  },
+})

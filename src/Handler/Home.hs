@@ -28,6 +28,7 @@ getHomeR = do
     addAutocomplete
     searchId <- newIdent
     tableId <- newIdent
+    csrf <- getCSRF
     $(widgetFile "homepage")
 
 mostRecentUploads :: Handler Value

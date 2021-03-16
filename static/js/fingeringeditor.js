@@ -1,5 +1,6 @@
 class FingeringEditor {
-  constructor(nodeId) {
+  constructor(nodeId, clean) {
+    this.clean = clean;
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
     this.index = 0;
@@ -11,12 +12,16 @@ class FingeringEditor {
     this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
     this.handleClick = this.handleClick.bind(this);
+    // We need this extra variable so the state persists window size change
+    this.enabled = false;
     // Defined here so that we can disconnect it when calling clear
-    this.observer = new MutationObserver((_) => {
+    this.observer = new MutationObserver((mutation) => {
       const svg = document.querySelector("svg");
       this.set_stavenotes(svg);
       this.set_noteheads(svg);
       this.set_fingerings_and_strings(svg);
+      if (this.clean) this.resetFingerings();
+      if (this.enabled) this.enable();
     });
   }
 
@@ -61,7 +66,7 @@ class FingeringEditor {
 
     // Remove empty strings
     xml.querySelectorAll("notations>technical>string").forEach((string) => {
-      if (string.textContent === "X") {
+      if (string.textContent === "-1") {
         const technical = string.parentNode;
         const notations = technical.parentNode;
         const note = notations.parentNode;
@@ -135,14 +140,14 @@ class FingeringEditor {
         ["-1", "0", "1", "2", "3", "4"].contains(e.textContent)
       );
     };
-    // Rudimentary check for svg circle around string number. The
-    // radius is set to 0 in osmd, but the svg element still exists
-    // and must be accounted for
-    const isStringNumCircle = (e) => {
-      return e.tagName === "path" && e.getAttribute("stroke-width") === "1.5";
-    };
 
     let i = 0;
+    // OSMD re-renders on window size change, destroying all
+    // annotations. Fortunately, they are persisted on write to the
+    // underlying musicxml, so we can recover them and re-apply them
+    // here
+    const xml_fingerings = this.xml.querySelectorAll("fingering");
+    const xml_strings = this.xml.querySelectorAll("string");
     this.svg_fingerings = [];
     this.svg_strings = [];
     for (const s of this.svg_stavenotes) {
@@ -150,32 +155,30 @@ class FingeringEditor {
       let j = i; // save index so we can reset for string numbers
       let fIndex = modifiers.findIndex(isFingering);
       if (fIndex === -1) {
-        continue; // probably a rest
+        continue; // Fingering not found, probably a rest
       }
-      let f = modifiers[fIndex];
       // svg finger numbers
-      while (isFingering(f)) {
+      for (let f = modifiers[fIndex]; isFingering(f); f = modifiers[++fIndex]) {
         f.setAttribute("index", i);
+        f.textContent = xml_fingerings[i].textContent;
         i++;
         // hide bogus fingerings
         f.textContent === "-1" && f.setAttribute("visibility", "hidden");
         this.svg_fingerings.push(f);
-        fIndex++;
-        f = modifiers[fIndex];
       }
 
       // svg string numbers
       i = j; // reset i to beginning of this chord
-      while (fIndex < modifiers.length) {
-        if (!isStringNumCircle(f)) {
+      for (let f = modifiers[fIndex]; fIndex < modifiers.length; f = modifiers[++fIndex]) {
+        // skip all non-text elements
+        if (f.tagName !== "path") {
           f.setAttribute("index", i);
+          f.textContent = this.constructor.arabicToRoman(xml_strings[i].textContent);
           // hide bogus string numbers
-          f.textContent === "-1" && f.setAttribute("visibility", "hidden");
+          f.textContent === "X" && f.setAttribute("visibility", "hidden");
           i++;
           this.svg_strings.push(f);
         }
-        fIndex++;
-        f = modifiers[fIndex];
       }
     }
   }
@@ -265,8 +268,10 @@ class FingeringEditor {
       string.textContent = "-1";
     });
     this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-    this.svg_noteheads[0].setAttribute("fill", this.focused);
-    this.index = 0;
+    if (!this.clean) {
+      this.svg_noteheads[0].setAttribute("fill", this.focused);
+      this.index = 0;
+    }
   }
 
   handleKeypress(e) {
@@ -332,18 +337,33 @@ class FingeringEditor {
     this.dom_node.innerHTML = "";
   }
 
+  hide() {
+    this.dom_node.setAttribute("style", "visibility: hidden");
+  }
+
+  unHide() {
+    this.dom_node.removeAttribute("style");
+  }
+
   enable() {
     const svg = document.querySelector("svg");
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[0].setAttribute("fill", this.focused);
+    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
     window.addEventListener("keydown", this.handleKeypress);
     window.addEventListener("mouseup", this.handleClick);
+    this.enabled = true;
+  }
+
+  disable() {
+    const svg = document.querySelector("svg");
+    svg.setAttribute("tabindex", "-1");
+    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.enabled = false;
   }
 
   async render(xml_string, start_measure) {
-    this.index = 0;
     const offset = parseInt(start_measure, 10) - 1;
     this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);

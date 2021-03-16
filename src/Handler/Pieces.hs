@@ -4,7 +4,7 @@ import Data.Aeson.Types (emptyArray)
 import qualified Data.Text as T
 import Database.Esqueleto hiding (Value)
 import qualified Database.Esqueleto as E
-import Database.Esqueleto.Internal.Sql (unsafeSqlFunction)
+import Database.Esqueleto.Internal.Internal (unsafeSqlFunction)
 import Import hiding ((==.))
 import Model.UserType
 
@@ -38,8 +38,8 @@ getWorksR = do
 formatWork :: (E.Value Text, E.Value WorkId, E.Value Text) -> Value
 formatWork (E.Value composer, E.Value workKey, E.Value title) =
   object
-    [ "label" .= replaceUnderscores (composer <> ": " <> title),
-      "value" .= workKey
+    [ "label" .= replaceUnderscores (composer <> ": " <> title)
+    , "value" .= workKey
     ]
 
 fuzzy :: Text -> SqlExpr (E.Value Text)
@@ -64,8 +64,8 @@ workData workId = do
               pure movement
         )
   pure
-    ( maybe emptyArray (toJSON . workInstrumentation) work,
-      array (map jsonMovement movements)
+    ( maybe emptyArray (toJSON . workInstrumentation) work
+    , array (map jsonMovement movements)
     )
   where
     jsonMovement (Entity key Movement {..}) =
@@ -81,52 +81,63 @@ getEntriesR workId = do
         E.on (oauth ^. OAuthUserUserId ==. user ^. UserId)
         where_ (movement ^. MovementWorkId ==. valkey workId)
         orderBy
-          [ asc (movement ^. MovementNumber),
-            asc (entry ^. EntryPart),
-            asc (entry ^. EntryMeasure_start)
+          [ asc (movement ^. MovementNumber)
+          , asc (entry ^. EntryPart)
+          , asc (entry ^. EntryMeasure_start)
+          , desc (entry ^. EntryCreatedAt)
           ]
         pure
-          ( movement ^. MovementNumber,
-            movement ^. MovementName,
-            movement ^. MovementId,
-            entry ^. EntryPart,
-            entry ^. EntryMeasure_start,
-            entry ^. EntryMeasure_end,
-            entry ^. EntryDescription,
-            user,
-            oauth ^. OAuthUserName,
-            entry ^. EntryCreatedAt,
-            entry ^. EntryId
+          ( movement ^. MovementNumber
+          , movement ^. MovementName
+          , movement ^. MovementId
+          , entry ^. EntryPart
+          , entry ^. EntryMeasure_start
+          , entry ^. EntryMeasure_end
+          , entry ^. EntryDescription
+          , user
+          , oauth ^. OAuthUserName
+          , entry ^. EntryCreatedAt
+          , entry ^. EntryId
           )
   pure . array $
     map
-      ( \( E.Value movementNum,
-           E.Value movement,
-           E.Value movementId,
-           E.Value part,
-           E.Value start,
-           E.Value end,
-           E.Value description,
-           (Entity _ user),
-           E.Value oauth,
-           E.Value time,
-           E.Value entryId
-           ) ->
+      ( \( E.Value movementNum
+          , E.Value movement
+          , E.Value movementId
+          , E.Value part
+          , E.Value start
+          , E.Value end
+          , E.Value description
+          , (Entity _ user)
+          , E.Value oauth
+          , E.Value time
+          , E.Value entryId
+          ) ->
+            -- TODO: simplify this query to use formatUsername below
             let u = case userType user of
                   Email -> takeWhile (/= '@') $ userIdent user
                   OAuth -> fromMaybe "Anonymous" oauth
              in object
-                  [ "movement" .= (tshow movementNum <> ". " <> movement),
-                    "part" .= part,
-                    "measures" .= (tshow start <> " - " <> tshow end),
-                    "start_measure" .= start,
-                    "description" .= description,
-                    "uploaded_by" .= object ["user" .= u, "time" .= time],
-                    "movement_id" .= movementId,
-                    "entry_id" .= entryId
+                  [ "movement" .= (tshow movementNum <> ". " <> movement)
+                  , "part" .= part
+                  , "measures" .= (tshow start <> " - " <> tshow end)
+                  , "start_measure" .= start
+                  , "description" .= description
+                  , "uploaded_by" .= object ["user" .= u, "time" .= time]
+                  , "movement_id" .= movementId
+                  , "entry_id" .= entryId
                   ]
       )
       entries
+
+formatUsername :: Entity User -> Handler Text
+formatUsername (Entity userId user) = case userType user of
+  Email -> pure $ takeWhile (/= '@') $ userIdent user
+  OAuth -> do
+    oauth <- runDB (getBy (UniqueOAuthUserId userId))
+    pure case oauth of
+      Just (Entity _ o) -> fromMaybe "Anonymous" $ oAuthUserName o
+      _ -> "Anonymous"
 
 getMusicXMLR :: Int64 -> Handler LText
 getMusicXMLR entryId = entryMusicxml <$> runDB (get404 (toSqlKey entryId))

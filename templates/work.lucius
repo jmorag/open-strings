@@ -2,11 +2,6 @@
   text-align: left;
 }
 
-.manual {
-  text-align: right;
-  width: auto;
-}
-
-.slider {
-  vertical-align: middle;
+##{renderId} {
+  margin-top: 20px;
 }

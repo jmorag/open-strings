@@ -1,3 +1,8 @@
 static/css/* linguist-vendored
-static/js/* linguist-vendored
-static/js/fingeringeditor.js -linguist-vendored
+static/js/autocomplete.js linguist-vendored
+static/js/vue.js linguist-vendored
+static/js/*.min.js linguist-vendored
+static/js/*.min.js.map linguist-vendored
+nix/static-haskell.nix linguist-vendored
+fingerdb.cabal linguist-generated
+musicdata.sql linguist-generated

@@ -1,9 +1,12 @@
+{-# LANGUAGE NumDecimals #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Handler.Upload where
 
 import Control.Lens (lengthOf)
 import Data.Aeson.Types
+import qualified Data.Map as M
+import qualified Data.Set as S
 import Database.Esqueleto (fromSqlKey, toSqlKey)
 import Fingering (Weights, high, low, medium)
 import Handler.Pieces
@@ -28,22 +31,40 @@ postInferR =
     Success InferParams {..} -> case parseText def infer_xml of
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
-        let musicxml' = inferFingerings musicxml infer_weights
         $logInfo "Inferring fingerings"
-        result <-
-          timeout timeLimit (tryAny (evaluateDeep musicxml'))
+        let musicxml' = inferFingerings musicxml infer_weights
+        result <- timeout 15e6 (tryAny (evaluateDeep musicxml'))
         pure case result of
           Nothing -> object ["error" .= timeoutMsg]
-          Just (Right xml') ->
+          Just (Right (cost, xml')) ->
             object
               [ "success" .= True
               , "xml" .= renderText def xml'
+              , "cost" .= cost
               ]
           Just (Left e) -> object ["error" .= tshow e]
   where
-    timeLimit = 15 * (10 ^ (6 :: Int)) -- 15 seconds
     timeoutMsg :: Text
     timeoutMsg = "Inference timed out. Try annotating some fingerings yourself or uploading a shorter passage"
+
+postInferWeightsR :: Handler Value
+postInferWeightsR =
+  parseCheckJsonBody >>= \case
+    Error e -> pure $ object ["error" .= e]
+    Success InferParams {..} -> case parseText def infer_xml of
+      Left e -> pure $ object ["error" .= tshow e]
+      Right musicxml -> do
+        $logInfo "Inferring weights"
+        let weights' = inferWeights musicxml startingWeights
+        result <- tryAny (evaluateDeep weights')
+        pure . object $ case result of
+          Left e -> ["error" .= tshow e]
+          Right eWeights -> case eWeights of
+            Left e -> ["error" .= e]
+            Right weights ->
+              [ "success" .= True
+              , "infer_weights" .= toJSON (fmap (round @_ @Int) weights)
+              ]
 
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64
@@ -66,24 +87,19 @@ postUploadR =
             end_measure = start_measure + lengthOf (root . measureNumbers) musicxml - 1
         user_id <- requireAuthId
         now <- liftIO getCurrentTime
-        runDB . insert_ $
-          Entry
-            start_measure
-            end_measure
-            part
-            (renderText def musicxml')
-            user_id
-            (toSqlKey movement_id)
-            now
-            description
-        pure $ object ["success" .= True]
-
-getAddWorkR :: Handler Html
-getAddWorkR = defaultLayout do
-  csrf <- fromMaybe "" . reqToken <$> getRequest
-  addAutocomplete
-  addWorkId <- newIdent
-  $(widgetFile "add-work")
+        entryId <-
+          runDB . insert $
+            Entry
+              start_measure
+              end_measure
+              part
+              (renderText def musicxml')
+              user_id
+              (toSqlKey movement_id)
+              now
+              description
+              Nothing
+        pure $ object ["success" .= True, "entry_id" .= entryId]
 
 data AddWorkParams = AddWorkParams
   { work_url :: !(Maybe Text)
@@ -98,12 +114,17 @@ data AddWorkParams = AddWorkParams
 instance FromJSON AddWorkParams
 
 postAddWorkR :: Handler Value
-postAddWorkR =
+postAddWorkR = do
+  user_id <- maybeAuthId
   parseCheckJsonBody >>= \case
     Error e -> pure $ object ["error" .= e]
     Success AddWorkParams {..} -> runDB do
       composerId <-
-        insertBy $ Composer (addUnderscores work_composer) (addUnderscores <$> composer_url)
+        insertBy $
+          Composer
+            (addUnderscores work_composer)
+            (addUnderscores <$> composer_url)
+            user_id
       work <-
         insertBy $
           Work
@@ -111,11 +132,12 @@ postAddWorkR =
             work_url
             work_instrumentation
             (either entityKey id composerId)
+            user_id
       case work of
         Left (Entity workId _) ->
           pure $
             object
-              [ "error" .= ("Work already in database" :: Text)
+              [ "already_uploaded" .= True
               , "work_id" .= fromSqlKey workId
               ]
         Right workId -> do
@@ -123,7 +145,11 @@ postAddWorkR =
             [] -> insert_ $ Movement 0 "" workId
             [m] -> insert_ $ Movement 0 m workId
             ms -> insertMany_ $ zipWith (\i m -> Movement i m workId) [1 ..] ms
-          pure $ object ["work_id" .= fromSqlKey workId]
+          pure $
+            object
+              [ "label" .= (work_composer <> ": " <> work_title)
+              , "work_id" .= (fromSqlKey workId)
+              ]
 
 getWorkR :: Int64 -> Handler Html
 getWorkR work_key = do
@@ -133,11 +159,7 @@ getWorkR work_key = do
   composer <- runDB $ get404 (workComposerId work)
   entries <- getEntriesR work_key
   csrf <- fromMaybe "" . reqToken <$> getRequest
-  mentryId <- lookupGetParam "entry-id"
-  let entryId = fromMaybe Null (fmap Number . readMay =<< mentryId)
-      title =
-        takeWhile (/= ',') (composerName composer) <> ": "
-          <> replaceUnderscores (workTitle work)
+  let title = mkTitle composer work
   (parts, movements) <- workData work_key
   user_id <- maybeAuthId
   defaultLayout do
@@ -148,15 +170,36 @@ getWorkR work_key = do
     renderId <- newIdent
     $(widgetFile "work")
 
-startingWeights :: Value
+getEntryR :: Int64 -> Handler Html
+getEntryR entry_key = do
+  let entryId = toSqlKey entry_key
+  -- TODO: use a real join
+  (entry, movement, work, composer, uploadedBy) <- runDB do
+    e <- get404 entryId
+    m <- get404 (entryMovementId e)
+    w <- get404 (movementWorkId m)
+    c <- get404 (workComposerId w)
+    u <- get404 (entryUploadedBy e)
+    pure (e, m, w, c, u)
+  let title = mkTitle composer work
+      time = toJSON (entryCreatedAt entry)
+  uploadedByName <- formatUsername (Entity (entryUploadedBy entry) uploadedBy)
+  csrf <- fromMaybe "" . reqToken <$> getRequest
+  user_id <- maybeAuthId
+  defaultLayout do
+    renderId <- newIdent
+    setTitle (toHtml title)
+    addScript (StaticR js_opensheetmusicdisplay_min_js)
+    addScript (StaticR js_fingeringeditor_js)
+    $(widgetFile "entry")
+
+startingWeights :: Weights Double
 startingWeights =
-  object
-    [ "same string" .= (- high)
-    , "same position" .= (- high)
-    , "open string" .= zero
-    , "fourth finger" .= zero
-    , "high position" .= zero
-    , "medium position" .= zero
+  M.fromList
+    [ ("same string", - high)
+    , ("same position", - high)
+    , ("open string", 0)
+    , ("fourth finger", 0)
+    , ("high position", 0)
+    , ("medium position", 0)
     ]
-  where
-    zero = 0 :: Double

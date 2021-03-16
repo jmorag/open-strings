@@ -1,0 +1,7 @@
+static/css/*
+static/js/*
+!static/js/fingeringeditor.js
+nix/static-haskell.nix
+*.svg
+fingerdb.cabal
+musicdata.sql

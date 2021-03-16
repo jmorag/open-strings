@@ -1,0 +1,28 @@
+<h1>Demographics
+<div #demographics>
+  <b-alert variant="danger" v-bind:show="!!error">{{ error }}
+  <b-form v-on:submit.prevent="submit" novalidate>
+    <b-form-group>
+      <b-form-group
+        v-bind:validated="validated"
+        label-cols="6"
+        label-for="years-experience"
+        label="How many years have you been playing the violin?">
+        <b-form-input required name="years_experience" #years-experience type="number" max=125 v-model.number="years_experience">
+      <b-form-group
+        label-for="violinist-type"
+        label="Are you a (check all that apply):">
+        <b-form-checkbox-group
+          v-bind:state="validated ? violinist_type.length > 0 : null"
+          stacked
+          name="violinist_type"
+          id=violinist-type
+          v-model="violinist_type"
+          v-bind:options="options">
+      <autocomplete-work
+        ref="add_work"
+        csrf=#{csrf}
+        @autocomplete-submit="id => work_id = id"
+        id="last-work"
+        label="What piece have you played recently that you feel indicates your skill level?">
+    <b-button variant="primary" type="submit">Continue

@@ -3,24 +3,7 @@
   <p .lead .centered>A platform for string players to share and view fingerings
   <p>Use your favorite scorewriter — Finale, Sibelius, MuseScore, Dorico, Lilypond, or anything that exports MusicXML — to engrave a passage. Then, upload it and add in your fingerings to share with the community. Get started by searching for existing works below.
 <div ##{searchId}>
-  <b-form-group .required>
-    <b-form-group>
-      <autocomplete
-        #work-title
-        @submit="autocompleteSubmit"
-        @update="update"
-        default-value=""
-        placeholder="Work"
-        ref="autocomplete"
-        v-bind:auto-select="true"
-        v-bind:debounce-time="300"
-        v-bind:get-result-value="getResultValue"
-        v-bind:search="search"
-        >
-      <small for="work-title">Search by composer name and title, ex. beethoven violin concerto
-    <!-- Add work link -->
-    <div v-show="show_add_work_link">
-      <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
+  <autocomplete-work csrf=#{csrf} @autocomplete-submit="goto_work" ref="add_work">
 <div ##{tableId}>
   <p .lead>Recently uploaded
   <b-table
