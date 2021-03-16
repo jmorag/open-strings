@@ -84,7 +84,7 @@ getSurveyFingeringR entry_key = do
             c <- get404 (workComposerId w)
             pure (e, m, w, c)
           let title = mkTitle composer work
-          csrf <- fromMaybe "" . reqToken <$> getRequest
+          csrf <- getCSRF
           defaultLayout do
             setTitle "Question"
             addScript (StaticR js_opensheetmusicdisplay_min_js)

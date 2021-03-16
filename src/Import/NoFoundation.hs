@@ -2,6 +2,7 @@
 
 module Import.NoFoundation (
   module Import,
+  getCSRF,
 ) where
 
 import ClassyPrelude.Yesod as Import
@@ -11,3 +12,6 @@ import Settings.StaticFiles as Import
 import Yesod.Auth as Import
 import Yesod.Core.Types as Import (loggerSet)
 import Yesod.Default.Config2 as Import
+
+getCSRF :: MonadHandler m => m Text
+getCSRF = fromMaybe "" . reqToken <$> getRequest

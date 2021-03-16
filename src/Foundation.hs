@@ -475,26 +475,26 @@ Click on the link below to reset your password.
   getEmail = liftHandler . runDB . fmap (fmap userIdent) . get
 
   emailLoginHandler toParent = do
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     $(widgetFile "login-email")
 
   registerHandler = do
     toParent <- getRouteToParent
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     authLayout do
       setTitle "Register a new account"
       $(widgetFile "register-account")
 
   forgotPasswordHandler = do
     toParent <- getRouteToParent
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     authLayout do
       setTitle "Password Reset"
       $(widgetFile "password-reset")
 
   setPasswordHandler needOld = do
     toParent <- getRouteToParent
-    csrf <- fromMaybe "" . reqToken <$> getRequest
+    csrf <- getCSRF
     selectRep do
       provideRep $ authLayout do
         setTitle "Set Password"
