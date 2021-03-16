@@ -1,7 +1,9 @@
 const vue = new Vue({
   el: "##{rawJS searchId}",
-  data: {
-    work_id: 0
+  methods: {
+    goto_work(work_id) {
+      window.location.href = `/work/${work_id}`;
+    },
   },
 });
 
@@ -17,14 +19,14 @@ const mru_table = new Vue({
         formatter: ({ user, time }) => {
           const d = new Date(time);
           return `${user} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`;
-        }
-      }
+        },
+      },
     ],
-    items: #{entries}
+    items: #{ entries },
   },
   methods: {
     navigate(item, _index, _event) {
       window.location.href = `/entry/${item.entry_id}`;
-    }
-  }
+    },
+  },
 });

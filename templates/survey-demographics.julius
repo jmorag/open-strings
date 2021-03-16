@@ -13,32 +13,13 @@ const vue = new Vue({
     work_id: 0,
     years_experience: "",
     violinist_type: [],
-    show_add_work_link: false,
     validated: false,
     error: "",
   },
-  components: { Autocomplete },
   methods: {
-    async search(input) {
-      if (input.length < 2) {
-        return [];
-      }
-      const data = await fetch(`@{WorksR}?term=${input}`);
-      const suggestions = await data.json();
-      return suggestions;
-    },
-    getResultValue(result) {
-      return result.label;
-    },
-    update(results, _selectedIndex) {
-      this.show_add_work_link =
-        results.length === 0 &&
-        !this.work_id &&
-        this.$refs.autocomplete.value.length >= 2;
-    },
-    autocompleteSubmit({ value }) { this.work_id = value; },
     async submit() {
-      if (!this.work_id || this.years_experience === "" || this.violinist_type.length === 0) {
+      if (this.$refs.add_work.show_add_work_modal) return;
+      if (this.work_id === 0 || this.years_experience === "" || this.violinist_type.length === 0) {
         this.validated = true;
         return
       }

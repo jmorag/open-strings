@@ -1,5 +1,5 @@
 Vue.component("autocomplete-work", {
-  props: ["value", "csrf"],
+  props: ["value", "csrf", "id", "label"],
   components: { Autocomplete },
   data: function () {
     return {
@@ -23,7 +23,7 @@ Vue.component("autocomplete-work", {
     },
   },
   template: `<div>
-  <b-form-group class="required">
+  <b-form-group class="required" description="Search by composer name and title, ex. beethoven violin concerto" v-bind:label-for="id" v-bind:label="label">
     <autocomplete
      id="work-title"
      @submit="autocompleteSubmit"
@@ -32,13 +32,10 @@ Vue.component("autocomplete-work", {
      ref="autocomplete"
      v-bind:auto-select="true"
      v-bind:debounce-time="300"
-     v-bind:get-result-value="getResultValue"
+     v-bind:get-result-value="(result) => result.label"
      v-bind:search="search"
      >
     </autocomplete>
-    <small for="work-title">
-      Search by composer name and title, ex. beethoven violin concerto
-    </small>
   </b-form-group>
   <b-modal v-model="show_add_work_modal" title="Add work" size="xl">
     <b-alert v-bind:show="show_alert" variant="danger" dismissible @dismissed="reset">
@@ -152,17 +149,17 @@ Vue.component("autocomplete-work", {
         : suggestions;
     },
 
-    getResultValue(result) {
-      return result.label;
-    },
-
     async autocompleteSubmit(input) {
+      if (input === undefined) {
+        this.$emit("autocomplete-submit", this.work_id);
+        return;
+      }
       if (input.value === -1) {
         this.show_add_work_modal = true;
         this.$refs.autocomplete.value = "";
         return;
       }
-      window.location.href = `/work/${input.value}`;
+      this.$emit("autocomplete-submit", input.value);
     },
 
     composerAutocompleteSubmit({ label }) {
@@ -212,6 +209,7 @@ Vue.component("autocomplete-work", {
       }
       this.show_add_work_modal = false;
       this.$refs.autocomplete.value = json.label;
+      this.$emit("autocomplete-submit", this.work_id);
     },
 
     validatePart(part) {

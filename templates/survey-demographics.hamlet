@@ -10,31 +10,19 @@
         label="How many years have you been playing the violin?">
         <b-form-input required name="years_experience" #years-experience type="number" max=125 v-model.number="years_experience">
       <b-form-group
-        label-for="last-work"
-        label="What piece have you played recently that you feel indicates your skill level?"
-        description="Search by composer name and title, ex. beethoven violin concerto"
-        >
-        <autocomplete
-          v-bind:state="validated ? work_id !== 0 : null"
-          name="last_work"
-          #last-work
-          ref="autocomplete"
-          v-bind:debounce-time="300"
-          auto-select
-          @submit="autocompleteSubmit"
-          @update="update"
-          v-bind:search="search"
-          v-bind:get-result-value="getResultValue">
-      <div v-show="show_add_work_link">
-        <p>Don't see the work you're looking for?. <a href=@{AddWorkR}>Enter the piece data manually.</a>
-      <b-form-group
         label-for="violinist-type"
         label="Are you a (check all that apply):">
         <b-form-checkbox-group
           v-bind:state="validated ? violinist_type.length > 0 : null"
-          name="violinist_type"
-          #violinist-type
           stacked
+          name="violinist_type"
+          id=violinist-type
           v-model="violinist_type"
           v-bind:options="options">
+      <autocomplete-work
+        ref="add_work"
+        csrf=#{csrf}
+        @autocomplete-submit="id => work_id = id"
+        id="last-work"
+        label="What piece have you played recently that you feel indicates your skill level?">
     <b-button variant="primary" type="submit">Continue
