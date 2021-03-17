@@ -4,6 +4,7 @@ module MusicXML (
   readTimeSteps,
   inferFingerings,
   inferWeights,
+  timeStep,
 ) where
 
 import ClassyPrelude hiding (Element)
@@ -64,16 +65,16 @@ child nm = lens getter setter
       Nothing -> over nodes ((_Element # new) :) e
 
 setFingering :: Fingering -> Element -> Element
-setFingering fingering noteEl =
+setFingering fing noteEl =
   let e nm cs = Element nm mempty cs
-      fingerNum = case fingering ^. finger of
+      fingerNum = case fing ^. finger of
         One -> "1"
         Two -> "2"
         Three -> "3"
         Four -> "4"
         Open -> "0"
       fingerEl = e "fingering" [_Content # fingerNum]
-      stringNum = case fingering ^. string of E -> "1"; A -> "2"; D -> "3"; G -> "4"
+      stringNum = case fing ^. string of E -> "1"; A -> "2"; D -> "3"; G -> "4"
       stringEl = e "string" [_Content # stringNum]
    in noteEl & child "notations" . child "technical" . child "fingering" .~ fingerEl
         & child "notations" . child "technical" . child "string" .~ stringEl
@@ -166,17 +167,3 @@ measureNumbers =
       . attr "number"
       . unpacked
       . _Show
-
---------------------------------------------------------------------------------
--- repl utils
---------------------------------------------------------------------------------
-
-readXML :: FilePath -> IO Document
-readXML = Text.XML.readFile def
-
-prok, brahms, sibelius, ysaye, tartini :: IO Document
-prok = readXML "/home/joseph/Documents/MuseScore3/Scores/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
-brahms = readXML "/home/joseph/Documents/MuseScore3/Scores/Brahms_violin_concerto.musicxml"
-sibelius = readXML "/home/joseph/Documents/MuseScore3/Scores/Sibelius_violin_concerto_excerpt.musicxml"
-ysaye = readXML "/home/joseph/Documents/MuseScore3/Scores/Ysaye ballade excerpt.txt"
-tartini = readXML "/home/joseph/Documents/MuseScore3/Scores/tartini_devil_page_1.musicxml"

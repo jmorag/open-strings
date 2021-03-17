@@ -279,6 +279,7 @@ test-suite fingerdb-test
   other-modules:
       Handler.CommonSpec
       Handler.HomeSpec
+      MusicXMLSpec
       TestImport
       Paths_fingerdb
   hs-source-dirs:
