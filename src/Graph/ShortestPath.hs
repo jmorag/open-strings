@@ -2,7 +2,7 @@
 
 -- |
 -- Module : Graph.ShortestPath
-module Graph.ShortestPath where
+module Graph.ShortestPath (shortestPath, pathCost, nEdges) where
 
 import Control.Monad
 import Control.Monad.ST
