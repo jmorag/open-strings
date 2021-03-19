@@ -2,7 +2,8 @@
   <b-overlay v-bind:show="loading" rounded="sm" no-wrap fixed>
   <h2>
     <b-link href=@{WorkR (fromSqlKey (movementWorkId movement))} v-bind:disabled="loading">#{title}
-  <h3 .font-weight-light>#{movementNumber movement}. #{movementName movement}
+  $maybe h3 <- subtitle
+    <h3 .font-weight-light>#{h3}
   $if S.size (workInstrumentation work) > 1
     <div .d-flex .justify-content-between>
       <h4 .font-weight-light>#{showPart (entryPart entry)}

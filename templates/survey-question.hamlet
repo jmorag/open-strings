@@ -1,5 +1,6 @@
 <h2>#{title}
-<h3 .font-weight-light>#{movementNumber movement}. #{movementName movement}
+$maybe h3 <- subtitle
+  <h3 .font-weight-light>#{h3}
 <div #sheet-music .card>
 <div #survey-question>
   <b-alert variant="danger" v-bind:show="!!error">{{ error }}

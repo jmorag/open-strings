@@ -44,36 +44,36 @@ mostRecentUploads = do
         orderBy [desc (entry ^. EntryCreatedAt)]
         limit 10
         pure
-          ( composer ^. ComposerName,
-            work ^. WorkTitle,
-            movement ^. MovementNumber,
-            movement ^. MovementName,
-            entry ^. EntryPart,
-            entry ^. EntryMeasure_start,
-            entry ^. EntryMeasure_end,
-            entry ^. EntryDescription,
-            user,
-            oauth ^. OAuthUserName,
-            entry ^. EntryCreatedAt,
-            work ^. WorkId,
-            entry ^. EntryId
+          ( composer ^. ComposerName
+          , work ^. WorkTitle
+          , movement ^. MovementNumber
+          , movement ^. MovementName
+          , entry ^. EntryPart
+          , entry ^. EntryMeasure_start
+          , entry ^. EntryMeasure_end
+          , entry ^. EntryDescription
+          , user
+          , oauth ^. OAuthUserName
+          , entry ^. EntryCreatedAt
+          , work ^. WorkId
+          , entry ^. EntryId
           )
   pure . array $
     map
-      ( \( E.Value composer,
-           E.Value title,
-           E.Value movementNum,
-           E.Value movement,
-           E.Value part,
-           E.Value start,
-           E.Value end,
-           E.Value description,
-           (Entity _ user),
-           E.Value oauth,
-           E.Value time,
-           E.Value workId,
-           E.Value entryId
-           ) ->
+      ( \( E.Value composer
+          , E.Value title
+          , E.Value movementNum
+          , E.Value movement
+          , E.Value part
+          , E.Value start
+          , E.Value end
+          , E.Value description
+          , (Entity _ user)
+          , E.Value oauth
+          , E.Value time
+          , E.Value workId
+          , E.Value entryId
+          ) ->
             let u = case userType user of
                   Email -> takeWhile (/= '@') $ userIdent user
                   OAuth -> fromMaybe "Anonymous" oauth
@@ -81,18 +81,21 @@ mostRecentUploads = do
                   T.takeWhile (/= ',') composer
                     <> ": "
                     <> replaceUnderscores title
-                    <> " - "
-                    <> tshow movementNum
-                    <> ". "
-                    <> movement
+                    <> case movementNum of
+                      0 -> ""
+                      _ ->
+                        " - "
+                          <> tshow movementNum
+                          <> ". "
+                          <> movement
              in object
-                  [ "work" .= work,
-                    "part" .= part,
-                    "measures" .= (tshow start <> " - " <> tshow end),
-                    "description" .= description,
-                    "uploaded_by" .= object ["user" .= u, "time" .= time],
-                    "work_id" .= workId,
-                    "entry_id" .= entryId
+                  [ "work" .= work
+                  , "part" .= part
+                  , "measures" .= (tshow start <> " - " <> tshow end)
+                  , "description" .= description
+                  , "uploaded_by" .= object ["user" .= u, "time" .= time]
+                  , "work_id" .= workId
+                  , "entry_id" .= entryId
                   ]
       )
       entries

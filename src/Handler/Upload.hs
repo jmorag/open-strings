@@ -191,6 +191,9 @@ getEntryR entry_key = do
     setTitle (toHtml title)
     addScript (StaticR js_opensheetmusicdisplay_min_js)
     addScript (StaticR js_fingeringeditor_js)
+    let subtitle = case movementNumber movement of
+          0 -> case movementName movement of "" -> Nothing; name -> Just name
+          num -> Just $ tshow num <> ". " <> movementName movement
     $(widgetFile "entry")
 
 startingWeights :: Weights Double

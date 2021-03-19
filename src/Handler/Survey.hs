@@ -80,6 +80,9 @@ getSurveyFingeringR entry_key = do
             c <- get404 (workComposerId w)
             pure (e, m, w, c)
           let title = mkTitle composer work
+              subtitle = case movementNumber movement of
+                0 -> case movementName movement of "" -> Nothing; name -> Just name
+                num -> Just $ tshow num <> ". " <> movementName movement
           csrf <- getCSRF
           defaultLayout do
             setTitle "Question"

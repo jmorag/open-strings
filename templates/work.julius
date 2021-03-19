@@ -1,35 +1,39 @@
 const vue = new Vue({
   el: "##{rawJS wId}",
-  data: {
-    work_id: #{jsWorkId},
-    start_measure: "", // usually a number, but should be displayed as empty on paint
-    movements: #{movements},
-    movement_id: (#{movements})[0].value,
-    parts: #{parts},
-    part: (#{parts})[0],
-    xml_file: null,
-    table_fields: [
-      "movement",
+  data: function () {
+    const movements = #{ movements };
+    let table_fields = movements.length === 1 ? [] : ["movement"];
+    table_fields = table_fields.concat([
       "part",
       "measures",
       "description",
       {
         key: "uploaded_by",
-        formatter: ({ user, time }) => {
+        formatter: function ({ user, time }) {
           const d = new Date(time);
           return `${user} on ${d.toLocaleDateString()} at ${d.toLocaleTimeString()}`;
-        }
-      }
-    ],
-    entries: #{entries},
-    editor: new FingeringEditor(#{renderId}, true),
-    description: "",
-    show_alert: false,
-    alert_message: "",
-    disable_submit: true,
-    show_instructions: false,
-    validated: false,
-    loading: false,
+        },
+      },
+    ]);
+    return {
+      work_id: #{ jsWorkId },
+      start_measure: "", // usually a number, but should be displayed as empty on paint
+      movements,
+      movement_id: movements[0].value,
+      parts: #{ parts },
+      part: #{ parts }[0],
+      xml_file: null,
+      table_fields,
+      entries: #{ entries },
+      editor: new FingeringEditor(#{ renderId }, true),
+      description: "",
+      show_alert: false,
+      alert_message: "",
+      disable_submit: true,
+      show_instructions: false,
+      validated: false,
+      loading: false,
+    };
   },
 
   methods: {
@@ -44,13 +48,16 @@ const vue = new Vue({
         part: this.part,
         start_measure: this.start_measure,
         xml: s.serializeToString(this.editor.musicxml),
-        description: this.description
+        description: this.description,
       };
       this.loading = true;
       const resp = await fetch("@{UploadR}", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
-        body: JSON.stringify(body)
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": #{ csrf },
+        },
+        body: JSON.stringify(body),
       });
       const json = await resp.json();
       if (json.error) {
@@ -90,9 +97,9 @@ const vue = new Vue({
   },
 
   watch: {
-    xml_file: function(val) {
+    xml_file: function (val) {
       this.show_alert = false;
       this.renderXml(val);
-    }
-  }
+    },
+  },
 });
