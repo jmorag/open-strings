@@ -55,7 +55,7 @@ postInferWeightsR =
       Left e -> pure $ object ["error" .= tshow e]
       Right musicxml -> do
         $logInfo "Inferring weights"
-        let weights' = inferWeights musicxml startingWeights
+        let weights' = inferWeights musicxml (M.fromList startingWeights)
         result <- tryAny (evaluateDeep weights')
         pure . object $ case result of
           Left e -> ["error" .= tshow e]
@@ -196,13 +196,18 @@ getEntryR entry_key = do
           num -> Just $ tshow num <> ". " <> movementName movement
     $(widgetFile "entry")
 
-startingWeights :: Weights Double
+startingWeights :: [(Text, Double)]
 startingWeights =
-  M.fromList
-    [ ("same string", - high)
-    , ("same position", - high)
-    , ("open string", 0)
-    , ("fourth finger", 0)
-    , ("high position", 0)
-    , ("medium position", 0)
-    ]
+  [ ("same string", - high)
+  , ("same position", - high)
+  , ("open string", 0)
+  , ("fourth finger", 0)
+  , ("high position", 0)
+  , ("medium position", 0)
+  ]
+
+-- Construct this separately so that sliders are displayed in the right order
+jsStartingWeights :: Value
+jsStartingWeights =
+  array $
+    map (\(nm, val) -> object ["name" .= nm, "value" .= val]) startingWeights

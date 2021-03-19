@@ -40,28 +40,28 @@
       <p #slider-instructions v-show="edited">Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
       <b-form-group v-show="edited" v-bind:disabled="loading">
         <b-container fluid>
-          <b-row .my-1 v-for="(weight, name) in infer_weights" v-bind:key="name">
+          <b-row .my-1 v-for="(weight, index) in infer_weights" v-bind:key="index">
             <b-col sm="2">
-              <label v-bind:for=`${name}` .text-capitalize .font-weight-bold> {{ name }}
+              <label v-bind:for="weight.name" .text-capitalize .font-weight-bold> {{ weight.name }}
             <b-col sm="8">
               <b-form-input
                 .slider
                 tabIndex="-1"
-                v-bind:id=`${name}`
-                v-model="infer_weights[`${name}`]"
+                v-bind:id="weight.name"
+                v-model="weight.value"
                 number
                 type="range"
-                min="-10"
-                max="10">
+                min="-100"
+                max="100">
             <b-col sm="2">
               <b-form-input
                 .manual
-                v-bind:id=`${name}_manual`
-                v-model="infer_weights[`${name}`]"
+                v-bind:id=`${weight.name}_manual`
+                v-model="weight.value"
                 number
                 size="sm"
-                min="-10"
-                max="10"
+                min="-100"
+                max="100"
                 type="number">
   <p #editing-instructions v-show="edited">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
 <div ##{renderId} .card>
