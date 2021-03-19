@@ -49,6 +49,9 @@ data Finger = Open | One | Two | Three | Four
 data VString = G | D | A | E
   deriving (Show, Eq, Enum, Ord)
 
+dist :: Enum a => a -> a -> Int
+dist x y = fromEnum x - fromEnum y
+
 -- Midi pitch
 type Pitch = Int
 
@@ -456,7 +459,7 @@ allFingerings p = do
     zip [E, A, D, G] [ePitches, aPitches, dPitches, gPitches]
   case measurementSeries V.!? (p - low) of
     Nothing -> []
-    Just dist -> map (flip (Fingering s) dist) case p - low of
+    Just measurement -> map (flip (Fingering s) measurement) case p - low of
       -- At the low and high ends of the string, we can't use certain fingers
       -- TODO: decide high end
       0 -> [Open]
@@ -641,8 +644,8 @@ inferWeights' fingeringCorpus =
 
 infinity, high, medium, low :: Num a => a
 infinity = 1000000000000000
-high = 10
-medium = 5
+high = 100
+medium = 50
 low = 1
 
 binarize :: Num a => Bool -> a
@@ -701,7 +704,7 @@ chordAdjacent = P "chords on adjacent strings" cost high
       case sort $ step ^.. notes . str of
         [] -> 0 -- rest
         [_] -> 0
-        [s1, s2] | fromEnum s2 - fromEnum s1 == 1 -> 0
+        [s1, s2] | dist s2 s1 == 1 -> 0
         [G, D, A] -> 0
         [D, A, E] -> 0
         [G, D, A, E] -> 0
@@ -909,16 +912,72 @@ staticQuadrupleStop = P "static quadruple stop" cost high
 -- Penalty2s
 --------------------------------------------------------------------------------
 oneFingerHalfStep :: Num a => Penalty2 a
-oneFingerHalfStep = P "one finger half step shift" cost (- low)
+oneFingerHalfStep = P "one finger half step shift" cost (- medium)
   where
     cost (Step (Single n1) _, Step (Single n2) _)
       | and [_m2 n1 n2, n1 ^. fgr == n2 ^. fgr, n1 ^. str == n2 ^. str] = 1
-    -- TODO: double stops
     cost _ = 0
 
 samePosition :: Num a => Penalty2 a
 samePosition = P "same position" cost (- high)
   where
+    cost (Step (Single n1') _, Step (Single n2') _) =
+      let [n1, n2] = sortOn pitch [n1', n2']
+          (f1, s1, f2, s2) = (n1 ^. fgr, n1 ^. str, n2 ^. fgr, n2 ^. str)
+       in binarize $
+            if
+                | second n1 n2 ->
+                  or
+                    [ dist f2 f1 == 1 && s2 == s1
+                    , dist s2 s1 == 1 && (f1, f2) == (Four, One)
+                    , Open `elem` [f1, f2]
+                    ]
+                | third n1 n2 ->
+                  or
+                    [ dist f2 f1 == 2 && s2 == s1
+                    , dist s2 s1 == 1 && dist f2 f1 == 2
+                    , Open `elem` [f1, f2]
+                    ]
+                | _p4 n1 n2 || _a4 n1 n2 ->
+                  or
+                    [ (f1, f2) == (One, Four) && s2 == s1
+                    , dist s2 s1 == 1 && dist f2 f1 == 3
+                    , Open `elem` [f1, f2]
+                    ]
+                | _p5 n1 n2 ->
+                  or
+                    [ f1 == f2 && dist s2 s1 == 1
+                    , Open `elem` [f1, f2]
+                    ]
+                | _m6 n1 n2 ->
+                  or
+                    [ dist f2 f1 == 1 && dist s2 s1 == 1
+                    , dist s2 s1 == 2 && (f1, f2) == (Four, One)
+                    , Open `elem` [f1, f2]
+                    ]
+                | _M6 n1 n2 ->
+                  or
+                    [ dist f2 f1 `elem` [1, 2] && dist s2 s1 == 1
+                    , dist s2 s1 == 2 && (f1, f2) == (Four, One)
+                    , Open `elem` [f1, f2]
+                    ]
+                | seventh n1 n2 ->
+                  or
+                    [ dist f2 f1 == 2 && dist s2 s1 == 1
+                    , dist s2 s1 == 2 && dist f2 f1 == 2
+                    , Open `elem` [f1, f2]
+                    ]
+                | _p8 n1 n2 ->
+                  or
+                    [ dist s2 s1 == 1 && dist f2 f1 == 3
+                    , dist s2 s1 == 2 && dist f1 f2 == 1
+                    , Open `elem` [f1, f2]
+                    ]
+                | otherwise ->
+                  not . null $
+                    F.foldr1
+                      L.intersect
+                      (map position [n1 ^. fingering, n2 ^. fingering])
     cost steps =
       let positions = steps ^.. both . notes . fingering . to position
        in binarize $ not (null (F.foldr1 L.intersect positions))
