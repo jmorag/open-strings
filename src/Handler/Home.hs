@@ -41,6 +41,7 @@ mostRecentUploads = do
         E.on (movement ^. MovementWorkId ==. work ^. WorkId)
         E.on (work ^. WorkComposerId ==. composer ^. ComposerId)
         E.on (oauth ^. OAuthUserUserId ==. user ^. UserId)
+        E.where_ (E.isNothing $ entry ^. EntryIsAlgorithm)
         orderBy [desc (entry ^. EntryCreatedAt)]
         limit 10
         pure
