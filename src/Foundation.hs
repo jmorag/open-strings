@@ -138,12 +138,12 @@ instance Yesod App where
                 , menuItemRoute = AuthR LoginR
                 , menuItemAccessCallback = isNothing muser
                 }
-          , NavbarRight $
-              MenuItem
-                { menuItemLabel = "Sign Up"
-                , menuItemRoute = AuthR registerR
-                , menuItemAccessCallback = isNothing muser
-                }
+          -- , NavbarRight $
+          --     MenuItem
+          --       { menuItemLabel = "Sign Up"
+          --       , menuItemRoute = AuthR registerR
+          --       , menuItemAccessCallback = isNothing muser
+          --       }
           , NavbarRight $
               MenuItem
                 { menuItemLabel = "Logout"
@@ -325,7 +325,8 @@ instance YesodAuth App where
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
         (appGoogleOauthClientSecret (appSettings app))
-     , authEmail
+     -- disable this during survey season, and possibly forever
+     -- , authEmail
     ]
       ++ extraAuthPlugins
     where
