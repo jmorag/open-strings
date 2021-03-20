@@ -37,7 +37,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
 import qualified Data.Vector as V
 import Graph.ShortestPath
-import Numeric.AD (stochasticGradientDescent)
+import qualified Numeric.AD.Newton as AD
 import Text.XML.Lens
 
 data Finger = Open | One | Two | Three | Four
@@ -605,6 +605,7 @@ doubleStops =
   [ staticUnison
   , staticSecond
   , staticThird
+  , staticThirdAdjacentFingers
   , staticMajorThird4_3
   , staticFourth
   , staticFifth
@@ -618,7 +619,15 @@ doubleStops =
   ]
 
 p2s :: Num a => [Penalty2 a]
-p2s = [oneFingerHalfStep, samePosition, sameString, augmentedSecond]
+p2s =
+  [ oneFingerHalfStep
+  , samePosition
+  , sameString
+  , augmentedSecond
+  , doubleStringCrossing
+  , obliqueFingerCrossing
+  , fourOneUpShift
+  ]
 
 type Weights a = Map Text a
 inferFingerings' :: Weights Double -> [UnassignedStep] -> (Double, [AssignedStep])
@@ -633,14 +642,16 @@ mkAssignments steps = traverse (NE.nonEmpty . allAssignments) steps
 -- | Given a corpus of fingered passages and an initial weight configuration, run SGD
 -- to find the weight configuration that minimizes the cost function
 inferWeights' :: [[AssignedStep]] -> Weights Double -> Weights Double
-inferWeights' fingeringCorpus =
-  (L.!! 1000)
-    . stochasticGradientDescent objective fingeringCorpus
-  where
-    objective assigned ws =
-      pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
-        -- weight squared term to bias towards center
-        + L.sum (fmap (\w -> w * w) ws)
+inferWeights' fingeringCorpus ws =
+  let iters =
+        AD.stochasticGradientDescent inferWeightsObjective fingeringCorpus ws
+   in iters L.!! 250
+
+inferWeightsObjective :: Num a => [AssignedStep] -> Weights a -> a
+inferWeightsObjective assigned ws =
+  pathCost (applyP1s ws p1s) (applyP2s ws p2s) assigned
+    -- weight squared term to bias towards center
+    + L.sum (fmap (\w -> w * w) ws)
 
 infinity, high, medium, low :: Num a => a
 infinity = 1000000000000000
@@ -723,6 +734,16 @@ staticMajorThird4_3 = P "static major third 4-3" cost medium
          in case (n1 ^. fgr, n2 ^. fgr) of
               (Four, Three) -> if higherThan Fourth then 1 else high
               _ -> 0
+    cost _ = 0
+
+staticThirdAdjacentFingers :: Num a => Penalty1 a
+staticThirdAdjacentFingers = P "static third nonstandard" cost high
+  where
+    cost (Step (DoubleStop n1 n2) _) | third n1 n2 =
+      case (n1 ^. fgr, n2 ^. fgr) of
+        (Three, Two) -> high
+        (Two, One) -> high
+        _ -> 0
     cost _ = 0
 
 staticThird :: Num a => Penalty1 a
@@ -1004,3 +1025,32 @@ sameString = P "same string" cost (- high)
       (DoubleStop n11 n12, Single n2) ->
         binarize $ (n2 ^. str) `elem` [n11 ^. str, n12 ^. str]
       _ -> 0
+
+doubleStringCrossing :: Num a => Penalty2 a
+doubleStringCrossing = P "double string crossing" cost high
+  where
+    cost (Step (Single n1) _, Step (Single n2) _) =
+      binarize $ abs (dist (n1 ^. str) (n2 ^. str)) > 1
+    cost _ = 0
+
+obliqueFingerCrossing :: Num a => Penalty2 a
+obliqueFingerCrossing = P "oblique finger crossing" cost high
+  where
+    cost (Step (Single n1) _, Step (Single n2) _) =
+      binarize $
+        abs (dist (n1 ^. str) (n2 ^. str)) == 1 && n1 ^. fgr == n2 ^. fgr
+    cost _ = 0
+
+fourOneUpShift :: Num a => Penalty2 a
+fourOneUpShift = P "shift up a step with 4-1" cost high
+  where
+    cost (Step (Single n1) _, Step (Single n2) _)
+      | and
+          [ second n1 n2
+          , pitch n1 < pitch n2
+          , n1 ^. fgr == Four
+          , n2 ^. fgr == One
+          , n1 ^. str == n2 ^. str
+          ] =
+        1
+    cost _ = 0

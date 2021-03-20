@@ -41,9 +41,9 @@
       <b-form-group v-show="edited" v-bind:disabled="loading">
         <b-container fluid>
           <b-row .my-1 v-for="(weight, index) in infer_weights" v-bind:key="index">
-            <b-col sm="2">
+            <b-col sm="3">
               <label v-bind:for="weight.name" .text-capitalize .font-weight-bold> {{ weight.name }}
-            <b-col sm="8">
+            <b-col sm="7">
               <b-form-input
                 .slider
                 tabIndex="-1"

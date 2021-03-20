@@ -33,7 +33,7 @@ postInferR =
       Right musicxml -> do
         $logInfo "Inferring fingerings"
         let musicxml' = inferFingerings musicxml infer_weights
-        result <- timeout 15e6 (tryAny (evaluateDeep musicxml'))
+        result <- timeout 30e6 (tryAny (evaluateDeep musicxml'))
         pure case result of
           Nothing -> object ["error" .= timeoutMsg]
           Just (Right (cost, xml')) ->
@@ -198,12 +198,16 @@ getEntryR entry_key = do
 
 startingWeights :: [(Text, Double)]
 startingWeights =
-  [ ("same string", - high)
-  , ("same position", - high)
-  , ("open string", 0)
-  , ("fourth finger", 0)
-  , ("high position", 0)
-  , ("medium position", 0)
+  [ ("same string", - 97)
+  , ("same position", - 87)
+  , ("open string", -76)
+  , ("fourth finger", 11)
+  , ("high position", 73)
+  , ("medium position", 34)
+  , ("double string crossing", 91)
+  , ("oblique finger crossing", 100)
+  , ("one finger half step shift", 0)
+  , ("augmented second 1-2, 2-3", 41)
   ]
 
 -- Construct this separately so that sliders are displayed in the right order
