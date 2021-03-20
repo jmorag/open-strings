@@ -21,8 +21,7 @@ let
                 # shakespeare =
                 #   super.callCabal2nix "shakespeare" ../yesodweb/shakespeare { };
                 # yesod = super.callCabal2nix "yesod" ../yesodweb/yesod/yesod { };
-                # yesod-auth-oauth2 =
-                #   pkgs.haskell.lib.doJailbreak super.yesod-auth-oauth2;
+                yesod-auth-oauth2 = super.callHackage "yesod-auth-oauth2" "0.6.1.2" { };
                 hoauth2 = super.callHackage "hoauth2" "1.8.9" { };
                 # depends on cryptonite instead of deprecated cipher-aes
                 clientsession = super.callCabal2nix "clientsession"

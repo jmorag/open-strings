@@ -34,10 +34,10 @@ insertOrGet_ x = Import.void (insertOrGet x)
 
 insertComposer :: (MonadUnliftIO m) => DhallComposer -> ReaderT SqlBackend m ()
 insertComposer DhallComposer {..} = do
-  composerId <- insertOrGet (Composer name url)
+  (composerId :: Key Composer) <- insertOrGet (Composer name url Nothing)
   forM_ works \DhallWork {..} -> do
     workId <-
-      insertOrGet $ Work title url (Set.fromList instrumentation) composerId
+      insertOrGet $ Work title url (Set.fromList instrumentation) composerId Nothing
     case movements of
       [] -> insertOrGet_ $ Movement 0 "" workId
       [m] -> insertOrGet_ $ Movement 0 m workId
