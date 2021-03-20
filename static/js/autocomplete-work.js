@@ -53,9 +53,9 @@ Vue.component("autocomplete-work", {
             autocomplete="on"
             v-bind:formatter="decodeURI"
             >
-            <template v-slot:description>If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. Otherwise, leave this blank.
-            </template>
           </b-form-input>
+          <template v-slot:description>If the piece is on <a href="https://imslp.org/wiki/Main_Page">IMSLP</a>, enter its url and we'll autofill the rest. Otherwise, leave this blank.
+          </template>
         </b-form-group>
         <b-form-group v-bind:validated="validated">
           <b-form-row>
