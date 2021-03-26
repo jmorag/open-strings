@@ -13,6 +13,6 @@ $maybe _ <- user_id
   <form method="POST">
     <input name="_token" value="#{csrf}" type="hidden">
     <button .btn .btn-primary type="submit">I agree, take the survey
-    <a .btn .btn-secondary href=@{HomeR}>Go back
 $nothing
-  Please <a href=@{AuthR LoginR}>login</a> in order to take the survey.
+  <h5>
+    Please <a href=@{AuthR LoginR}>login or create an account</a> to take the survey.
