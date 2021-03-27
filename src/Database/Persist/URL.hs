@@ -1,33 +1,31 @@
-module Database.Persist.URL
-  ( fromDatabaseUrl,
-  )
-where
+module Database.Persist.URL (
+  fromDatabaseUrl,
+) where
 
 import ClassyPrelude hiding (uncons)
 import Control.Monad.Fail (MonadFail, fail)
-import Data.Aeson.Types (Parser)
 import Data.ByteString (uncons)
 import qualified Data.ByteString.Char8 as Char8
 import Data.String.Conversions (ConvertibleStrings (..))
 import Data.String.Conversions.Monomorphic (toStrictByteString)
 import Database.Persist.Postgresql (PostgresConf (..))
-import URI.ByteString
-  ( Authority (..),
-    Host (..),
-    Port (..),
-    Scheme (..),
-    URIRef (..),
-    UserInfo (..),
-    parseURI,
-    strictURIParserOptions,
-  )
+import URI.ByteString (
+  Authority (..),
+  Host (..),
+  Port (..),
+  Scheme (..),
+  URIRef (..),
+  UserInfo (..),
+  parseURI,
+  strictURIParserOptions,
+ )
 
 -- | Build a @'PostgresConf'@ by parsing a database URL String
 fromDatabaseUrl ::
-  (ConvertibleStrings s ByteString) =>
+  (ConvertibleStrings s ByteString, Monad m, MonadFail m) =>
   Int ->
   s ->
-  Parser PostgresConf
+  m PostgresConf
 fromDatabaseUrl size url = do
   uri <- abortLeft $ parseURI strictURIParserOptions $ toStrictByteString url
   auth <- abortNothing "authority" $ uriAuthority uri
@@ -48,8 +46,8 @@ fromDatabaseUrl size url = do
             <> " port="
             <> Char8.pack (show $ portNumber port)
             <> " dbname="
-            <> dbName,
-        pgPoolSize = size
+            <> dbName
+      , pgPoolSize = size
       }
 
 abortLeft :: (MonadFail m, Show e) => Either e b -> m b
