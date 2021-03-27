@@ -273,6 +273,85 @@ executable fingerdb
     buildable: False
   default-language: Haskell2010
 
+executable survey-plot
+  main-is: main.hs
+  other-modules:
+      Paths_fingerdb
+  hs-source-dirs:
+      survey-plot
+  default-extensions: BangPatterns BinaryLiterals BlockArguments ConstraintKinds DataKinds DefaultSignatures DeriveAnyClass DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DerivingStrategies DerivingVia DoAndIfThenElse DuplicateRecordFields EmptyCase EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedLabels OverloadedStrings PartialTypeSignatures PatternGuards PatternSynonyms PolyKinds QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeOperators TypeSynonymInstances ViewPatterns
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      Chart
+    , Chart-cairo
+    , ad
+    , aeson >=1.4 && <1.5
+    , base >=4.9.1.0 && <5
+    , blaze-html
+    , bytestring >=0.10 && <0.11
+    , case-insensitive
+    , cassava
+    , classy-prelude >=1.5 && <1.6
+    , classy-prelude-conduit >=1.5 && <1.6
+    , classy-prelude-yesod >=1.5 && <1.6
+    , comonad
+    , conduit >=1.0 && <2.0
+    , containers
+    , data-default
+    , dhall
+    , directory >=1.1 && <1.4
+    , esqueleto
+    , fast-logger >=2.2 && <3.1
+    , file-embed
+    , fingerdb
+    , flow
+    , foreign-store
+    , generic-lens
+    , hjsmin >=0.1 && <0.3
+    , hoauth2 >=1.8.9
+    , html-conduit
+    , http-client-tls >=0.3 && <0.4
+    , http-conduit >=2.3 && <2.4
+    , http-types
+    , language-javascript
+    , lens
+    , lens-aeson
+    , lens-regex-pcre
+    , monad-control >=0.3 && <1.1
+    , monad-logger >=0.3 && <0.4
+    , monad-memo >=0.5.0 && <0.6
+    , persistent >=2.9 && <2.11
+    , persistent-postgresql >=2.9 && <2.11
+    , persistent-template >=2.5 && <2.9
+    , raw-strings-qq
+    , safe
+    , sendgrid-v3
+    , shakespeare >=2.0 && <2.1
+    , string-conversions
+    , template-haskell
+    , text >=0.11 && <2.0
+    , time
+    , unordered-containers
+    , uri-bytestring
+    , validation-selective
+    , vector
+    , wai
+    , wai-extra >=3.0 && <3.1
+    , wai-logger >=2.2 && <2.4
+    , warp >=3.0 && <3.4
+    , xml-conduit
+    , xml-lens
+    , yaml >=0.11 && <0.12
+    , yesod >=1.6 && <1.7
+    , yesod-auth >=1.6 && <1.7
+    , yesod-auth-oauth2 ==0.6.1.2
+    , yesod-core >=1.6 && <1.7
+    , yesod-form >=1.6 && <1.7
+    , yesod-static >=1.6 && <1.7
+  if flag(server-only)
+    buildable: False
+  default-language: Haskell2010
+
 test-suite fingerdb-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs

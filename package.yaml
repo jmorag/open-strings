@@ -160,6 +160,22 @@ executables:
       - condition: (flag(library-only)) || (flag(server-only))
         buildable: false
 
+  survey-plot:
+    source-dirs: survey-plot
+    main: main.hs
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - fingerdb
+      - Chart-cairo
+      - Chart
+      - cassava
+    when:
+      - condition: flag(server-only)
+        buildable: false
+
 # Test suite
 tests:
   fingerdb-test:
