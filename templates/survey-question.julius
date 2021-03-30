@@ -45,7 +45,7 @@ const vue = new Vue({
   methods: {
     async submit() {
       const { comfort, expressivity, idiomatic, fingering_guess, other } = this;
-      if (!comfort || !expressivity || !idiomatic || !fingering_guess) {
+      if (comfort === null || expressivity === null || idiomatic === null || fingering_guess === null) {
           this.validated = true;
           return;
       }
