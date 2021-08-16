@@ -1,10 +1,13 @@
 #!/usr/bin/env fish
-rm -f bin/fingerdb
-nix-build -A fingerdb
-cp result/bin/fingerdb bin/
-rm result
+# rm -f bin/fingerdb
+# nix-build -A fingerdb
+# cp result/bin/fingerdb bin/
+# rm result
+# hpack
+# cabal build exe:fingerdb
+# cp (cabal list-bin exe:fingerdb) bin/
 rm -rf static/tmp
-git add bin/fingerdb
+# git add bin/fingerdb
 git commit -m 'Deploy '(date)
 git push heroku (git branch --show-current)
 heroku logs --tail
