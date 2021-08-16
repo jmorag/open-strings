@@ -6,6 +6,16 @@ extra-deps:
     commit: 22f55f95f1f6660cdb328e1bcde78691b045295b
   - git: https://github.com/nwf/clientsession
     commit: 58e3605875d2a033fb753bcc57f2d6936069d34b
+  - aeson-1.4.7.1@sha256:6d8d2fd959b7122a1df9389cf4eca30420a053d67289f92cdc0dbc0dab3530ba,7098
+  - bifunctors-5.5.7
+  - classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
+  - free-5.1.3
+  - hoauth2-1.8.9@sha256:63929253f6cdeb096a369980d2acf0d7eedd0c98ac46f962f717c56b724069a4,5734
+  - invariant-0.5.3
+  - persistent-2.10.5.4@sha256:6cde61417fb2ec3a70d677e9ba9f5c84d059dc4de6b61f7bf90ce6dfe839a509,4740
+  - persistent-postgresql-2.10.1.2
+  - persistent-template-2.8.2.3
+  - semigroupoids-5.3.4
+  - th-abstraction-0.3.2.0@sha256:9b5b4e6e2bbff9b075ad7751ee98e2107090bd17b51d5442695b8990e4db6521,1851
   - wai-extra-3.0.32@sha256:7a9e65c4555e1b937dc788b8ba249dbacd4f36840c60581bc27115a5c4a48079,7044
   - yesod-auth-oauth2-0.6.1.2@sha256:181c757c8ba0f57c23119414db90e1859271bfeb85667d88a99746001c064aba,2891
-  - hoauth2-1.8.9@sha256:63929253f6cdeb096a369980d2acf0d7eedd0c98ac46f962f717c56b724069a4,5734
