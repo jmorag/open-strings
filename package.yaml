@@ -161,7 +161,7 @@ executables:
         buildable: false
 
   survey-plot:
-    source-dirs: survey-plot
+    source-dirs: survey
     main: main.hs
     ghc-options:
       - -threaded
@@ -169,8 +169,7 @@ executables:
       - -with-rtsopts=-N
     dependencies:
       - fingerdb
-      - Chart-cairo
-      - Chart
+      - process
       - cassava
     when:
       - condition: flag(server-only)

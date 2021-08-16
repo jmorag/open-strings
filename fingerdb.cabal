@@ -278,13 +278,11 @@ executable survey-plot
   other-modules:
       Paths_fingerdb
   hs-source-dirs:
-      survey-plot
+      survey
   default-extensions: BangPatterns BinaryLiterals BlockArguments ConstraintKinds DataKinds DefaultSignatures DeriveAnyClass DeriveDataTypeable DeriveFoldable DeriveFunctor DeriveGeneric DeriveTraversable DerivingStrategies DerivingVia DoAndIfThenElse DuplicateRecordFields EmptyCase EmptyDataDecls ExistentialQuantification FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving InstanceSigs KindSignatures LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedLabels OverloadedStrings PartialTypeSignatures PatternGuards PatternSynonyms PolyKinds QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TupleSections TypeApplications TypeFamilies TypeOperators TypeSynonymInstances ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      Chart
-    , Chart-cairo
-    , ad
+      ad
     , aeson >=1.4 && <1.5
     , base >=4.9.1.0 && <5
     , blaze-html
@@ -323,6 +321,7 @@ executable survey-plot
     , persistent >=2.9 && <2.11
     , persistent-postgresql >=2.9 && <2.11
     , persistent-template >=2.5 && <2.9
+    , process
     , raw-strings-qq
     , safe
     , sendgrid-v3

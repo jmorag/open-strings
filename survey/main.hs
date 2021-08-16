@@ -1,15 +1,16 @@
 import Import.NoFoundation
 
 import Control.Monad.Logger (runStderrLoggingT)
+import qualified Data.ByteString.Lazy as BL
+import Data.Csv
 import qualified Data.Text as T
 import Database.Persist
 import Database.Persist.Postgresql
 import Database.Persist.URL
 import Model
-import qualified Data.ByteString.Lazy as BL
-import Data.Csv
 
 import System.Exit (die)
+import System.Process (callProcess)
 
 main =
   getArgs >>= \case
@@ -24,10 +25,13 @@ run dbUrl = do
         flip runSqlPersistMPool pool $ do
           responses <- getSurveyResponses
           let csv = encodeDefaultOrderedByName responses
-          liftIO $ BL.writeFile "survey_responses.csv" csv
+          liftIO do
+            BL.writeFile "survey/survey_responses.csv" csv
+            callProcess "python" ["survey/plots.py"]
 
 data SurveyResponse = SurveyResponse
-  { survey_id :: Int64
+  { user :: Maybe Text
+  , survey_id :: Int64
   , years_experience :: Int
   , violinist_type :: Text -- concat multiple with commas
   , most_recent_piece :: Text -- human readable
@@ -52,11 +56,15 @@ getSurveyResponse ::
 getSurveyResponse survey_fingering_id = do
   SurveyFingering {..} <- getJust survey_fingering_id
   SurveyDemographics {..} <- getJust surveyFingeringSurveyId
+  Entity _ (OAuthUser {..}) <-
+    getBy404 $
+      UniqueOAuthUserId surveyDemographicsUserId
   most_recent_piece <- formatWork surveyDemographicsMost_recent_piece
   piece <- formatEntry surveyFingeringEntryId
   pure
     SurveyResponse
-      { survey_id = fromSqlKey surveyFingeringSurveyId
+      { user = oAuthUserName
+      , survey_id = fromSqlKey surveyFingeringSurveyId
       , years_experience = surveyDemographicsYears_experience
       , violinist_type =
           T.intercalate
