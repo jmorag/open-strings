@@ -27,7 +27,7 @@ flag library-only
 flag server-only
   description: Build for static deployment with "nix-build"
   manual: False
-  default: False
+  default: True
 
 library
   exposed-modules:

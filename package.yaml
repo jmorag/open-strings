@@ -197,7 +197,7 @@ flags:
   server-only:
     description: Build for static deployment with "nix-build"
     manual: false
-    default: false
+    default: true
   dev:
     description: Turn on development settings, like auto-reload templates.
     manual: false
