@@ -20,8 +20,8 @@ readXML :: FilePath -> IO Document
 readXML = Text.XML.readFile def
 
 prok, brahms, sibelius, ysaye, tartini :: IO Document
-prok = readXML "/home/joseph/Documents/MuseScore3/Scores/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
-brahms = readXML "/home/joseph/Documents/MuseScore3/Scores/Brahms_violin_concerto.musicxml"
-sibelius = readXML "/home/joseph/Documents/MuseScore3/Scores/Sibelius_violin_concerto_excerpt.musicxml"
-ysaye = readXML "/home/joseph/Documents/MuseScore3/Scores/Ysaye ballade excerpt.txt"
-tartini = readXML "/home/joseph/Documents/MuseScore3/Scores/tartini_devil_page_1.musicxml"
+prok = readXML "data/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
+brahms = readXML "data/Brahms_violin_concerto.musicxml"
+sibelius = readXML "data/Sibelius_violin_concerto_excerpt.musicxml"
+ysaye = readXML "data/Ysaye ballade excerpt.musicxml"
+tartini = readXML "data/tartini_devil_page_1.musicxml"

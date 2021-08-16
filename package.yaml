@@ -1,6 +1,8 @@
 name: fingerdb
 version: "0.0.0"
 
+data-files: data/*.musicxml
+
 dependencies:
   - ad
   - aeson >=1.4 && <1.5

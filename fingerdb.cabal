@@ -7,6 +7,12 @@ cabal-version: 1.12
 name:           fingerdb
 version:        0.0.0
 build-type:     Simple
+data-files:
+    data/Brahms_violin_concerto.musicxml
+    data/Prokofiev_violin_concerto_No_2_excerpt.musicxml
+    data/Sibelius_violin_concerto_excerpt.musicxml
+    data/tartini_devil_page_1.musicxml
+    "data/Ysaye ballade excerpt.musicxml"
 
 flag dev
   description: Turn on development settings, like auto-reload templates.
