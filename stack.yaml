@@ -1,0 +1,11 @@
+resolver: lts-17.15
+packages:
+  - .
+extra-deps:
+  - git: https://github.com/marcelbuesing/sendgrid-v3
+    commit: 22f55f95f1f6660cdb328e1bcde78691b045295b
+  - git: https://github.com/nwf/clientsession
+    commit: 58e3605875d2a033fb753bcc57f2d6936069d34b
+  - wai-extra-3.0.32@sha256:7a9e65c4555e1b937dc788b8ba249dbacd4f36840c60581bc27115a5c4a48079,7044
+  - yesod-auth-oauth2-0.6.1.2@sha256:181c757c8ba0f57c23119414db90e1859271bfeb85667d88a99746001c064aba,2891
+  - hoauth2-1.8.9@sha256:63929253f6cdeb096a369980d2acf0d7eedd0c98ac46f962f717c56b724069a4,5734
