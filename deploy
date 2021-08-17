@@ -9,5 +9,5 @@
 rm -rf static/tmp
 # git add bin/fingerdb
 git commit -m 'Deploy '(date)
-git push heroku (git branch --show-current)
+git push heroku (git branch --show-current):main
 heroku logs --tail
