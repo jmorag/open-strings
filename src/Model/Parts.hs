@@ -10,28 +10,25 @@ import Data.Aeson.Types
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Set as Set
 import qualified Data.Text as T
-import Dhall (FromDhall, Natural)
+import Numeric.Natural (Natural)
 import Validation
 
 data Solo = Solo | Tutti
   deriving (Show, Eq, Read, Ord, Generic)
-  deriving anyclass (FromDhall)
 
 data StringInstrument = Violin | Viola | Cello | Bass
   deriving (Show, Eq, Read, Ord, Generic)
-  deriving anyclass (FromDhall)
 
 data Part = Part
-  { instrument :: StringInstrument,
-    -- | Parts default to solo unless tutti is indicated
-    solo :: Solo,
-    -- | Part 0 denotes that it's the only instrument in the score, i.e.
+  { instrument :: StringInstrument
+  , -- | Parts default to solo unless tutti is indicated
+    solo :: Solo
+  , -- | Part 0 denotes that it's the only instrument in the score, i.e.
     -- violin concerto soloist is Part Violin Solo 0
     -- whereas the first violinist in a quartet is Part Violin Solo 1
     part_num :: Natural
   }
   deriving (Show, Eq, Read, Generic)
-  deriving anyclass (FromDhall)
 
 -- We can't just switch the order of the fields in Part and use the derived instance
 -- because it breaks the database instance
@@ -87,17 +84,17 @@ parseParts :: Text -> Validation (NonEmpty String) [Part]
 parseParts p = case fmap (over (ix 0) charToUpper) (words p) of
   ["Quartet"] ->
     pure
-      [ Part Violin Solo 1,
-        Part Violin Solo 2,
-        Part Viola Solo 0,
-        Part Cello Solo 0
+      [ Part Violin Solo 1
+      , Part Violin Solo 2
+      , Part Viola Solo 0
+      , Part Cello Solo 0
       ]
   ["Strings"] ->
     pure
-      [ Part Violin Tutti 1,
-        Part Violin Tutti 2,
-        Part Viola Tutti 0,
-        Part Cello Tutti 0
+      [ Part Violin Tutti 1
+      , Part Violin Tutti 2
+      , Part Viola Tutti 0
+      , Part Cello Tutti 0
       ]
   single -> (: []) <$> parsePart single
 
