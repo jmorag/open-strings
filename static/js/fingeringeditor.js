@@ -1,5 +1,11 @@
-const unfocused = "#000000";
-const focused = "#007bff";
+SVGPathElement.prototype.select = function() {
+  this.setAttribute("data-selected", "")
+}
+
+SVGPathElement.prototype.deselect = function() {
+  this.removeAttribute("data-selected")
+}
+
 class FingeringEditor {
   constructor(nodeId, clean) {
     this.clean = clean;
@@ -12,7 +18,6 @@ class FingeringEditor {
     this.svg_noteheads = null;
     this.svg_strings = null;
     this.handleKeypress = this.handleKeypress.bind(this);
-    this.handleClick = this.handleClick.bind(this);
     // We need this extra variable so the state persists window size change
     this.enabled = false;
     // Defined here so that we can disconnect it when calling clear
@@ -225,16 +230,16 @@ class FingeringEditor {
 
   next() {
     if (this.index >= this.svg_noteheads.length - 1) return;
-    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
+    this.svg_noteheads[this.index].deselect();
     this.index++;
-    this.svg_noteheads[this.index].setAttribute("fill", focused);
+    this.svg_noteheads[this.index].select();
   }
 
   prev() {
     if (this.index <= 0) return;
-    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
+    this.svg_noteheads[this.index].deselect();
     this.index--;
-    this.svg_noteheads[this.index].setAttribute("fill", focused);
+    this.svg_noteheads[this.index].select();
   }
 
   setFinger(n) {
@@ -276,10 +281,9 @@ class FingeringEditor {
     this.xml.querySelectorAll("technical>string").forEach((string) => {
       string.textContent = "-1";
     });
-    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
+    this.svg_noteheads[this.index].deselect();
     if (!this.clean) {
-      this.svg_noteheads[0].setAttribute("fill", focused);
-      this.svg_noteheads[0].setAttribute("data-selected", "")
+      this.svg_noteheads[0].select();
       this.index = 0;
     }
   }
@@ -332,16 +336,6 @@ class FingeringEditor {
     }
   }
 
-  handleClick({ target }) {
-    if (document.activeElement.tagName !== "svg") return;
-    let target_ix = parseInt(target?.getAttribute("index"));
-    if (!isNaN(target_ix)) {
-      this.svg_noteheads[this.index].setAttribute("fill", unfocused);
-      this.svg_noteheads[target_ix].setAttribute("fill", focused);
-      this.index = target_ix;
-    }
-  }
-
   clear() {
     this.observer.disconnect();
     this.dom_node.innerHTML = "";
@@ -360,16 +354,15 @@ class FingeringEditor {
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[this.index].setAttribute("fill", focused);
+    this.svg_noteheads[this.index].select();
     window.addEventListener("keydown", this.handleKeypress);
-    window.addEventListener("mouseup", this.handleClick);
     this.enabled = true;
   }
 
   disable() {
     const svg = document.querySelector("svg");
     svg.setAttribute("tabindex", "-1");
-    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
+    this.svg_noteheads[this.index].deselect();
     this.enabled = false;
     this.cancelDrag();
   }
@@ -389,26 +382,16 @@ class FingeringEditor {
         cancel();
         return;
       }
-      // for example: clear "data-selected" attribute
       const selectedElements = svg.querySelectorAll("[data-selected]");
-      selectedElements.forEach((element) => {
-        element.removeAttribute("data-selected");
-        element.setAttribute("fill", unfocused);
-      });
+      selectedElements.forEach((element) => element.deselect());
     };
 
     const onSelectionChange = ({
       newlySelectedElements,
       newlyDeselectedElements,
     }) => {
-      newlyDeselectedElements.forEach((element) => {
-        element.removeAttribute("data-selected");
-        element.setAttribute("fill", unfocused);
-      });
-      newlySelectedElements.forEach((element) => {
-        element.setAttribute("data-selected", "");
-        element.setAttribute("fill", focused);
-      });
+      newlyDeselectedElements.forEach((element) => element.deselect());
+      newlySelectedElements.forEach((element) => element.select());
     };
 
     const onSelectionEnd = ({ selectedElements }) => {
@@ -416,8 +399,9 @@ class FingeringEditor {
         return +selectedElements[i].getAttribute("index");
       };
       if (selectedElements.length === 0) {
-        return;
+        this.selected = [];
       } else if (selectedElements.length === 1) {
+        this.selected = [];
         this.index = getIndex(0);
       } else {
         this.selected = [getIndex(0)];
@@ -427,8 +411,9 @@ class FingeringEditor {
             this.selected.push(getIndex(i));
           else break;
         }
+        // deselect all notes outside of contiguous region
         for (; i < selectedElements.length; ++i) {
-          selectedElements[i].setAttribute("fill", unfocused);
+          selectedElements[i].deselect();
         }
         console.log(this.selected);
       }
@@ -449,7 +434,6 @@ class FingeringEditor {
     const offset = +start_measure - 1;
     this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);
-    window.removeEventListener("mouseup", this.handleClick);
     const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(
       this.dom_node,
       {
