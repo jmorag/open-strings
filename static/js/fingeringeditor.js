@@ -1,15 +1,16 @@
+const unfocused = "#000000";
+const focused = "#007bff";
 class FingeringEditor {
   constructor(nodeId, clean) {
     this.clean = clean;
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
     this.index = 0;
+    this.selected = [];
     this.svg_stavenotes = null;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
     this.svg_strings = null;
-    this.unfocused = "#000000";
-    this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
     this.handleClick = this.handleClick.bind(this);
     // We need this extra variable so the state persists window size change
@@ -22,7 +23,9 @@ class FingeringEditor {
       this.set_fingerings_and_strings(svg);
       if (this.clean) this.resetFingerings();
       if (this.enabled) this.enable();
+      this.setupDrag(svg);
     });
+    this.cancelDrag = null;
   }
 
   static arabicToRoman(n) {
@@ -169,11 +172,17 @@ class FingeringEditor {
 
       // svg string numbers
       i = j; // reset i to beginning of this chord
-      for (let f = modifiers[fIndex]; fIndex < modifiers.length; f = modifiers[++fIndex]) {
+      for (
+        let f = modifiers[fIndex];
+        fIndex < modifiers.length;
+        f = modifiers[++fIndex]
+      ) {
         // skip all non-text elements
         if (f.tagName !== "path") {
           f.setAttribute("index", i);
-          f.textContent = this.constructor.arabicToRoman(xml_strings[i].textContent);
+          f.textContent = this.constructor.arabicToRoman(
+            xml_strings[i].textContent
+          );
           // hide bogus string numbers
           f.textContent === "X" && f.setAttribute("visibility", "hidden");
           i++;
@@ -216,16 +225,16 @@ class FingeringEditor {
 
   next() {
     if (this.index >= this.svg_noteheads.length - 1) return;
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
     this.index++;
-    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
+    this.svg_noteheads[this.index].setAttribute("fill", focused);
   }
 
   prev() {
     if (this.index <= 0) return;
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
     this.index--;
-    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
+    this.svg_noteheads[this.index].setAttribute("fill", focused);
   }
 
   setFinger(n) {
@@ -267,16 +276,17 @@ class FingeringEditor {
     this.xml.querySelectorAll("technical>string").forEach((string) => {
       string.textContent = "-1";
     });
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
     if (!this.clean) {
-      this.svg_noteheads[0].setAttribute("fill", this.focused);
+      this.svg_noteheads[0].setAttribute("fill", focused);
+      this.svg_noteheads[0].setAttribute("data-selected", "")
       this.index = 0;
     }
   }
 
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
-    console.log(e);
+    // console.log(e);
     switch (e.code) {
       case "ArrowRight":
         this.next();
@@ -326,8 +336,8 @@ class FingeringEditor {
     if (document.activeElement.tagName !== "svg") return;
     let target_ix = parseInt(target?.getAttribute("index"));
     if (!isNaN(target_ix)) {
-      this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-      this.svg_noteheads[target_ix].setAttribute("fill", this.focused);
+      this.svg_noteheads[this.index].setAttribute("fill", unfocused);
+      this.svg_noteheads[target_ix].setAttribute("fill", focused);
       this.index = target_ix;
     }
   }
@@ -350,7 +360,7 @@ class FingeringEditor {
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
+    this.svg_noteheads[this.index].setAttribute("fill", focused);
     window.addEventListener("keydown", this.handleKeypress);
     window.addEventListener("mouseup", this.handleClick);
     this.enabled = true;
@@ -359,12 +369,84 @@ class FingeringEditor {
   disable() {
     const svg = document.querySelector("svg");
     svg.setAttribute("tabindex", "-1");
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[this.index].setAttribute("fill", unfocused);
     this.enabled = false;
+    this.cancelDrag();
+  }
+
+  // see https://github.com/luncheon/svg-drag-select#usage-and-options
+  setupDrag(svg) {
+    const noteHeadSelector = ({ getIntersections }) =>
+      getIntersections().filter(
+        (element) =>
+          element instanceof SVGPathElement &&
+          element.getAttribute("index") !== null
+      );
+
+    const onSelectionStart = ({ svg, pointerEvent, cancel }) => {
+      // for example: handles mouse left button only.
+      if (pointerEvent.button !== 0) {
+        cancel();
+        return;
+      }
+      // for example: clear "data-selected" attribute
+      const selectedElements = svg.querySelectorAll("[data-selected]");
+      selectedElements.forEach((element) => {
+        element.removeAttribute("data-selected");
+        element.setAttribute("fill", unfocused);
+      });
+    };
+
+    const onSelectionChange = ({
+      newlySelectedElements,
+      newlyDeselectedElements,
+    }) => {
+      newlyDeselectedElements.forEach((element) => {
+        element.removeAttribute("data-selected");
+        element.setAttribute("fill", unfocused);
+      });
+      newlySelectedElements.forEach((element) => {
+        element.setAttribute("data-selected", "");
+        element.setAttribute("fill", focused);
+      });
+    };
+
+    const onSelectionEnd = ({ selectedElements }) => {
+      const getIndex = (i) => {
+        return +selectedElements[i].getAttribute("index");
+      };
+      if (selectedElements.length === 0) {
+        return;
+      } else if (selectedElements.length === 1) {
+        this.index = getIndex(0);
+      } else {
+        this.selected = [getIndex(0)];
+        let i;
+        for (i = 1; i < selectedElements.length; ++i) {
+          if (getIndex(i) === getIndex(i - 1) + 1)
+            this.selected.push(getIndex(i));
+          else break;
+        }
+        for (; i < selectedElements.length; ++i) {
+          selectedElements[i].setAttribute("fill", unfocused);
+        }
+        console.log(this.selected);
+      }
+    };
+
+    const { cancel } = svgDragSelect({
+      svg,
+      selector: noteHeadSelector,
+      onSelectionStart,
+      onSelectionChange,
+      onSelectionEnd,
+    });
+
+    this.cancelDrag = cancel;
   }
 
   async render(xml_string, start_measure) {
-    const offset = parseInt(start_measure, 10) - 1;
+    const offset = +start_measure - 1;
     this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);
     window.removeEventListener("mouseup", this.handleClick);
