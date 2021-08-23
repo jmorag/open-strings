@@ -1,18 +1,17 @@
-SVGPathElement.prototype.select = function() {
-  this.setAttribute("data-selected", "")
-}
+SVGPathElement.prototype.select = function () {
+  this.setAttribute("data-selected", "");
+};
 
-SVGPathElement.prototype.deselect = function() {
-  this.removeAttribute("data-selected")
-}
+SVGPathElement.prototype.deselect = function () {
+  this.removeAttribute("data-selected");
+};
 
 class FingeringEditor {
   constructor(nodeId, clean) {
     this.clean = clean;
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
-    this.index = 0;
-    this.selected = [];
+    this.selected = [0];
     this.svg_stavenotes = null;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
@@ -45,6 +44,10 @@ class FingeringEditor {
         return "IV";
     }
     return "X";
+  }
+
+  get lastSelected() {
+    return this.selected[this.selected.length - 1];
   }
 
   get musicxml() {
@@ -228,42 +231,68 @@ class FingeringEditor {
     });
   }
 
-  next() {
-    if (this.index >= this.svg_noteheads.length - 1) return;
-    this.svg_noteheads[this.index].deselect();
-    this.index++;
-    this.svg_noteheads[this.index].select();
+  next(shift = false) {
+    if (this.lastSelected >= this.svg_noteheads.length - 1) {
+      while (this.selected.length > 1) {
+        this.svg_noteheads[this.selected.shift()].deselect();
+      }
+      return;
+    }
+    if (shift) {
+      this.selected.push(this.lastSelected + 1);
+      this.svg_noteheads[this.lastSelected].select();
+      return;
+    }
+    this.selected.forEach((index) => this.svg_noteheads[index].deselect());
+    this.selected = [this.lastSelected + 1];
+    this.svg_noteheads[this.selected[0]].select();
   }
 
-  prev() {
-    if (this.index <= 0) return;
-    this.svg_noteheads[this.index].deselect();
-    this.index--;
-    this.svg_noteheads[this.index].select();
+  prev(shift = false) {
+    if (this.selected[0] <= 0) {
+      while (this.selected.length > 1) {
+        this.svg_noteheads[this.selected.pop()].deselect();
+      }
+      return;
+    }
+    if (shift) {
+      this.selected.unshift(this.selected[0] - 1);
+      this.svg_noteheads[this.selected[0]].select();
+      return;
+    }
+    if (this.selected.length > 0) {
+      this.selected.forEach((i) => this.svg_noteheads[i].deselect());
+    }
+    this.selected.forEach((index) => this.svg_noteheads[index].deselect());
+    this.selected = [this.selected[0] - 1];
+    this.svg_noteheads[this.selected[0]].select();
   }
 
   setFinger(n) {
-    console.log("Setting finger ", this.index, " to ", n);
-    let finger = this.svg_fingerings[this.index];
-    finger.textContent = n;
-    this.xml.querySelectorAll("fingering")[this.index].textContent = n;
-    if (n === "-1") {
-      finger.setAttribute("visibility", "hidden");
-    } else {
-      finger.removeAttribute("visibility");
-    }
+    console.log("Setting fingers ", this.selected, " to ", n);
+    this.selected.forEach((index) => {
+      let finger = this.svg_fingerings[index];
+      finger.textContent = n;
+      this.xml.querySelectorAll("fingering")[index].textContent = n;
+      if (n === "-1") {
+        finger.setAttribute("visibility", "hidden");
+      } else {
+        finger.removeAttribute("visibility");
+      }
+    });
   }
 
   setString(n) {
-    let string = this.svg_strings[this.index];
-    string.textContent = this.constructor.arabicToRoman(n);
-    this.xml.querySelectorAll("string")[this.index].textContent = n;
-
-    if (n === "-1") {
-      string.setAttribute("visibility", "hidden");
-    } else {
-      string.removeAttribute("visibility");
-    }
+    this.selected.forEach((index) => {
+      let string = this.svg_strings[index];
+      string.textContent = this.constructor.arabicToRoman(n);
+      this.xml.querySelectorAll("string")[index].textContent = n;
+      if (n === "-1") {
+        string.setAttribute("visibility", "hidden");
+      } else {
+        string.removeAttribute("visibility");
+      }
+    });
   }
 
   resetFingerings() {
@@ -281,51 +310,51 @@ class FingeringEditor {
     this.xml.querySelectorAll("technical>string").forEach((string) => {
       string.textContent = "-1";
     });
-    this.svg_noteheads[this.index].deselect();
+    this.selected.forEach((i) => this.svg_noteheads[i].deselect());
     if (!this.clean) {
       this.svg_noteheads[0].select();
-      this.index = 0;
+      this.selected = [0];
     }
   }
 
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
-    // console.log(e);
+    console.log(e);
     switch (e.code) {
       case "ArrowRight":
-        this.next();
+        this.next(e.shiftKey);
         break;
       case "ArrowLeft":
-        this.prev();
+        this.prev(e.shiftKey);
         break;
       // lies conveniently to the left of 1 on most keyboards
       case "Backquote":
         this.setFinger("0");
-        this.next();
+        this.selected.length === 1 && this.next();
         break;
       case "Digit0":
         this.setFinger("0");
-        this.next();
+        this.selected.length === 1 && this.next();
         break;
       case "Digit1":
         if (e.shiftKey) this.setString("1");
         else this.setFinger("1");
-        this.next();
+        this.selected.length === 1 && this.next();
         break;
       case "Digit2":
         if (e.shiftKey) this.setString("2");
         else this.setFinger("2");
-        this.next();
+        this.selected.length === 1 && this.next();
         break;
       case "Digit3":
         if (e.shiftKey) this.setString("3");
         else this.setFinger("3");
-        this.next();
+        this.selected.length === 1 && this.next();
         break;
       case "Digit4":
         if (e.shiftKey) this.setString("4");
         else this.setFinger("4");
-        this.next();
+        this.selected.length === 1 && this.next();
         break;
       case "Backspace":
         this.setFinger("-1");
@@ -339,6 +368,7 @@ class FingeringEditor {
   clear() {
     this.observer.disconnect();
     this.dom_node.innerHTML = "";
+    this.cancelDrag();
   }
 
   hide() {
@@ -354,7 +384,7 @@ class FingeringEditor {
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[this.index].select();
+    this.svg_noteheads[this.selected[0]].select();
     window.addEventListener("keydown", this.handleKeypress);
     this.enabled = true;
   }
@@ -362,7 +392,7 @@ class FingeringEditor {
   disable() {
     const svg = document.querySelector("svg");
     svg.setAttribute("tabindex", "-1");
-    this.svg_noteheads[this.index].deselect();
+    this.svg_noteheads[this.selected[0]].deselect();
     this.enabled = false;
     this.cancelDrag();
   }
@@ -399,10 +429,9 @@ class FingeringEditor {
         return +selectedElements[i].getAttribute("index");
       };
       if (selectedElements.length === 0) {
-        this.selected = [];
+        this.selected = [0];
       } else if (selectedElements.length === 1) {
-        this.selected = [];
-        this.index = getIndex(0);
+        this.selected = [getIndex(0)];
       } else {
         this.selected = [getIndex(0)];
         let i;
