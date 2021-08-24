@@ -11,7 +11,9 @@ class FingeringEditor {
     this.clean = clean;
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
-    this.selected = [0];
+    // emacs conventions for point and mark for note selection
+    this.point = 0;
+    this.mark = 0;
     this.svg_stavenotes = null;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
@@ -46,8 +48,9 @@ class FingeringEditor {
     return "X";
   }
 
-  get lastSelected() {
-    return this.selected[this.selected.length - 1];
+  get selected() {
+    let arr = new Array(Math.abs(this.mark - this.point + 1))
+    return Array.from(arr, (_, i) => i + Math.min(this.point, this.mark))
   }
 
   get musicxml() {
@@ -232,40 +235,39 @@ class FingeringEditor {
   }
 
   next(shift = false) {
-    if (this.lastSelected >= this.svg_noteheads.length - 1) {
-      while (this.selected.length > 1) {
-        this.svg_noteheads[this.selected.shift()].deselect();
-      }
+    if (this.mark >= this.svg_noteheads.length - 1) {
       return;
     }
     if (shift) {
-      this.selected.push(this.lastSelected + 1);
-      this.svg_noteheads[this.lastSelected].select();
+      if (this.mark < this.point) {
+        this.svg_noteheads[this.mark].deselect();
+      }
+      this.mark++;
+      this.svg_noteheads[this.mark].select();
       return;
     }
-    this.selected.forEach((index) => this.svg_noteheads[index].deselect());
-    this.selected = [this.lastSelected + 1];
-    this.svg_noteheads[this.selected[0]].select();
+    this.selected.forEach((i) => this.svg_noteheads[i].deselect())
+    this.mark++;
+    this.point = this.mark;
+    this.svg_noteheads[this.mark].select();
   }
 
   prev(shift = false) {
-    if (this.selected[0] <= 0) {
-      while (this.selected.length > 1) {
-        this.svg_noteheads[this.selected.pop()].deselect();
-      }
+    if (this.mark <= 0) {
       return;
     }
     if (shift) {
-      this.selected.unshift(this.selected[0] - 1);
-      this.svg_noteheads[this.selected[0]].select();
+      if (this.mark > this.point) {
+        this.svg_noteheads[this.mark].deselect()
+      }
+      this.mark--;
+      this.svg_noteheads[this.mark].select();
       return;
     }
-    if (this.selected.length > 0) {
-      this.selected.forEach((i) => this.svg_noteheads[i].deselect());
-    }
-    this.selected.forEach((index) => this.svg_noteheads[index].deselect());
-    this.selected = [this.selected[0] - 1];
-    this.svg_noteheads[this.selected[0]].select();
+    this.selected.forEach((i) => this.svg_noteheads[i].deselect())
+    this.mark--;
+    this.point = this.mark;
+    this.svg_noteheads[this.mark].select();
   }
 
   setFinger(n) {
@@ -313,7 +315,8 @@ class FingeringEditor {
     this.selected.forEach((i) => this.svg_noteheads[i].deselect());
     if (!this.clean) {
       this.svg_noteheads[0].select();
-      this.selected = [0];
+      this.mark = 0;
+      this.point = 0;
     }
   }
 
@@ -330,31 +333,31 @@ class FingeringEditor {
       // lies conveniently to the left of 1 on most keyboards
       case "Backquote":
         this.setFinger("0");
-        this.selected.length === 1 && this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit0":
         this.setFinger("0");
-        this.selected.length === 1 && this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit1":
         if (e.shiftKey) this.setString("1");
         else this.setFinger("1");
-        this.selected.length === 1 && this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit2":
         if (e.shiftKey) this.setString("2");
         else this.setFinger("2");
-        this.selected.length === 1 && this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit3":
         if (e.shiftKey) this.setString("3");
         else this.setFinger("3");
-        this.selected.length === 1 && this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit4":
         if (e.shiftKey) this.setString("4");
         else this.setFinger("4");
-        this.selected.length === 1 && this.next();
+        this.point === this.mark && this.next();
         break;
       case "Backspace":
         this.setFinger("-1");
@@ -384,7 +387,7 @@ class FingeringEditor {
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[this.selected[0]].select();
+    this.svg_noteheads[this.mark].select();
     window.addEventListener("keydown", this.handleKeypress);
     this.enabled = true;
   }
@@ -392,7 +395,7 @@ class FingeringEditor {
   disable() {
     const svg = document.querySelector("svg");
     svg.setAttribute("tabindex", "-1");
-    this.svg_noteheads[this.selected[0]].deselect();
+    this.svg_noteheads[this.mark].deselect();
     this.enabled = false;
     this.cancelDrag();
   }
@@ -429,15 +432,16 @@ class FingeringEditor {
         return +selectedElements[i].getAttribute("index");
       };
       if (selectedElements.length === 0) {
-        this.selected = [0];
+        this.point = 0;
+        this.mark = 0;
       } else if (selectedElements.length === 1) {
-        this.selected = [getIndex(0)];
+        this.point = this.mark = getIndex(0);
       } else {
-        this.selected = [getIndex(0)];
+        this.point = getIndex(0);
         let i;
         for (i = 1; i < selectedElements.length; ++i) {
           if (getIndex(i) === getIndex(i - 1) + 1)
-            this.selected.push(getIndex(i));
+            this.mark = getIndex(i);
           else break;
         }
         // deselect all notes outside of contiguous region
