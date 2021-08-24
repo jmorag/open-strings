@@ -238,6 +238,11 @@ class FingeringEditor {
 
   next(shift = false) {
     if (this.point >= this.svg_noteheads.length - 1) {
+      if (!shift) {
+        while (this.mark < this.point) {
+          this.svg_noteheads[this.mark++].deselect();
+        }
+      }
       return;
     }
     if (shift) {
@@ -256,6 +261,11 @@ class FingeringEditor {
 
   prev(shift = false) {
     if (this.point <= 0) {
+      if (!shift) {
+        while (this.mark > this.point) {
+          this.svg_noteheads[this.mark--].deselect();
+        }
+      }
       return;
     }
     if (shift) {
