@@ -97,9 +97,9 @@ class FingeringEditor {
     });
 
     // Indicate which notes were selected
-    const notes = xml.querySelectorAll("note");
+    const non_rest_notes = xml.querySelectorAll("[svg-index]");
     for (const i of this.selected()) {
-      notes[i].setAttribute("data-selected", "");
+      non_rest_notes[i].setAttribute("data-selected", "");
     }
     return xml;
   }
@@ -224,6 +224,7 @@ class FingeringEditor {
             note.setAttribute("index", i_svg);
             i_svg++;
             this.svg_noteheads.push(note);
+            xml_noteheads[i_xml].setAttribute("svg-index", i_svg);
           }
           i_xml++;
         })
