@@ -95,6 +95,12 @@ class FingeringEditor {
         }
       }
     });
+
+    // Indicate which notes were selected
+    const notes = xml.querySelectorAll("note");
+    for (const i of this.selected()) {
+      notes[i].setAttribute("data-selected", "");
+    }
     return xml;
   }
 
@@ -333,15 +339,15 @@ class FingeringEditor {
 
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
-    console.log(e);
+    // console.debug(e);
     switch (e.code) {
       case "ArrowRight":
         this.next(e.shiftKey);
-        console.log([...this.selected()]);
+        // console.debug([...this.selected()]);
         break;
       case "ArrowLeft":
         this.prev(e.shiftKey);
-        console.log([...this.selected()]);
+        // console.debug([...this.selected()]);
         break;
       // lies conveniently to the left of 1 on most keyboards
       case "Backquote":
