@@ -96,10 +96,10 @@ class FingeringEditor {
     });
 
     // Indicate which notes were selected
+    const timesteps = xml.querySelectorAll("note,backup,forward");
     if (this.point !== this.mark) {
       const left = Math.min(this.point, this.mark);
       const right = Math.max(this.point, this.mark);
-      const timesteps = xml.querySelectorAll("note,backup,forward");
       let i = 0;
       while (
         i < timesteps.length &&
@@ -107,13 +107,26 @@ class FingeringEditor {
       ) {
         i++;
       }
+      // push non-note elements into buffer so that trailing rests or backups
+      // don't get selected
+      const isNote = (e) => e.nodeName === "note" && !e.querySelector("rest")
+      let buffer = []
       while (
         i < timesteps.length &&
         +timesteps[i].getAttribute("svg-index") <= right
       ) {
-        timesteps[i].select();
+        if (isNote(timesteps[i])) {
+          buffer.forEach((n) => n.select());
+          buffer = [];
+          timesteps[i].select();
+        } else {
+          buffer.push(timesteps[i])
+        }
         i++;
       }
+    } else {
+      // mark every note for inference
+      for (const t of timesteps) t.select();
     }
     return xml;
   }
@@ -464,15 +477,16 @@ class FingeringEditor {
         return +selectedElements[i].getAttribute("index");
       };
       if (selectedElements.length === 0) {
-        this.point = 0;
-        this.mark = 0;
-      } else if (selectedElements.length === 1) {
+        // this.point = 0;
+        // this.mark = 0;
+      } else
+      if (selectedElements.length === 1) {
         this.point = this.mark = getIndex(0);
       } else {
-        this.point = getIndex(0);
+        this.point = this.mark = getIndex(0);
         let i;
         for (i = 1; i < selectedElements.length; ++i) {
-          if (getIndex(i) === getIndex(i - 1) + 1) this.mark = getIndex(i);
+          if (getIndex(i) === getIndex(i - 1) + 1) this.point = getIndex(i);
           else break;
         }
         // deselect all notes outside of contiguous region
