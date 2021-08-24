@@ -49,8 +49,11 @@ class FingeringEditor {
   }
 
   get selected() {
-    let arr = new Array(Math.abs(this.mark - this.point + 1))
-    return Array.from(arr, (_, i) => i + Math.min(this.point, this.mark))
+    let arr = [];
+    const left = Math.min(this.point, this.mark);
+    const right = Math.max(this.point, this.mark);
+    for (let i = left; i <= right; ++i) arr.push(i);
+    return arr;
   }
 
   get musicxml() {
@@ -235,44 +238,43 @@ class FingeringEditor {
   }
 
   next(shift = false) {
-    if (this.mark >= this.svg_noteheads.length - 1) {
+    if (this.point >= this.svg_noteheads.length - 1) {
       return;
     }
     if (shift) {
-      if (this.mark < this.point) {
-        this.svg_noteheads[this.mark].deselect();
+      if (this.point < this.mark) {
+        this.svg_noteheads[this.point].deselect();
       }
-      this.mark++;
-      this.svg_noteheads[this.mark].select();
+      this.point++;
+      this.svg_noteheads[this.point].select();
       return;
     }
-    this.selected.forEach((i) => this.svg_noteheads[i].deselect())
-    this.mark++;
-    this.point = this.mark;
-    this.svg_noteheads[this.mark].select();
+    for (const i of this.selected) this.svg_noteheads[i].deselect();
+    this.point++;
+    this.mark = this.point;
+    this.svg_noteheads[this.point].select();
   }
 
   prev(shift = false) {
-    if (this.mark <= 0) {
+    if (this.point <= 0) {
       return;
     }
     if (shift) {
-      if (this.mark > this.point) {
-        this.svg_noteheads[this.mark].deselect()
+      if (this.point > this.mark) {
+        this.svg_noteheads[this.point].deselect();
       }
-      this.mark--;
-      this.svg_noteheads[this.mark].select();
+      this.point--;
+      this.svg_noteheads[this.point].select();
       return;
     }
-    this.selected.forEach((i) => this.svg_noteheads[i].deselect())
-    this.mark--;
-    this.point = this.mark;
-    this.svg_noteheads[this.mark].select();
+    for (const i of this.selected) this.svg_noteheads[i].deselect();
+    this.point--;
+    this.mark = this.point;
+    this.svg_noteheads[this.point].select();
   }
 
   setFinger(n) {
-    console.log("Setting fingers ", this.selected, " to ", n);
-    this.selected.forEach((index) => {
+    for (const index of this.selected) {
       let finger = this.svg_fingerings[index];
       finger.textContent = n;
       this.xml.querySelectorAll("fingering")[index].textContent = n;
@@ -281,11 +283,11 @@ class FingeringEditor {
       } else {
         finger.removeAttribute("visibility");
       }
-    });
+    }
   }
 
   setString(n) {
-    this.selected.forEach((index) => {
+    for (const index of this.selected) {
       let string = this.svg_strings[index];
       string.textContent = this.constructor.arabicToRoman(n);
       this.xml.querySelectorAll("string")[index].textContent = n;
@@ -294,7 +296,7 @@ class FingeringEditor {
       } else {
         string.removeAttribute("visibility");
       }
-    });
+    }
   }
 
   resetFingerings() {
@@ -312,7 +314,7 @@ class FingeringEditor {
     this.xml.querySelectorAll("technical>string").forEach((string) => {
       string.textContent = "-1";
     });
-    this.selected.forEach((i) => this.svg_noteheads[i].deselect());
+    for (const i of this.selected) this.svg_noteheads[i].deselect();
     if (!this.clean) {
       this.svg_noteheads[0].select();
       this.mark = 0;
@@ -326,9 +328,11 @@ class FingeringEditor {
     switch (e.code) {
       case "ArrowRight":
         this.next(e.shiftKey);
+        console.log(this.selected);
         break;
       case "ArrowLeft":
         this.prev(e.shiftKey);
+        console.log(this.selected);
         break;
       // lies conveniently to the left of 1 on most keyboards
       case "Backquote":
@@ -440,15 +444,13 @@ class FingeringEditor {
         this.point = getIndex(0);
         let i;
         for (i = 1; i < selectedElements.length; ++i) {
-          if (getIndex(i) === getIndex(i - 1) + 1)
-            this.mark = getIndex(i);
+          if (getIndex(i) === getIndex(i - 1) + 1) this.mark = getIndex(i);
           else break;
         }
         // deselect all notes outside of contiguous region
         for (; i < selectedElements.length; ++i) {
           selectedElements[i].deselect();
         }
-        console.log(this.selected);
       }
     };
 
