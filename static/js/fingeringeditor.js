@@ -48,12 +48,11 @@ class FingeringEditor {
     return "X";
   }
 
-  get selected() {
-    let arr = [];
+  *selected() {
     const left = Math.min(this.point, this.mark);
     const right = Math.max(this.point, this.mark);
-    for (let i = left; i <= right; ++i) arr.push(i);
-    return arr;
+    for (let i = left; i <= right; ++i) yield i;
+    return;
   }
 
   get musicxml() {
@@ -249,7 +248,7 @@ class FingeringEditor {
       this.svg_noteheads[this.point].select();
       return;
     }
-    for (const i of this.selected) this.svg_noteheads[i].deselect();
+    for (const i of this.selected()) this.svg_noteheads[i].deselect();
     this.point++;
     this.mark = this.point;
     this.svg_noteheads[this.point].select();
@@ -267,14 +266,14 @@ class FingeringEditor {
       this.svg_noteheads[this.point].select();
       return;
     }
-    for (const i of this.selected) this.svg_noteheads[i].deselect();
+    for (const i of this.selected()) this.svg_noteheads[i].deselect();
     this.point--;
     this.mark = this.point;
     this.svg_noteheads[this.point].select();
   }
 
   setFinger(n) {
-    for (const index of this.selected) {
+    for (const index of this.selected()) {
       let finger = this.svg_fingerings[index];
       finger.textContent = n;
       this.xml.querySelectorAll("fingering")[index].textContent = n;
@@ -287,7 +286,7 @@ class FingeringEditor {
   }
 
   setString(n) {
-    for (const index of this.selected) {
+    for (const index of this.selected()) {
       let string = this.svg_strings[index];
       string.textContent = this.constructor.arabicToRoman(n);
       this.xml.querySelectorAll("string")[index].textContent = n;
@@ -314,7 +313,7 @@ class FingeringEditor {
     this.xml.querySelectorAll("technical>string").forEach((string) => {
       string.textContent = "-1";
     });
-    for (const i of this.selected) this.svg_noteheads[i].deselect();
+    for (const i of this.selected()) this.svg_noteheads[i].deselect();
     if (!this.clean) {
       this.svg_noteheads[0].select();
       this.mark = 0;
@@ -328,11 +327,11 @@ class FingeringEditor {
     switch (e.code) {
       case "ArrowRight":
         this.next(e.shiftKey);
-        console.log(this.selected);
+        console.log([...this.selected()]);
         break;
       case "ArrowLeft":
         this.prev(e.shiftKey);
-        console.log(this.selected);
+        console.log([...this.selected()]);
         break;
       // lies conveniently to the left of 1 on most keyboards
       case "Backquote":
