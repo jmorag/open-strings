@@ -20,7 +20,9 @@ import Text.XML
 import Text.XML.Lens
 
 inferFingerings :: Document -> Weights Double -> (Double, Document)
-inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
+inferFingerings doc weights =
+  doc
+    & partsOf' (root . timeStep . attributeIs "data-selected" "") %%~ go
   where
     go :: [Element] -> (Double, [Element])
     go steps =
@@ -29,7 +31,8 @@ inferFingerings doc weights = doc & (partsOf' (root . timeStep)) %%~ go
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
             map (\n -> (n ^. xmlRef . _1, n ^. fingering)) assignedNotes
-       in (cost, assignFingers (zip [0 ..] steps) fingers)
+          steps' = assignFingers (zip [0 ..] steps) fingers
+       in (cost, steps' & traversed . attribute "data-selected" .~ Nothing)
 
 inferWeights :: Document -> Weights Double -> Either Text (Weights Double)
 inferWeights doc initialWeights = go (doc ^.. root . timeStep)
