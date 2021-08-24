@@ -1,8 +1,8 @@
-SVGPathElement.prototype.select = function () {
+Element.prototype.select = function () {
   this.setAttribute("data-selected", "");
 };
 
-SVGPathElement.prototype.deselect = function () {
+Element.prototype.deselect = function () {
   this.removeAttribute("data-selected");
 };
 
@@ -96,9 +96,24 @@ class FingeringEditor {
     });
 
     // Indicate which notes were selected
-    const non_rest_notes = xml.querySelectorAll("[svg-index]");
-    for (const i of this.selected()) {
-      non_rest_notes[i].setAttribute("data-selected", "");
+    if (this.point !== this.mark) {
+      const left = Math.min(this.point, this.mark);
+      const right = Math.max(this.point, this.mark);
+      const timesteps = xml.querySelectorAll("note,backup,forward");
+      let i = 0;
+      while (
+        i < timesteps.length &&
+        +timesteps[i].getAttribute("svg-index") < left
+      ) {
+        i++;
+      }
+      while (
+        i < timesteps.length &&
+        +timesteps[i].getAttribute("svg-index") <= right
+      ) {
+        timesteps[i].select();
+        i++;
+      }
     }
     return xml;
   }
@@ -231,9 +246,9 @@ class FingeringEditor {
         .forEach((note) => {
           if (!xml_noteheads[i_xml].querySelector("rest")) {
             note.setAttribute("index", i_svg);
+            xml_noteheads[i_xml].setAttribute("svg-index", i_svg);
             i_svg++;
             this.svg_noteheads.push(note);
-            xml_noteheads[i_xml].setAttribute("svg-index", i_svg);
           }
           i_xml++;
         })
