@@ -33,7 +33,9 @@
           variant="info"
           @click="description = ''; editor.resetFingerings(); editor.enable()"
           >Clear fingerings
-        <b-button variant="info" @click="inferFingerings" v-show="edited">Infer fingerings
+        <b-button variant="info" @click="inferFingerings" v-show="edited"
+          v-b-popover.hover.top="'Select multiple notes to restrict inference to that range'"
+          >Infer fingerings
         <b-button variant="info" @click="inferWeights" v-show="edited">Infer weights
       <b-alert v-bind:show="show_alert" variant="danger">
         <span v-html="alert_message">
@@ -63,5 +65,5 @@
                 min="-100"
                 max="100"
                 type="number">
-  <p #editing-instructions v-show="edited">Select notes with the left/right arrows or by clicking. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
+  <p #editing-instructions v-show="edited">Select notes with the left/right arrows or by clicking. You can select multiple notes by dragging a box over them or holding shift with the arrow keys. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
 <div ##{renderId} .card>

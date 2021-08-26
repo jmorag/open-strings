@@ -64,9 +64,12 @@ const vue = new Vue({
     async inferWeights() {
       this.show_alert = false;
       const s = new XMLSerializer();
+      // server expects a map
+      let infer_weights = {};
+      this.infer_weights.forEach(({ name, value }) => infer_weights[name] = value);
       const body = {
         infer_xml: s.serializeToString(this.editor.musicxml),
-        infer_weights: this.infer_weights,
+        infer_weights,
       };
       this.loading = true;
       try {
