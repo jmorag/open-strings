@@ -45,7 +45,7 @@ postInferR =
           Just (Left e) -> object ["error" .= tshow e]
   where
     timeoutMsg :: Text
-    timeoutMsg = "Inference timed out. Try annotating some fingerings yourself or uploading a shorter passage"
+    timeoutMsg = "Inference timed out. Try annotating some fingerings yourself or selected a smaller section."
 
 postInferWeightsR :: Handler Value
 postInferWeightsR =
