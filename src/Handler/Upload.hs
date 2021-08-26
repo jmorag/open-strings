@@ -190,6 +190,7 @@ getEntryR entry_key = do
     renderId <- newIdent
     setTitle (toHtml title)
     addScript (StaticR js_opensheetmusicdisplay_min_js)
+    addScriptRemote "https://cdn.jsdelivr.net/npm/svg-drag-select@0.4.2"
     addScript (StaticR js_fingeringeditor_js)
     let subtitle = case movementNumber movement of
           0 -> case movementName movement of "" -> Nothing; name -> Just name

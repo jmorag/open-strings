@@ -1,28 +1,36 @@
+Element.prototype.select = function () {
+  this.setAttribute("data-selected", "");
+};
+
+Element.prototype.deselect = function () {
+  this.removeAttribute("data-selected");
+};
+
 class FingeringEditor {
   constructor(nodeId, clean) {
     this.clean = clean;
     this.dom_node = document.getElementById(nodeId);
     this.xml = null;
-    this.index = 0;
+    // emacs conventions for point and mark for note selection
+    this.point = 0;
+    this.mark = 0;
     this.svg_stavenotes = null;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
     this.svg_strings = null;
-    this.unfocused = "#000000";
-    this.focused = "#007bff";
     this.handleKeypress = this.handleKeypress.bind(this);
-    this.handleClick = this.handleClick.bind(this);
     // We need this extra variable so the state persists window size change
     this.enabled = false;
     // Defined here so that we can disconnect it when calling clear
     this.observer = new MutationObserver((mutation) => {
       const svg = document.querySelector("svg");
-      this.set_stavenotes(svg);
-      this.set_noteheads(svg);
+      this.set_svg_notes(svg);
       this.set_fingerings_and_strings(svg);
       if (this.clean) this.resetFingerings();
       if (this.enabled) this.enable();
+      this.setupDrag(svg);
     });
+    this.cancelDrag = null;
   }
 
   static arabicToRoman(n) {
@@ -37,6 +45,13 @@ class FingeringEditor {
         return "IV";
     }
     return "X";
+  }
+
+  *selected() {
+    const left = Math.min(this.point, this.mark);
+    const right = Math.max(this.point, this.mark);
+    for (let i = left; i <= right; ++i) yield i;
+    return;
   }
 
   get musicxml() {
@@ -79,6 +94,40 @@ class FingeringEditor {
         }
       }
     });
+
+    // Indicate which notes were selected
+    const timesteps = xml.querySelectorAll("note,backup,forward");
+    if (this.point !== this.mark) {
+      const left = Math.min(this.point, this.mark);
+      const right = Math.max(this.point, this.mark);
+      let i = 0;
+      while (
+        i < timesteps.length &&
+        +timesteps[i].getAttribute("svg-index") < left
+      ) {
+        i++;
+      }
+      // push non-note elements into buffer so that trailing rests or backups
+      // don't get selected
+      const isNote = (e) => e.nodeName === "note" && !e.querySelector("rest")
+      let buffer = []
+      while (
+        i < timesteps.length &&
+        +timesteps[i].getAttribute("svg-index") <= right
+      ) {
+        if (isNote(timesteps[i])) {
+          buffer.forEach((n) => n.select());
+          buffer = [];
+          timesteps[i].select();
+        } else {
+          buffer.push(timesteps[i])
+        }
+        i++;
+      }
+    } else {
+      // mark every note for inference
+      for (const t of timesteps) t.select();
+    }
     return xml;
   }
 
@@ -169,11 +218,17 @@ class FingeringEditor {
 
       // svg string numbers
       i = j; // reset i to beginning of this chord
-      for (let f = modifiers[fIndex]; fIndex < modifiers.length; f = modifiers[++fIndex]) {
+      for (
+        let f = modifiers[fIndex];
+        fIndex < modifiers.length;
+        f = modifiers[++fIndex]
+      ) {
         // skip all non-text elements
         if (f.tagName !== "path") {
           f.setAttribute("index", i);
-          f.textContent = this.constructor.arabicToRoman(xml_strings[i].textContent);
+          f.textContent = this.constructor.arabicToRoman(
+            xml_strings[i].textContent
+          );
           // hide bogus string numbers
           f.textContent === "X" && f.setAttribute("visibility", "hidden");
           i++;
@@ -183,7 +238,17 @@ class FingeringEditor {
     }
   }
 
-  set_noteheads(svg) {
+  set_svg_notes(svg) {
+    this.svg_stavenotes = [];
+    // In the svg, grace notes are children of the main note they are
+    // attached to, even though they precede it musically
+    svg.querySelectorAll("svg>g.vf-stavenote").forEach((n) => {
+      n.querySelectorAll("g.vf-modifiers>g.vf-stavenote").forEach((grace) =>
+        this.svg_stavenotes.push(grace)
+      );
+      this.svg_stavenotes.push(n);
+    });
+
     let i_xml = 0;
     let i_svg = 0;
     const xml_noteheads = this.xml.querySelectorAll("note");
@@ -194,6 +259,7 @@ class FingeringEditor {
         .forEach((note) => {
           if (!xml_noteheads[i_xml].querySelector("rest")) {
             note.setAttribute("index", i_svg);
+            xml_noteheads[i_xml].setAttribute("svg-index", i_svg);
             i_svg++;
             this.svg_noteheads.push(note);
           }
@@ -202,53 +268,75 @@ class FingeringEditor {
     );
   }
 
-  set_stavenotes(svg) {
-    this.svg_stavenotes = [];
-    // In the svg, grace notes are children of the main note they are
-    // attached to, even though they precede it musically
-    svg.querySelectorAll("svg>g.vf-stavenote").forEach((n) => {
-      n.querySelectorAll("g.vf-modifiers>g.vf-stavenote").forEach((grace) =>
-        this.svg_stavenotes.push(grace)
-      );
-      this.svg_stavenotes.push(n);
-    });
+  next(shift = false) {
+    if (this.point >= this.svg_noteheads.length - 1) {
+      if (!shift) {
+        while (this.mark < this.point) {
+          this.svg_noteheads[this.mark++].deselect();
+        }
+      }
+      return;
+    }
+    if (shift) {
+      if (this.point < this.mark) {
+        this.svg_noteheads[this.point].deselect();
+      }
+      this.point++;
+      this.svg_noteheads[this.point].select();
+      return;
+    }
+    for (const i of this.selected()) this.svg_noteheads[i].deselect();
+    this.point++;
+    this.mark = this.point;
+    this.svg_noteheads[this.point].select();
   }
 
-  next() {
-    if (this.index >= this.svg_noteheads.length - 1) return;
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-    this.index++;
-    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
-  }
-
-  prev() {
-    if (this.index <= 0) return;
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-    this.index--;
-    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
+  prev(shift = false) {
+    if (this.point <= 0) {
+      if (!shift) {
+        while (this.mark > this.point) {
+          this.svg_noteheads[this.mark--].deselect();
+        }
+      }
+      return;
+    }
+    if (shift) {
+      if (this.point > this.mark) {
+        this.svg_noteheads[this.point].deselect();
+      }
+      this.point--;
+      this.svg_noteheads[this.point].select();
+      return;
+    }
+    for (const i of this.selected()) this.svg_noteheads[i].deselect();
+    this.point--;
+    this.mark = this.point;
+    this.svg_noteheads[this.point].select();
   }
 
   setFinger(n) {
-    console.log("Setting finger ", this.index, " to ", n);
-    let finger = this.svg_fingerings[this.index];
-    finger.textContent = n;
-    this.xml.querySelectorAll("fingering")[this.index].textContent = n;
-    if (n === "-1") {
-      finger.setAttribute("visibility", "hidden");
-    } else {
-      finger.removeAttribute("visibility");
+    for (const index of this.selected()) {
+      let finger = this.svg_fingerings[index];
+      finger.textContent = n;
+      this.xml.querySelectorAll("fingering")[index].textContent = n;
+      if (n === "-1") {
+        finger.setAttribute("visibility", "hidden");
+      } else {
+        finger.removeAttribute("visibility");
+      }
     }
   }
 
   setString(n) {
-    let string = this.svg_strings[this.index];
-    string.textContent = this.constructor.arabicToRoman(n);
-    this.xml.querySelectorAll("string")[this.index].textContent = n;
-
-    if (n === "-1") {
-      string.setAttribute("visibility", "hidden");
-    } else {
-      string.removeAttribute("visibility");
+    for (const index of this.selected()) {
+      let string = this.svg_strings[index];
+      string.textContent = this.constructor.arabicToRoman(n);
+      this.xml.querySelectorAll("string")[index].textContent = n;
+      if (n === "-1") {
+        string.setAttribute("visibility", "hidden");
+      } else {
+        string.removeAttribute("visibility");
+      }
     }
   }
 
@@ -267,51 +355,54 @@ class FingeringEditor {
     this.xml.querySelectorAll("technical>string").forEach((string) => {
       string.textContent = "-1";
     });
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    for (const i of this.selected()) this.svg_noteheads[i].deselect();
     if (!this.clean) {
-      this.svg_noteheads[0].setAttribute("fill", this.focused);
-      this.index = 0;
+      this.svg_noteheads[0].select();
+      this.mark = 0;
+      this.point = 0;
     }
   }
 
   handleKeypress(e) {
     if (document.activeElement.tagName !== "svg") return;
-    console.log(e);
+    // console.debug(e);
     switch (e.code) {
       case "ArrowRight":
-        this.next();
+        this.next(e.shiftKey);
+        // console.debug([...this.selected()]);
         break;
       case "ArrowLeft":
-        this.prev();
+        this.prev(e.shiftKey);
+        // console.debug([...this.selected()]);
         break;
       // lies conveniently to the left of 1 on most keyboards
       case "Backquote":
         this.setFinger("0");
-        this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit0":
         this.setFinger("0");
-        this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit1":
         if (e.shiftKey) this.setString("1");
         else this.setFinger("1");
-        this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit2":
         if (e.shiftKey) this.setString("2");
         else this.setFinger("2");
-        this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit3":
         if (e.shiftKey) this.setString("3");
         else this.setFinger("3");
-        this.next();
+        this.point === this.mark && this.next();
         break;
       case "Digit4":
         if (e.shiftKey) this.setString("4");
         else this.setFinger("4");
-        this.next();
+        this.point === this.mark && this.next();
         break;
       case "Backspace":
         this.setFinger("-1");
@@ -322,19 +413,10 @@ class FingeringEditor {
     }
   }
 
-  handleClick({ target }) {
-    if (document.activeElement.tagName !== "svg") return;
-    let target_ix = parseInt(target?.getAttribute("index"));
-    if (!isNaN(target_ix)) {
-      this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
-      this.svg_noteheads[target_ix].setAttribute("fill", this.focused);
-      this.index = target_ix;
-    }
-  }
-
   clear() {
     this.observer.disconnect();
     this.dom_node.innerHTML = "";
+    this.cancelDrag();
   }
 
   hide() {
@@ -350,24 +432,85 @@ class FingeringEditor {
     // Allow the svg container to be focused
     svg.setAttribute("tabindex", "0");
     svg.focus({ preventScroll: true });
-    this.svg_noteheads[this.index].setAttribute("fill", this.focused);
+    this.svg_noteheads[this.mark].select();
     window.addEventListener("keydown", this.handleKeypress);
-    window.addEventListener("mouseup", this.handleClick);
     this.enabled = true;
   }
 
   disable() {
     const svg = document.querySelector("svg");
     svg.setAttribute("tabindex", "-1");
-    this.svg_noteheads[this.index].setAttribute("fill", this.unfocused);
+    this.svg_noteheads[this.mark].deselect();
     this.enabled = false;
+    this.cancelDrag();
+  }
+
+  // see https://github.com/luncheon/svg-drag-select#usage-and-options
+  setupDrag(svg) {
+    const noteHeadSelector = ({ getIntersections }) =>
+      getIntersections().filter(
+        (element) =>
+          element instanceof SVGPathElement &&
+          element.getAttribute("index") !== null
+      );
+
+    const onSelectionStart = ({ svg, pointerEvent, cancel }) => {
+      // for example: handles mouse left button only.
+      if (pointerEvent.button !== 0) {
+        cancel();
+        return;
+      }
+      const selectedElements = svg.querySelectorAll("[data-selected]");
+      selectedElements.forEach((element) => element.deselect());
+    };
+
+    const onSelectionChange = ({
+      newlySelectedElements,
+      newlyDeselectedElements,
+    }) => {
+      newlyDeselectedElements.forEach((element) => element.deselect());
+      newlySelectedElements.forEach((element) => element.select());
+    };
+
+    const onSelectionEnd = ({ selectedElements }) => {
+      const getIndex = (i) => {
+        return +selectedElements[i].getAttribute("index");
+      };
+      if (selectedElements.length === 0) {
+        // this.point = 0;
+        // this.mark = 0;
+      } else
+      if (selectedElements.length === 1) {
+        this.point = this.mark = getIndex(0);
+      } else {
+        this.point = this.mark = getIndex(0);
+        let i;
+        for (i = 1; i < selectedElements.length; ++i) {
+          if (getIndex(i) === getIndex(i - 1) + 1) this.point = getIndex(i);
+          else break;
+        }
+        // deselect all notes outside of contiguous region
+        for (; i < selectedElements.length; ++i) {
+          selectedElements[i].deselect();
+        }
+      }
+    };
+
+    const { cancel } = svgDragSelect({
+      svg,
+      selector: noteHeadSelector,
+      onSelectionStart,
+      onSelectionChange,
+      onSelectionEnd,
+    });
+
+    this.cancelDrag = cancel;
   }
 
   async render(xml_string, start_measure) {
-    const offset = parseInt(start_measure, 10) - 1;
+    const offset = +start_measure - 1;
     this.xml = this.constructor.parse_xml(xml_string, offset);
     window.removeEventListener("keydown", this.handleKeypress);
-    window.removeEventListener("mouseup", this.handleClick);
     const osmd = new opensheetmusicdisplay.OpenSheetMusicDisplay(
       this.dom_node,
       {
