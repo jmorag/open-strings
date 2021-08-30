@@ -79,8 +79,8 @@ data Constraint = Free | OnString VString | Finger Finger | Specified Finger VSt
 -- TODO figure out how to make Pretext' (Indexed Int) Element Document work
 type XmlRef = (Int, Element)
 
-deref :: XmlRef -> Element
-deref = snd
+deref :: Lens' XmlRef Element
+deref = _2
 
 -- | Get the MIDI pitch number from the xml note element
 xmlPitch :: Element -> Maybe Pitch
@@ -165,7 +165,7 @@ instance Foldable f => Show (Note f) where
     debugPitch (pitch note) <> "[" <> F.concatMap show (_fingerings note) <> "]"
 
 getNote :: Note f -> Element
-getNote = deref . _xmlRef
+getNote = view (xmlRef . deref)
 
 pitch :: Note f -> Pitch
 pitch =
@@ -668,9 +668,8 @@ trill = P "trill" cost high
     cost step = case step ^. timestep of
       Rest -> 0
       Single n ->
-        case n
-          ^? xmlRef . to deref
-            . deep (failing (ell "trill-mark") (ell "wavy-line")) of
+        case getNote n
+          ^? deep (failing (ell "trill-mark") (ell "wavy-line")) of
           Just _ -> case n ^. fgr of
             Open -> high
             One -> 0

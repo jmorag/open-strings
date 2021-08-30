@@ -96,7 +96,7 @@ readTimeSteps es = addGraceNotes graceNotes noGrace
 
 readTimeStep :: VM.MVector s (TimeStep Set) -> Int -> XmlRef -> ST s Int
 readTimeStep vec t ref =
-  let e = deref ref
+  let e = view deref ref
       t' = if chord e then t - dur e else t
    in case e ^?! name of
         "note" -> do
@@ -135,7 +135,7 @@ totalDuration = go 0 []
           [] -> error "Impossible - chord element before non-chord element"
           ((n, t') : ns) -> go t ((mkNote ref <> n, t') : ns) es
       where
-        e = deref ref
+        e = view deref ref
 
 calculateDuration :: Element -> Int
 calculateDuration e = case e ^?! name of
