@@ -75,9 +75,12 @@ shortestPath ::
   (state -> state -> a) ->
   (a, [state])
 shortestPath _ [] _ _ = (0, [])
-shortestPath infinity (fs : rest) singleCost transitionCost =
-  fmap mkGraph fs & minimumBy (compare `on` fst)
+shortestPath infinity ((s :| ss) : rest) singleCost transitionCost =
+  fmap mkGraph fs' & minimumBy (compare `on` fst)
   where
+    fs' = case filter (\node -> singleCost node < infinity) (s : ss) of
+      [] -> error $ "No possible fingering for note " <> show (s : ss)
+      (s' : ss') -> s' :| ss'
     mkGraph f =
       let graph =
             V.fromList $
