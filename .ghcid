@@ -1,1 +1,1 @@
---command="cabal repl -fdev" --warnings --test=appMain --restart templates/ --restart config/
+--command="stack repl --flag fingerdb:dev" --warnings --test=appMain --restart config/
