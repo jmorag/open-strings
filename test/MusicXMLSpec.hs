@@ -1,27 +1,38 @@
+{-# LANGUAGE TemplateHaskell #-}
 module MusicXMLSpec (spec) where
 
 import Control.Lens
+import Data.FileEmbed
 import MusicXML
 import Text.XML
 import Text.XML.Lens
 import Test.Hspec
-import Prelude
+import ClassyPrelude
 
 spec :: Spec
 spec =
-  describe "prokofiev" do
-    it "reads the right number of notes" do
-      nTimeSteps <$> prok `shouldReturn` 63
+  describe "read the right number of time steps" do
+    it "prokofiev" do
+      nTimeSteps prok `shouldBe` 63
+    it "brahms" do
+      nTimeSteps brahms `shouldBe` 35
+    it "sibelius" do
+      nTimeSteps sibelius `shouldBe` 50
+    it "ysaye" do
+      nTimeSteps ysaye `shouldBe` 15
+    it "tartini" do
+      nTimeSteps tartini `shouldBe` 430
+
 
 nTimeSteps :: Document -> Int
 nTimeSteps doc = length (readTimeSteps (doc ^.. root . timeStep))
 
-readXML :: FilePath -> IO Document
-readXML = Text.XML.readFile def
+readXML :: ByteString -> Document
+readXML = parseLBS_ def . fromChunks . (: [])
 
-prok, brahms, sibelius, ysaye, tartini :: IO Document
-prok = readXML "data/Prokofiev_violin_concerto_No_2_excerpt.musicxml"
-brahms = readXML "data/Brahms_violin_concerto.musicxml"
-sibelius = readXML "data/Sibelius_violin_concerto_excerpt.musicxml"
-ysaye = readXML "data/Ysaye ballade excerpt.musicxml"
-tartini = readXML "data/tartini_devil_page_1.musicxml"
+prok, brahms, sibelius, ysaye, tartini :: Document
+prok = readXML $(embedFile "data/Prokofiev_violin_concerto_No_2_excerpt.musicxml")
+brahms = readXML $(embedFile "data/Brahms_violin_concerto.musicxml")
+sibelius = readXML $(embedFile "data/Sibelius_violin_concerto_excerpt.musicxml")
+ysaye = readXML $(embedFile "data/Ysaye ballade excerpt.musicxml")
+tartini = readXML $(embedFile "data/tartini_devil_page_1.musicxml")
