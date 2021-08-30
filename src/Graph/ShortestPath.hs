@@ -69,23 +69,22 @@ initialize infinity graph singleCost = map (pruneVertices . fmap mkNode) graph
 shortestPath ::
   forall state a.
   (Ord state, Num a, Ord a, Show state) =>
+  -- | dummy start state
+  state ->
+  -- | infinity
   a ->
+  -- | all states
   [NonEmpty state] ->
+  -- | single node cost
   (state -> a) ->
+  -- | transition cost
   (state -> state -> a) ->
   (a, [state])
-shortestPath _ [] _ _ = (0, [])
-shortestPath infinity ((s :| ss) : rest) singleCost transitionCost =
-  fmap mkGraph fs' & minimumBy (compare `on` fst)
+shortestPath _ _ [] _ _ = (0, [])
+shortestPath start infinity states singleCost transitionCost =
+  let (cost, _:path) = getPath (V.modify go (V.fromList graph)) in (cost, path)
   where
-    fs' = case filter (\node -> singleCost node < infinity) (s : ss) of
-      [] -> error $ "No possible fingering for note " <> show (s : ss)
-      (s' : ss') -> s' :| ss'
-    mkGraph f =
-      let graph =
-            V.fromList $
-              (Node f 0 (singleCost f) Nothing :| []) : initialize infinity rest singleCost
-       in getPath $ V.modify go graph
+    graph = (Node start 0 0 Nothing :| []) : initialize infinity states singleCost
 
     relax u v =
       -- add the static cost of the next node when calculating the new distance

@@ -626,7 +626,13 @@ inferFingerings' :: Weights Double -> [UnassignedStep] -> (Double, [AssignedStep
 inferFingerings' weights steps =
   case mkAssignments steps of
     Nothing -> error "Could not assign fingering"
-    Just steps' -> shortestPath infinity steps' (applyP1s weights p1s) (applyP2s weights p2s)
+    Just steps' ->
+      shortestPath
+        (Step Rest 0)
+        infinity
+        steps'
+        (applyP1s weights p1s)
+        (applyP2s weights p2s)
 
 mkAssignments :: [UnassignedStep] -> Maybe [NE.NonEmpty AssignedStep]
 mkAssignments = traverse (NE.nonEmpty . allAssignments)
