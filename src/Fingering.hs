@@ -126,7 +126,7 @@ data Fingering = Fingering {_string :: VString, _finger :: Finger, _distance :: 
   deriving (Eq, Ord)
 
 instance Show Fingering where
-  show (Fingering {..}) = showFinger _finger <> showStr _string
+  show Fingering {..} = showFinger _finger <> showStr _string
     where
       showStr E = "-I"
       showStr A = "-II"
@@ -510,14 +510,14 @@ mkNote ref =
       let fs =
             S.fromList $
               filter
-                (flip validPlacement (xmlConstraint (deref ref)))
+                (`validPlacement` xmlConstraint (deref ref))
                 (allFingerings p)
        in Single $ Note ref fs
     Nothing -> Rest
 
 -- The cartesian product of all the possibleFingerings for a given timestep
 allAssignments :: UnassignedStep -> [AssignedStep]
-allAssignments (Step ns dur) = map (flip Step dur) (go ns)
+allAssignments (Step ns dur) = map (`Step` dur) (go ns)
   where
     note x f = Note x (Identity f)
 
@@ -528,7 +528,7 @@ allAssignments (Step ns dur) = map (flip Step dur) (go ns)
       where
         possible = case unassigned of
           Rest -> [Rest]
-          Single (Note x fs) -> fmap (\f -> Single (note x f)) (S.toList fs)
+          Single (Note x fs) -> fmap (Single . note x) (S.toList fs)
           DoubleStop (Note x1 fs1) (Note x2 fs2) -> do
             f1 <- S.toList fs1
             f2 <- S.toList fs2
@@ -594,7 +594,6 @@ p1s =
   singles
     <> doubleStops
     <> [ trill
-       , chordAdjacent
        , staticTripleStop
        , staticQuadrupleStop
        ]
@@ -616,6 +615,7 @@ doubleStops =
   , staticMajorSeventh
   , staticOctave
   , staticTenth
+  , chordAdjacent
   ]
 
 p2s :: Num a => [Penalty2 a]
@@ -637,7 +637,7 @@ inferFingerings' weights steps =
     Just steps' -> shortestPath infinity steps' (applyP1s weights p1s) (applyP2s weights p2s)
 
 mkAssignments :: [UnassignedStep] -> Maybe [NE.NonEmpty AssignedStep]
-mkAssignments steps = traverse (NE.nonEmpty . allAssignments) steps
+mkAssignments = traverse (NE.nonEmpty . allAssignments)
 
 -- | Given a corpus of fingered passages and an initial weight configuration, run SGD
 -- to find the weight configuration that minimizes the cost function

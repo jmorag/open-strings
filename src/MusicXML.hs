@@ -43,11 +43,10 @@ inferWeights doc initialWeights = go (doc ^.. root . timeStep)
         Left "Cannot deduce preferences. In order to infer weights, all fingers and strings must be specified."
       Just assignedSteps -> Right $ inferWeights' [assignedSteps] initialWeights
 
-    getSingleAnnotation :: UnassignedStep -> Maybe (AssignedStep)
+    getSingleAnnotation :: UnassignedStep -> Maybe AssignedStep
     getSingleAnnotation s = case allAssignments s of
       [ann] -> Just ann
       _ -> Nothing
-
 
 assignFingers :: [(Int, Element)] -> [(Int, Fingering)] -> [Element]
 assignFingers e [] = map snd e
@@ -97,7 +96,8 @@ readTimeSteps es = addGraceNotes graceNotes noGrace
 
 readTimeStep :: VM.MVector s (TimeStep Set) -> Int -> XmlRef -> ST s Int
 readTimeStep vec t ref =
-  let t' = if chord e then t - dur e else t
+  let e = deref ref
+      t' = if chord e then t - dur e else t
    in case e ^?! name of
         "note" -> do
           -- skip grace notes in this phase
@@ -107,8 +107,6 @@ readTimeStep vec t ref =
         "backup" -> pure (t' - dur e)
         "forward" -> pure (t' + dur e)
         n -> error $ "Impossible timestep element " <> show n
-  where
-    e = deref ref
 
 coalesceTimeSteps :: Foldable t => t (TimeStep f) -> [Step f]
 coalesceTimeSteps = fmap (\ts -> Step (NE.head ts) (length ts)) . NE.group
@@ -117,7 +115,7 @@ addGraceNotes :: [(TimeStep Set, Int)] -> [Step Set] -> [Step Set]
 addGraceNotes = go 0 []
   where
     go _ acc [] regularNotes = reverse acc <> regularNotes
-    go _ acc graceNotes [] = reverse acc <> (map (\(g, _) -> Step g 1) graceNotes)
+    go _ acc graceNotes [] = reverse acc <> map (\(g, _) -> Step g 1) graceNotes
     go t acc graceNotes@((g, t') : gs) regularNotes@(n : ns)
       -- Assumes that grace notes line up exactly before regular
       -- notes. This should of course be true but it could bear some

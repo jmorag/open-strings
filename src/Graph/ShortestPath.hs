@@ -87,7 +87,7 @@ shortestPath infinity (fs : rest) singleCost transitionCost =
     relax u v =
       -- add the static cost of the next node when calculating the new distance
       let dist' = dist u + transitionCost (vertex u) (vertex v) + staticCost v
-       in if dist' < (dist v) then v {dist = dist', previous = Just u} else v
+       in if dist' < dist v then v {dist = dist', previous = Just u} else v
 
     go :: forall s. VM.MVector s (NonEmpty (GraphNode state a)) -> ST s ()
     go g = forM_ [1 .. VM.length g - 1] \i -> do
