@@ -55,24 +55,6 @@ dist x y = fromEnum x - fromEnum y
 -- Midi pitch
 type Pitch = Int
 
-debugPitch :: Pitch -> String
-debugPitch p =
-  case p `mod` 12 of
-    0 -> "C"
-    1 -> "C#"
-    2 -> "D"
-    3 -> "D#"
-    4 -> "E"
-    5 -> "F"
-    6 -> "F#"
-    7 -> "G"
-    8 -> "G#"
-    9 -> "A"
-    10 -> "A#"
-    11 -> "B"
-    _ -> error "impossible"
-    <> show (p `div` 12 - 1)
-
 data Constraint = Free | OnString VString | Finger Finger | Specified Finger VString
   deriving (Show, Eq)
 
@@ -162,7 +144,18 @@ deriving instance Ord (Note Identity)
 
 instance Foldable f => Show (Note f) where
   show note =
-    debugPitch (pitch note) <> "[" <> F.concatMap show (_fingerings note) <> "]"
+    unpack showPitch <> "[" <> F.concatMap show (_fingerings note) <> "]"
+    where
+      showPitch =
+        (getNote note ^? deep (ell "pitch" ... ell "step") . text & fromMaybe "R")
+          <> case getNote note ^? deep (ell "pitch" ... ell "alter") . text of
+            Just "-2" -> "𝄫" -- double flat
+            Just "-1" -> "♭"
+            Just "-0.5" -> "𝄳" -- quarter flat
+            Just "0.5" -> "𝄲" -- quarter sharp
+            Just "1" -> "♯"
+            Just "2" -> "𝄪" -- double sharp
+            _ -> ""
 
 getNote :: Note f -> Element
 getNote = view (xmlRef . deref)
@@ -504,16 +497,15 @@ applyP2s weights ps step1 step2 = sum $ map cost ps
        in (p ^. pCost) (step1, step2) * weight
 
 mkNote :: XmlRef -> TimeStep Set
-mkNote ref =
-  case xmlPitch (deref ref) of
-    Just p ->
-      let fs =
-            S.fromList $
-              filter
-                (`validPlacement` xmlConstraint (deref ref))
-                (allFingerings p)
-       in Single $ Note ref fs
-    Nothing -> Rest
+mkNote ref = case xmlPitch x of
+  Just p ->
+    let fs =
+          S.fromList $
+            filter (`validPlacement` xmlConstraint x) (allFingerings p)
+     in Single $ Note ref fs
+  Nothing -> Rest
+  where
+    x = ref ^. deref
 
 -- The cartesian product of all the possibleFingerings for a given timestep
 allAssignments :: UnassignedStep -> [AssignedStep]
