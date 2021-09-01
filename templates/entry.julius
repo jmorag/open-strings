@@ -18,6 +18,14 @@ const vue = new Vue({
     disable_submit: true,
   },
 
+  computed: {
+    infer_weights_map: function() {
+      let m = {};
+      this.infer_weights.forEach(({ name, value }) => m[name] = value);
+      return m;
+    }
+  },
+
   mounted: function() {
     // the xml on the server already has measure numbers set
     this.editor.render(#{entryMusicxml entry}, 1);
@@ -27,12 +35,9 @@ const vue = new Vue({
     async inferFingerings(e) {
       this.show_alert = false;
       const s = new XMLSerializer();
-      // server expects a map
-      let infer_weights = {};
-      this.infer_weights.forEach(({ name, value }) => infer_weights[name] = value);
       const body = {
         infer_xml: s.serializeToString(this.editor.musicxml),
-        infer_weights,
+        infer_weights: this.infer_weights_map,
       };
       this.loading = true;
       try {
@@ -49,8 +54,8 @@ const vue = new Vue({
           return;
         }
         if (json.success) {
-          this.description = "Inferred";
-          this.editor.clear()
+          this.description = `Inferred. Cost: ${json.cost}`;
+          this.editor.clear();
           this.editor.render(json.xml, 1);
           return;
         }
@@ -64,12 +69,9 @@ const vue = new Vue({
     async inferWeights() {
       this.show_alert = false;
       const s = new XMLSerializer();
-      // server expects a map
-      let infer_weights = {};
-      this.infer_weights.forEach(({ name, value }) => infer_weights[name] = value);
       const body = {
         infer_xml: s.serializeToString(this.editor.musicxml),
-        infer_weights,
+        infer_weights: this.infer_weights_map,
       };
       this.loading = true;
       try {
