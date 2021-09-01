@@ -62,9 +62,11 @@ postInferWeightsR =
           Right eWeights -> case eWeights of
             Left e -> ["error" .= e]
             Right weights ->
-              [ "success" .= True
-              , "infer_weights" .= toJSON (fmap (round @_ @Int) weights)
-              ]
+              let toJSWeight (k, _) =
+                    object ["name" .= k, "value" .= (round (weights M.! k) :: Int)]
+               in [ "success" .= True
+                  , "infer_weights" .= array (map toJSWeight startingWeights)
+                  ]
 
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64
