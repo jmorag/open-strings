@@ -37,6 +37,7 @@ dependencies:
   - monad-control >=0.3 && <1.1
   - monad-logger >=0.3 && <0.4
   - monad-memo >=0.5.0 && < 0.6
+  - mtl
   - persistent >=2.9 && <2.11
   - persistent-postgresql >=2.9 && <2.11
   - persistent-template >=2.5 && <2.9

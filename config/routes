@@ -38,3 +38,5 @@
 /api/infer InferR POST
 
 /api/infer-weights InferWeightsR POST
+
+/api/visualize VisualizeR POST

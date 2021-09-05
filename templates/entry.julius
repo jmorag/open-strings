@@ -99,6 +99,34 @@ const vue = new Vue({
       }
     },
 
+    async showVisualization() {
+      this.show_alert = false;
+      const s = new XMLSerializer();
+      const body = {
+        infer_xml: s.serializeToString(this.editor.musicxml),
+        infer_weights: this.infer_weights_map,
+      };
+      this.loading = true;
+      try {
+        const resp = await fetch("@{VisualizeR}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
+          body: JSON.stringify(body)
+        });
+        const json = await resp.json();
+        this.loading = false;
+        if (json.success) {
+          console.log(json.graph);
+          return;
+        }
+      } catch (e) {
+        this.alert_message = e;
+        this.show_alert = true;
+        this.loading = false;
+        return;
+      }
+    },
+
     async submit(e) {
       if (!this.description) {
         this.validated = true;

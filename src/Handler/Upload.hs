@@ -13,6 +13,7 @@ import Handler.Pieces
 import Import
 import Model.Parts
 import MusicXML
+import Visualization
 import Text.Julius
 import Text.XML
 import Text.XML.Lens
@@ -67,6 +68,18 @@ postInferWeightsR =
                in [ "success" .= True
                   , "infer_weights" .= array (map toJSWeight startingWeights)
                   ]
+
+postVisualizeR :: Handler Value
+postVisualizeR =
+  parseCheckJsonBody >>= \case
+    Error e -> pure $ object ["error" .= e]
+    Success InferParams {..} -> case parseText def infer_xml of
+      Left e -> pure $ object ["error" .= tshow e]
+      Right musicxml -> do
+        $logInfo "Generating visualization"
+        let graph = mkGraph musicxml infer_weights
+        pure $ object [ "graph" .= graph, "success" .= True ]
+
 
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64
@@ -193,6 +206,7 @@ getEntryR entry_key = do
     setTitle (toHtml title)
     addScript (StaticR js_opensheetmusicdisplay_min_js)
     addScriptRemote "https://cdn.jsdelivr.net/npm/svg-drag-select@0.4.2"
+    addScriptRemote "https://d3js.org/d3.v7.min.js"
     addScript (StaticR js_fingeringeditor_js)
     let subtitle = case movementNumber movement of
           0 -> case movementName movement of "" -> Nothing; name -> Just name

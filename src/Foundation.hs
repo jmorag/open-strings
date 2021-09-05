@@ -212,6 +212,7 @@ instance Yesod App where
     -- an account to spam the API is undesirable
     InferR -> unrestricted
     InferWeightsR -> unrestricted
+    VisualizeR -> unrestricted
     where
       unrestricted = return Authorized
       isLoggedIn =

@@ -27,6 +27,12 @@ module Fingering (
   high,
   Weights,
   inferWeights',
+  mkAssignments,
+  p1s,
+  p2s,
+  pName,
+  pCost,
+  pWeight,
 ) where
 
 import ClassyPrelude hiding (Element, second)

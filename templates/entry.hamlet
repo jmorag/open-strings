@@ -33,14 +33,15 @@
           variant="info"
           @click="description = ''; editor.resetFingerings(); editor.enable()"
           >Clear fingerings
-        <b-button variant="info" @click="inferFingerings" v-show="edited"
+        <b-button variant="info" @click="inferFingerings"
           v-b-popover.hover.top="'Select multiple notes to restrict inference to that range'"
           >Infer fingerings
-        <b-button variant="info" @click="inferWeights" v-show="edited">Infer weights
+        <b-button variant="info" @click="inferWeights">Infer weights
+        <b-button variant="info" @click="showVisualization">Visualize graph
       <b-alert v-bind:show="show_alert" variant="danger">
         <span v-html="alert_message">
-      <p #slider-instructions v-show="edited">Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
-      <b-form-group v-show="edited" v-bind:disabled="loading">
+      <p #slider-instructions>Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
+      <b-form-group v-bind:disabled="loading">
         <b-container fluid>
           <b-row .my-1 v-for="(weight, index) in infer_weights" v-bind:key="index">
             <b-col sm="3">
