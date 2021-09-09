@@ -14,6 +14,7 @@ class FingeringEditor {
     // emacs conventions for point and mark for note selection
     this.point = 0;
     this.mark = 0;
+    this.svg = null;
     this.svg_stavenotes = null;
     this.svg_fingerings = null;
     this.svg_noteheads = null;
@@ -23,7 +24,8 @@ class FingeringEditor {
     this.enabled = false;
     // Defined here so that we can disconnect it when calling clear
     this.observer = new MutationObserver((mutation) => {
-      const svg = document.querySelector("svg");
+      const svg = this.dom_node.querySelector("svg");
+      this.svg = svg;
       this.set_svg_notes(svg);
       this.set_fingerings_and_strings(svg);
       if (this.clean) this.resetFingerings();
@@ -364,8 +366,8 @@ class FingeringEditor {
   }
 
   handleKeypress(e) {
+    console.debug(e);
     if (document.activeElement.tagName !== "svg") return;
-    // console.debug(e);
     switch (e.code) {
       case "ArrowRight":
         this.next(e.shiftKey);
@@ -428,18 +430,16 @@ class FingeringEditor {
   }
 
   enable() {
-    const svg = document.querySelector("svg");
     // Allow the svg container to be focused
-    svg.setAttribute("tabindex", "0");
-    svg.focus({ preventScroll: true });
+    this.svg.setAttribute("tabindex", "0");
+    this.svg.focus({ preventScroll: true });
     this.svg_noteheads[this.mark].select();
     window.addEventListener("keydown", this.handleKeypress);
     this.enabled = true;
   }
 
   disable() {
-    const svg = document.querySelector("svg");
-    svg.setAttribute("tabindex", "-1");
+    this.svg.setAttribute("tabindex", "-1");
     this.svg_noteheads[this.mark].deselect();
     this.enabled = false;
     this.cancelDrag();
