@@ -16,6 +16,7 @@ const vue = new Vue({
     show_alert: false,
     alert_message: "",
     disable_submit: true,
+    show_weights: false,
   },
 
   computed: {
