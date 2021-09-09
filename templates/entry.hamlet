@@ -38,33 +38,36 @@
           >Infer fingerings
         <b-button variant="info" @click="inferWeights">Infer weights
         <b-button variant="info" @click="showVisualization">Visualize graph
+        <b-button v-b-toggle.toggle-weights variant="success">Toggle weights
       <b-alert v-bind:show="show_alert" variant="danger">
         <span v-html="alert_message">
-      <p #slider-instructions>Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
-      <b-form-group v-bind:disabled="loading">
-        <b-container fluid>
-          <b-row .my-1 v-for="(weight, index) in infer_weights" v-bind:key="index">
-            <b-col sm="3">
-              <label v-bind:for="weight.name" .text-capitalize .font-weight-bold> {{ weight.name }}
-            <b-col sm="7">
-              <b-form-input
-                .slider
-                tabIndex="-1"
-                v-bind:id="weight.name"
-                v-model="weight.value"
-                number
-                type="range"
-                min="-100"
-                max="100">
-            <b-col sm="2">
-              <b-form-input
-                .manual
-                v-bind:id=`${weight.name}_manual`
-                v-model="weight.value"
-                number
-                size="sm"
-                min="-100"
-                max="100"
-                type="number">
+      <b-collapse #toggle-weights>
+        <p #slider-instructions>Set these weights to your preferences before clicking <b>infer</b>. The algorithm minimizes the "badness" of the fingering, so negative values will cause it to favor transitions, and positive values will cause it to avoid them.
+        <b-form-group v-bind:disabled="loading">
+          <b-container fluid>
+            <b-row .my-1 v-for="(weight, index) in infer_weights" v-bind:key="index">
+              <b-col sm="3">
+                <label v-bind:for="weight.name" .text-capitalize .font-weight-bold> {{ weight.name }}
+              <b-col sm="7">
+                <b-form-input
+                  .slider
+                  tabIndex="-1"
+                  v-bind:id="weight.name"
+                  v-model="weight.value"
+                  number
+                  type="range"
+                  min="-100"
+                  max="100">
+              <b-col sm="2">
+                <b-form-input
+                  .manual
+                  v-bind:id=`${weight.name}_manual`
+                  v-model="weight.value"
+                  number
+                  size="sm"
+                  min="-100"
+                  max="100"
+                  type="number">
   <p #editing-instructions v-show="edited">Select notes with the left/right arrows or by clicking. You can select multiple notes by dragging a box over them or holding shift with the arrow keys. Enter numbers 0-4 to change the fingering of the selected note. Holding <kbd>Shift</kbd> will change the string instead. The <kbd>`</kbd> key, to the left of <kbd>1</kbd> on most keyboards, will also insert a 0. Backspace removes the current finger.
+  <div #visualization>
 <div ##{renderId} .card>

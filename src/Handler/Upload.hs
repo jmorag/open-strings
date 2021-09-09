@@ -13,10 +13,11 @@ import Handler.Pieces
 import Import
 import Model.Parts
 import MusicXML
-import Visualization
 import Text.Julius
 import Text.XML
 import Text.XML.Lens
+import Visualization
+import Yesod.Core (invalidArgs)
 
 data InferParams = InferParams
   { infer_xml :: !LText
@@ -69,17 +70,14 @@ postInferWeightsR =
                   , "infer_weights" .= array (map toJSWeight startingWeights)
                   ]
 
-postVisualizeR :: Handler Value
-postVisualizeR =
-  parseCheckJsonBody >>= \case
-    Error e -> pure $ object ["error" .= e]
-    Success InferParams {..} -> case parseText def infer_xml of
-      Left e -> pure $ object ["error" .= tshow e]
-      Right musicxml -> do
-        $logInfo "Generating visualization"
-        let graph = mkGraph musicxml infer_weights
-        pure $ object [ "graph" .= graph, "success" .= True ]
-
+postVisualizeR :: Handler Html
+postVisualizeR = do
+  params@VisualizeParams {..} <- requireCheckJsonBody
+  case parseText def infer_xml of
+    Left e -> invalidArgs ["Unable to parse xml", tshow e]
+    Right musicxml -> do
+      $logInfo "Generating visualization statically"
+      pure $ renderGraph musicxml params
 
 data UploadFingeringParams = UploadFingeringParams
   { movement_id :: !Int64

@@ -16,7 +16,6 @@ const vue = new Vue({
     show_alert: false,
     alert_message: "",
     disable_submit: true,
-    simulation: null,
   },
 
   computed: {
@@ -103,9 +102,11 @@ const vue = new Vue({
     async showVisualization() {
       this.show_alert = false;
       const s = new XMLSerializer();
+      const width = document.getElementById(#{renderId}).offsetWidth
       const body = {
         infer_xml: s.serializeToString(this.editor.musicxml),
         infer_weights: this.infer_weights_map,
+        width,
       };
       this.loading = true;
       try {
@@ -114,48 +115,10 @@ const vue = new Vue({
           headers: { "Content-Type": "application/json", "X-XSRF-TOKEN": #{csrf} },
           body: JSON.stringify(body)
         });
-        const json = await resp.json();
+        const svg = await resp.text();
+        console.log(svg);
         this.loading = false;
-        if (json.success) {
-          console.log(json.graph);
-          let { nodes, links, n_steps } = json.graph;
-          let svg = d3.select("svg#visualization");
-          const width = document.getElementById(#{renderId}).offsetWidth;
-          const height = 800;
-          const radius = 5;
-          svg.attr('width', width).attr('height', height);
-          const ticked = () => {
-            svg
-              .selectAll('circle')
-              .data(nodes)
-              .join('circle')
-              .attr('r', radius)
-              .style('fill', 'orange')
-              .attr('cx', d => d.x)
-              .attr('cy', d => d.y);
-            svg
-              .selectAll('line')
-              .data(links)
-              .join('line')
-              .attr('stroke', '#999')
-              .attr('x1', l => l.source.x)
-              .attr('y1', l => l.source.y)
-              .attr('x2', l => l.target.x)
-              .attr('y2', l => l.target.y)
-              .attr('opacity', 0.6)
-              .attr('stroke-width', 1);
-          };
-          for (let node of nodes) {
-            node.fx = node.fx * (width / (1 + n_steps)) + radius
-          };
-          this.simulation = d3.forceSimulation(nodes)
-              .force("link", d3.forceLink(links))
-              // .force("charge", d3.forceManyBody())
-              .force("collide", d3.forceCollide().radius(3*radius))
-              .force("center", d3.forceCenter(width / 2, height / 2))
-              .on("tick", ticked);
-          return;
-        }
+        document.getElementById("visualization").innerHTML = svg
       } catch (e) {
         this.alert_message = e;
         this.show_alert = true;
