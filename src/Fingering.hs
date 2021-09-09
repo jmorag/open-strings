@@ -150,8 +150,11 @@ deriving instance Ord (Note Identity)
 
 instance Foldable f => Show (Note f) where
   show note =
-    unpack showPitch <> "[" <> F.concatMap show (_fingerings note) <> "]"
+    unpack showPitch <> case F.toList fs of
+      [f] -> show f
+      _ -> "[" <> F.concatMap show fs <> "]"
     where
+      fs = _fingerings note
       showPitch =
         (getNote note ^? deep (ell "pitch" ... ell "step") . text & fromMaybe "R")
           <> case getNote note ^? deep (ell "pitch" ... ell "alter") . text of
@@ -178,7 +181,15 @@ data TimeStep f
   | TripleStop (Note f) (Note f) (Note f)
   | QuadrupleStop (Note f) (Note f) (Note f) (Note f)
   | Rest
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Foldable f => Show (TimeStep f) where
+  show = \case
+    Rest -> "Rest"
+    Single n -> show n
+    DoubleStop n1 n2 -> "<" <> show n1 <> ", " <> show n2 <> ">"
+    TripleStop n1 n2 n3 -> "<" <> show n1 <> ", " <> show n2 <> ", " <> show n3 <> ">"
+    QuadrupleStop n1 n2 n3 n4 -> "<" <> show n1 <> ", " <> show n2 <> ", " <> show n3 <> ", " <> show n4 <> ">"
 
 deriving instance Ord (TimeStep Identity)
 
