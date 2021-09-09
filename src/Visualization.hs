@@ -138,25 +138,47 @@ uniform i n len = fi (i + 1) * (fi len / (fi n + 1))
   where
     fi = fromIntegral
 
+showPenalties :: [Penalty] -> [Text]
+showPenalties ps = case filter (\p -> cost p /= 0) ps of
+  [] -> []
+  ps' -> replicate 80 '-' : map showPenalty ps'
+  where
+    showPenalty p =
+      mconcat
+        [name p, ". Cost: ", tshow (cost p), " Weight: ", tshow (weight p)]
+
+nodeCost :: D3Node -> Double
+nodeCost D3Node {penalties} =
+  sum $ map (\p -> cost p * weight p) penalties
+
+nodeLabel :: D3Node -> Text
+nodeLabel n@D3Node {..} =
+  unlines $
+    tshow (_timestep label) <> ": " <> tshow (nodeCost n) :
+    showPenalties penalties
+
+edgeLabel :: D3Link -> Text
+edgeLabel D3Link {..} =
+  unlines $
+    tshow (_timestep (label source)) <> " -> " <> tshow (_timestep (label target)) :
+    showPenalties penalties
+
 renderGraph :: Document -> VisualizeParams -> Html
 renderGraph musicxml ps@VisualizeParams {..} =
   let D3Graph {..} = mkGraph musicxml ps
       -- TODO calculate these from number of steps
       height = 400 :: Int
-      radius = 7 :: Int
-      showPenalties =
-        map (\p -> name p <> ". Cost: " <> tshow (cost p) <> " Weight: " <> tshow (weight p))
-          . filter (\p -> cost p /= 0)
-      nodeLabel D3Node {..} =
-        unlines $ tshow (_timestep label) : showPenalties penalties
+      radius = 7 :: Double
+      -- TODO nail down what the actual maximum cost for something can be
+      infinity' = 1000 * infinity
+      color node = (nodeCost node + infinity') * (180 / infinity')
    in [shamlet|
   <svg width=#{width} height=#{height}>
-    <g fill="orange">
-      $forall node <- concat nodes
-        <circle r=#{radius} cx=#{fx node} cy=#{fy node}>
-          <title>#{nodeLabel node}
+    $forall node <- concat nodes
+      <circle r=#{radius} cx=#{fx node} cy=#{fy node} fill="hsl(#{color node}, 67%, 52%)">
+        <title>#{nodeLabel node}
     <g stroke="#999" opacity="0.6" stroke-width="2.5">
       $forall D3Link source target penalties <- links
         <line x1=#{fx source} x2=#{fx target} y1=#{fy source} y2=#{fy target}>
-          <title>#{unlines (showPenalties penalties)}
+          <title>#{edgeLabel (D3Link source target penalties)}
     |]

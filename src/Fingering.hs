@@ -25,6 +25,7 @@ module Fingering (
   low,
   medium,
   high,
+  infinity,
   Weights,
   inferWeights',
   mkAssignments,
