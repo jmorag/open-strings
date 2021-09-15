@@ -25,14 +25,14 @@ inferFingerings doc weights =
     & partsOf' (root . timeStep . attributeIs "data-selected" "") %%~ go
   where
     go :: [Element] -> (Double, [Element])
-    go steps =
-      let (cost, assignedSteps) = inferFingerings' weights (readTimeSteps steps)
+    go elems =
+      let (cost, assignedSteps) = inferFingerings' weights (readTimeSteps elems)
           assignedNotes =
             ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
           fingers =
             map (\n -> (n ^. xmlRef . _1, n ^. fingering)) assignedNotes
-          steps' = assignFingers (zip [0 ..] steps) fingers
-       in (cost, steps' & traversed . attribute "data-selected" .~ Nothing)
+          elems' = assignFingers (zip [0 ..] elems) fingers
+       in (cost, elems' & traversed . attribute "data-selected" .~ Nothing)
 
 inferWeights :: Document -> Weights Double -> Either Text (Weights Double)
 inferWeights doc initialWeights = go (doc ^.. root . timeStep)
