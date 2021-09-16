@@ -1,2 +1,10 @@
 cradle:
   stack:
+    - path: "./src"
+      component: "fingerdb:lib"
+    - path: "./test"
+      component: "fingerdb:fingerdb-test"
+    - path: "./app"
+      component: "fingerdb:fingerdb"
+    - path: "./survey"
+      component: "fingerdb:survey-plot"
