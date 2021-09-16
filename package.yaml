@@ -40,7 +40,6 @@ dependencies:
   - persistent >=2.9 && <2.14
   - persistent-postgresql >=2.9 && <2.14
   - persistent-template >=2.5 && <2.14
-  - raw-strings-qq
   - safe
   - sendgrid-v3
   - shakespeare >=2.0 && <2.1

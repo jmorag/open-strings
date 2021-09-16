@@ -64,8 +64,7 @@ import System.Log.FastLogger (
   newStdoutLoggerSet,
   toLogStr,
  )
-import Text.RawString.QQ
-
+import Text.Shakespeare.Text (st)
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
 -- comments there for more details.
@@ -107,7 +106,7 @@ makeFoundation appSettings = do
     createUnaccentFunction =
       rawExecute
         -- see https://stackoverflow.com/questions/3051762/comparing-strings-in-postgresql
-        [r|
+        [st|
 CREATE OR REPLACE FUNCTION unaccent_string(text)
 RETURNS text
 IMMUTABLE
