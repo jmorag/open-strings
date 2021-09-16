@@ -48,6 +48,8 @@ fromDatabaseUrl size url = do
             <> " dbname="
             <> dbName
       , pgPoolSize = size
+      , pgPoolStripes = 1
+      , pgPoolIdleTimeout = 600
       }
 
 abortLeft :: (MonadFail m, Show e) => Either e b -> m b

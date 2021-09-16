@@ -28,7 +28,7 @@ import Text.Shakespeare.Text (stext)
 import Yesod.Auth.Dummy
 import Yesod.Auth.Email
 import Yesod.Auth.OAuth2
-import Yesod.Auth.OAuth2.Google.Custom
+import Yesod.Auth.OAuth2.Google
 import Yesod.Core.Types (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
 import Yesod.Default.Util (addStaticContentExternal)

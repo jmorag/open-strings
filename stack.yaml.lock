@@ -16,110 +16,15 @@ packages:
     git: https://github.com/marcelbuesing/sendgrid-v3
     commit: 22f55f95f1f6660cdb328e1bcde78691b045295b
 - completed:
-    name: clientsession
-    version: 0.9.2
-    git: https://github.com/nwf/clientsession
-    pantry-tree:
-      size: 590
-      sha256: 036b4695289535ca8df224f669685e1f54f1397deecf2a7b6587d5e3577a6a0e
-    commit: 58e3605875d2a033fb753bcc57f2d6936069d34b
-  original:
-    git: https://github.com/nwf/clientsession
-    commit: 58e3605875d2a033fb753bcc57f2d6936069d34b
-- completed:
-    hackage: aeson-1.4.7.1@sha256:6d8d2fd959b7122a1df9389cf4eca30420a053d67289f92cdc0dbc0dab3530ba,7098
-    pantry-tree:
-      size: 40133
-      sha256: caa9306e519c601ab0170d113daa03c1163db53e5466be2968bbd61a771bebcb
-  original:
-    hackage: aeson-1.4.7.1@sha256:6d8d2fd959b7122a1df9389cf4eca30420a053d67289f92cdc0dbc0dab3530ba,7098
-- completed:
-    hackage: bifunctors-5.5.7@sha256:19d907460f166ade334e9d85d7c0bcc58b57da5e8f802b28bba6d8d81fd3ee70,3554
-    pantry-tree:
-      size: 1755
-      sha256: 3bc25973f9af147725390318a2591a69832db833132b6479eff4d9299fcaef1a
-  original:
-    hackage: bifunctors-5.5.7
-- completed:
     hackage: classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
     pantry-tree:
       size: 330
       sha256: ae84d4cc0e1daf985db6cdcf2ac92319531b8e60f547183cc46480d00aafbe20
   original:
     hackage: classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
-- completed:
-    hackage: free-5.1.3@sha256:604c27b6ba0a560c8a1377ad76e5bbb8528e924d6b0590215d815faddbec0b70,4165
-    pantry-tree:
-      size: 3362
-      sha256: ceaac95eb18e8d1f232694a2f6936867bc71f8888d43b0a4d3f0649054314298
-  original:
-    hackage: free-5.1.3
-- completed:
-    hackage: hoauth2-1.8.9@sha256:63929253f6cdeb096a369980d2acf0d7eedd0c98ac46f962f717c56b724069a4,5734
-    pantry-tree:
-      size: 1986
-      sha256: 1c2901e88e82128b1e7f46e4b58eaeec779a630f0e30eb8bc226cb8ebb521bf8
-  original:
-    hackage: hoauth2-1.8.9@sha256:63929253f6cdeb096a369980d2acf0d7eedd0c98ac46f962f717c56b724069a4,5734
-- completed:
-    hackage: invariant-0.5.3@sha256:5b74af0b909c44b17298a9c04bcd0aea030f36a869da9112b103890f3aa2516f,3323
-    pantry-tree:
-      size: 650
-      sha256: 40f1a8e80dce0016c9373ad2e491d8c0c14f6f447ffaee7b614950c36596d403
-  original:
-    hackage: invariant-0.5.3
-- completed:
-    hackage: persistent-2.10.5.4@sha256:6cde61417fb2ec3a70d677e9ba9f5c84d059dc4de6b61f7bf90ce6dfe839a509,4740
-    pantry-tree:
-      size: 2096
-      sha256: a0b3d627be9e281d8a3b9673e22836528b6273e7f060c94dbf02bd897223b522
-  original:
-    hackage: persistent-2.10.5.4@sha256:6cde61417fb2ec3a70d677e9ba9f5c84d059dc4de6b61f7bf90ce6dfe839a509,4740
-- completed:
-    hackage: persistent-postgresql-2.10.1.2@sha256:e3098380dd0842aeb7d5f6e2a31558978406123bbb8dafa6de3fbdaa5313f56f,2968
-    pantry-tree:
-      size: 740
-      sha256: 46595a8da339edd74b6589f30babc3df1aa5ef9a18530dfbfbbbe62b356d32e1
-  original:
-    hackage: persistent-postgresql-2.10.1.2
-- completed:
-    hackage: persistent-template-2.8.2.3@sha256:5876adff34bcc9ec6b5ca64888c1244befbe1262cd5742ffb5ab8193fe0a10d8,2875
-    pantry-tree:
-      size: 561
-      sha256: ae7bfb7635ff918c248687b73889a15e7d23ad49648a3e36f22753e28aacc876
-  original:
-    hackage: persistent-template-2.8.2.3
-- completed:
-    hackage: semigroupoids-5.3.4@sha256:120873dfa8084ec92745c766336e90d648c347ab99ce55329d5af36dbd3732ba,7596
-    pantry-tree:
-      size: 1990
-      sha256: 2b3db5fbe5f68fc52532e4fa988d01d69c8845c49714c9c31a47309baa1df836
-  original:
-    hackage: semigroupoids-5.3.4
-- completed:
-    hackage: th-abstraction-0.3.2.0@sha256:9b5b4e6e2bbff9b075ad7751ee98e2107090bd17b51d5442695b8990e4db6521,1851
-    pantry-tree:
-      size: 583
-      sha256: 21e260e558db166dc70f3002e7a0d22dd57d0b9e7842dd9de5e2f9f887e1275e
-  original:
-    hackage: th-abstraction-0.3.2.0@sha256:9b5b4e6e2bbff9b075ad7751ee98e2107090bd17b51d5442695b8990e4db6521,1851
-- completed:
-    hackage: wai-extra-3.0.32@sha256:7a9e65c4555e1b937dc788b8ba249dbacd4f36840c60581bc27115a5c4a48079,7044
-    pantry-tree:
-      size: 3631
-      sha256: 443d6dcb9cc19df1693a7b56a8c18b664521e34c4701fea7aaf92e62fc943df4
-  original:
-    hackage: wai-extra-3.0.32@sha256:7a9e65c4555e1b937dc788b8ba249dbacd4f36840c60581bc27115a5c4a48079,7044
-- completed:
-    hackage: yesod-auth-oauth2-0.6.1.2@sha256:181c757c8ba0f57c23119414db90e1859271bfeb85667d88a99746001c064aba,2891
-    pantry-tree:
-      size: 1763
-      sha256: d6af8eabecd6a710c3c55003f7192216e8215bc738640cc29ee10046149aee9c
-  original:
-    hackage: yesod-auth-oauth2-0.6.1.2@sha256:181c757c8ba0f57c23119414db90e1859271bfeb85667d88a99746001c064aba,2891
 snapshots:
 - completed:
-    size: 567679
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/15.yaml
-    sha256: 72e87841a0ab5b72f6f018e8ee692fd972b7bb32a944990f028e10d6eb528e63
-  original: lts-17.15
+    size: 587113
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/6.yaml
+    sha256: f74c482d7c93739ecf3abfbc0f2dea1c20a2dfb2462c689846ed55a9653b66f7
+  original: lts-18.6

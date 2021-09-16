@@ -5,10 +5,10 @@ data-files: data/*.musicxml
 
 dependencies:
   - ad
-  - aeson >=1.4 && <1.5
+  - aeson >=1.4 && <1.6
   - base >=4.9.1.0 && <5
   - blaze-html
-  - bytestring >=0.10 && <0.11
+  - bytestring >=0.10 && <0.12
   - case-insensitive
   - classy-prelude >=1.5 && <1.6
   - classy-prelude-conduit >=1.5 && <1.6
@@ -25,7 +25,6 @@ dependencies:
   - foreign-store
   - generic-lens
   - hjsmin >=0.1 && <0.3
-  - hoauth2 >= 1.8.9
   - html-conduit
   - http-client-tls >=0.3 && <0.4
   - http-conduit >=2.3 && <2.4
@@ -38,9 +37,9 @@ dependencies:
   - monad-logger >=0.3 && <0.4
   - monad-memo >=0.5.0 && < 0.6
   - mtl
-  - persistent >=2.9 && <2.11
-  - persistent-postgresql >=2.9 && <2.11
-  - persistent-template >=2.5 && <2.9
+  - persistent >=2.9 && <2.14
+  - persistent-postgresql >=2.9 && <2.14
+  - persistent-template >=2.5 && <2.14
   - raw-strings-qq
   - safe
   - sendgrid-v3
@@ -54,7 +53,7 @@ dependencies:
   - validation-selective
   - vector
   - wai
-  - wai-extra >=3.0 && <3.1
+  - wai-extra >=3.0 && <3.2
   - wai-logger >=2.2 && <2.4
   - warp >=3.0 && <3.4
   - xml-conduit
@@ -62,9 +61,9 @@ dependencies:
   - yaml >=0.11 && <0.12
   - yesod >=1.6 && <1.7
   - yesod-auth >=1.6 && <1.7
-  - yesod-auth-oauth2 ==0.6.1.2
+  - yesod-auth-oauth2 >= 0.6.3.4
   - yesod-core >=1.6 && <1.7
-  - yesod-form >=1.6 && <1.7
+  - yesod-form >=1.6 && <1.8
   - yesod-static >=1.6 && <1.7
 
 default-extensions:

@@ -10,7 +10,8 @@ module TestImport (
 import Application (makeFoundation, makeLogWare)
 import ClassyPrelude as X hiding (Handler, delete, deleteBy)
 import Database.Persist as X hiding (get)
-import Database.Persist.Sql (SqlPersistM, connEscapeName, rawExecute, rawSql, runSqlPersistMPool, unSingle)
+import Database.Persist.Sql (SqlPersistM, rawExecute, rawSql, runSqlPersistMPool, unSingle)
+import Database.Persist.SqlBackend.Internal (connEscapeRawName)
 import Foundation as X
 import Model as X
 import Model.UserType
@@ -54,7 +55,7 @@ wipeDB app = runDBWithApp app $ do
   tables <- getTables
   sqlBackend <- ask
 
-  let escapedTables = map (connEscapeName sqlBackend . DBName) tables
+  let escapedTables = map (connEscapeRawName sqlBackend) tables
       query = "TRUNCATE TABLE " ++ intercalate ", " escapedTables
   rawExecute query []
 
