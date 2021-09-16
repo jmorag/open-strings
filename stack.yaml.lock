@@ -5,17 +5,6 @@
 
 packages:
 - completed:
-    name: sendgrid-v3
-    version: 0.3.0.0
-    git: https://github.com/marcelbuesing/sendgrid-v3
-    pantry-tree:
-      size: 659
-      sha256: 9ae86b3ee0308ae27670b0dd4f1c2e4e59f95e4ff604566f383f9ff4af4013be
-    commit: 22f55f95f1f6660cdb328e1bcde78691b045295b
-  original:
-    git: https://github.com/marcelbuesing/sendgrid-v3
-    commit: 22f55f95f1f6660cdb328e1bcde78691b045295b
-- completed:
     hackage: classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
     pantry-tree:
       size: 330
@@ -24,7 +13,7 @@ packages:
     hackage: classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
 snapshots:
 - completed:
-    size: 587113
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/6.yaml
-    sha256: f74c482d7c93739ecf3abfbc0f2dea1c20a2dfb2462c689846ed55a9653b66f7
-  original: lts-18.6
+    size: 587546
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/10.yaml
+    sha256: 88b4f81e162ba3adc230a9fcccc4d19ac116377656bab56c7382ca88598b257a
+  original: lts-18.10

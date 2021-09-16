@@ -1,7 +1,5 @@
-resolver: lts-18.6
+resolver: lts-18.10
 packages:
   - .
 extra-deps:
-  - git: https://github.com/marcelbuesing/sendgrid-v3
-    commit: 22f55f95f1f6660cdb328e1bcde78691b045295b
   - classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
