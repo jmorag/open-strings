@@ -1,0 +1,46 @@
+name: open-strings-core
+version: "0.1.0"
+data-files: data/*.musicxml
+
+dependencies:
+  - ad
+  - aeson
+  - base <5.0
+  - lens
+  - relude >=1.0 && <2
+  - shakespeare
+  - vector
+  - xml-conduit
+  - xml-lens
+
+default-extensions:
+  - BangPatterns
+  - BlockArguments
+  - DeriveFunctor
+  - DeriveGeneric
+  - DerivingStrategies
+  - DuplicateRecordFields
+  - FlexibleContexts
+  - FlexibleInstances
+  - LambdaCase
+  - MultiWayIf
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - OverloadedStrings
+  - PatternSynonyms
+  - QuasiQuotes
+  - RankNTypes
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TypeApplications
+
+library:
+  source-dirs: src
+tests:
+  test:
+    source-dirs: test
+    main: Spec.hs
+    dependencies:
+      - open-strings-core
+      - hspec >=2.0.0
+      - file-embed

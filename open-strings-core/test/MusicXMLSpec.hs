@@ -7,7 +7,7 @@ import MusicXML
 import Text.XML
 import Text.XML.Lens
 import Test.Hspec
-import ClassyPrelude
+import Relude
 
 spec :: Spec
 spec =
@@ -28,7 +28,7 @@ nTimeSteps :: Document -> Int
 nTimeSteps doc = length (readTimeSteps (doc ^.. root . timeStep))
 
 readXML :: ByteString -> Document
-readXML = parseLBS_ def . fromChunks . (: [])
+readXML = parseLBS_ def . toLazy
 
 prok, brahms, sibelius, ysaye, tartini :: Document
 prok = readXML $(embedFile "data/Prokofiev_violin_concerto_No_2_excerpt.musicxml")

@@ -1,15 +1,17 @@
+{-# LANGUAGE RecordWildCards #-}
 -- |
 module Visualization (mkGraph, renderGraph, VisualizeParams (..)) where
 
-import ClassyPrelude hiding (Element, index)
-import ClassyPrelude.Yesod (Html, shamlet)
 import Control.Lens hiding (index, (.=))
-import Control.Monad.State
+import qualified Data.Map.Strict as M
+import qualified Data.Text as T
 import Data.Aeson
 import Fingering
 import MusicXML
 import Text.XML
 import Text.XML.Lens hiding (name, nodes)
+import Relude
+import Text.Hamlet
 
 data D3Graph = D3Graph
   { nodes :: [[D3Node]]
@@ -26,7 +28,7 @@ instance ToJSON D3Graph where
 
 data Penalty = Penalty {name :: Text, cost :: Double, weight :: Double}
   deriving (Generic)
-  deriving anyclass (ToJSON)
+instance ToJSON Penalty
 
 data D3Node = D3Node
   { label :: AssignedStep
@@ -40,7 +42,7 @@ data D3Node = D3Node
 instance ToJSON D3Node where
   toJSON D3Node {label, penalties, fx, fy} =
     object
-      [ "label" .= show (_timestep label)
+      [ "label" .= show @Text (_timestep label)
       , "fx" .= fx
       , "fy" .= fy
       , "penalties" .= penalties
@@ -52,7 +54,7 @@ data D3Link = D3Link
   , penalties :: [Penalty]
   }
   deriving (Generic)
-  deriving anyclass (ToJSON)
+instance ToJSON D3Link
 
 number :: (Traversable f, Traversable g) => f (g a) -> f (g (a, Int))
 number =
@@ -105,7 +107,7 @@ mkNode weights width height x y n_x n_y index step =
       Penalty
         { name = p ^. pName
         , cost = (p ^. pCost) step
-        , weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
+        , weight = fromMaybe (p ^. pWeight) (M.lookup (p ^. pName) weights)
         }
 
 mkLinks :: Weights Double -> [[D3Node]] -> [D3Link]
@@ -121,7 +123,7 @@ mkLink weights ls rs = do
         Penalty
           { name = p ^. pName
           , cost = (p ^. pCost) (label l, label r)
-          , weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
+          , weight = fromMaybe (p ^. pWeight) (M.lookup (p ^. pName) weights)
           }
   pure $ D3Link {source = l, target = r, penalties = map mkPenalty p2s}
 
@@ -130,8 +132,8 @@ data VisualizeParams = VisualizeParams
   , infer_weights :: !(Map Text Double)
   , width :: Int
   }
-  deriving stock (Show, Generic)
-  deriving anyclass (FromJSON)
+  deriving (Show, Generic)
+instance FromJSON VisualizeParams
 
 uniform :: Int -> Int -> Int -> Double
 uniform i n len = fi (i + 1) * (fi len / (fi n + 1))
@@ -141,11 +143,11 @@ uniform i n len = fi (i + 1) * (fi len / (fi n + 1))
 showPenalties :: [Penalty] -> [Text]
 showPenalties ps = case filter (\p -> cost p /= 0) ps of
   [] -> []
-  ps' -> replicate 80 '-' : map showPenalty ps'
+  ps' -> T.replicate 80 "-" : map showPenalty ps'
   where
     showPenalty p =
       mconcat
-        [name p, ". Cost: ", tshow (cost p), " Weight: ", tshow (weight p)]
+        [name p, ". Cost: ", show (cost p), " Weight: ", show (weight p)]
 
 nodeCost :: D3Node -> Double
 nodeCost D3Node {penalties} =
@@ -154,13 +156,13 @@ nodeCost D3Node {penalties} =
 nodeLabel :: D3Node -> Text
 nodeLabel n@D3Node {..} =
   unlines $
-    tshow (_timestep label) <> ": " <> tshow (nodeCost n) :
+    show (_timestep label) <> ": " <> show (nodeCost n) :
     showPenalties penalties
 
 edgeLabel :: D3Link -> Text
 edgeLabel D3Link {..} =
   unlines $
-    tshow (_timestep (label source)) <> " -> " <> tshow (_timestep (label target)) :
+    show (_timestep (label source)) <> " -> " <> show (_timestep (label target)) :
     showPenalties penalties
 
 renderGraph :: Document -> VisualizeParams -> Html

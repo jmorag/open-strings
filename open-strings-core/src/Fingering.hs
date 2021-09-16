@@ -1,5 +1,5 @@
 {-# LANGUAGE ApplicativeDo #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Fingering (
@@ -36,12 +36,15 @@ module Fingering (
   pWeight,
 ) where
 
-import ClassyPrelude hiding (Element, second)
+import Relude hiding (Constraint, show, First, second)
+import Prelude (Show (show))
 import Control.Lens
 import qualified Data.Foldable as F
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as S
+import qualified Data.Map.Strict as M
+import Data.Vector (Vector)
 import qualified Data.Vector as V
 import Graph.ShortestPath
 import qualified Numeric.AD.Newton as AD
@@ -85,8 +88,8 @@ xmlPitch note = do
       "A" -> Just 21
       "B" -> Just 23
       _ -> Nothing
-  alter <- (pitchEl ^? deep (ell "alter") . text >>= readMay) <|> pure 0
-  octave <- pitchEl ^? deep (ell "octave") . text >>= readMay
+  alter <- (pitchEl ^? deep (ell "alter") . text >>= (readMaybe . toString)) <|> pure 0
+  octave <- pitchEl ^? deep (ell "octave") . text >>= (readMaybe . toString)
   pure $ step + alter + (12 * octave)
 
 -- | Read a fingering constraint from a note element
@@ -151,7 +154,7 @@ deriving instance Ord (Note Identity)
 
 instance Foldable f => Show (Note f) where
   show note =
-    unpack showPitch <> case F.toList fs of
+    toString showPitch <> case F.toList fs of
       [f] -> show f
       _ -> "[" <> F.concatMap show fs <> "]"
     where
@@ -227,7 +230,7 @@ instance (Foldable f) => Semigroup (TimeStep f) where
   n <> Rest = n
   Rest <> n = n
   n1 <> n2 =
-    error $
+    error . toText $
       "Unsatisfiably large constraint - too many notes to cover at one time: "
         <> show n1
         <> " | "
@@ -504,14 +507,14 @@ applyP1s :: Num a => Weights a -> [Penalty1 a] -> AssignedStep -> a
 applyP1s weights ps step = sum $ map cost ps
   where
     cost p =
-      let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
+      let weight = fromMaybe (p ^. pWeight) (M.lookup (p ^. pName) weights)
        in (p ^. pCost) step * weight
 
 applyP2s :: Num a => Weights a -> [Penalty2 a] -> AssignedStep -> AssignedStep -> a
 applyP2s weights ps step1 step2 = sum $ map cost ps
   where
     cost p =
-      let weight = fromMaybe (p ^. pWeight) (lookup (p ^. pName) weights)
+      let weight = fromMaybe (p ^. pWeight) (M.lookup (p ^. pName) weights)
        in (p ^. pCost) (step1, step2) * weight
 
 mkNote :: XmlRef -> TimeStep Set
@@ -533,7 +536,7 @@ allAssignments (Step ns dur) = map (`Step` dur) (go ns)
 
     go :: TimeStep Set -> [TimeStep Identity]
     go unassigned = case possible of
-      [] -> error (show unassigned)
+      [] -> error (toText (show unassigned))
       _ -> possible
       where
         possible = case unassigned of

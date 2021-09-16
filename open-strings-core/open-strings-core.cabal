@@ -1,0 +1,101 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.4.
+--
+-- see: https://github.com/sol/hpack
+
+name:           open-strings-core
+version:        0.1.0
+build-type:     Simple
+data-files:
+    data/Brahms_violin_concerto.musicxml
+    data/Prokofiev_violin_concerto_No_2_excerpt.musicxml
+    data/Sibelius_violin_concerto_excerpt.musicxml
+    data/Sibelius_violin_concerto_excerpt_clean.musicxml
+    data/tartini_devil_page_1.musicxml
+    "data/Ysaye ballade excerpt.musicxml"
+
+library
+  exposed-modules:
+      Fingering
+      Graph.ShortestPath
+      MusicXML
+      Visualization
+  other-modules:
+      Paths_open_strings_core
+  hs-source-dirs:
+      src
+  default-extensions:
+      BangPatterns
+      BlockArguments
+      DeriveFunctor
+      DeriveGeneric
+      DerivingStrategies
+      DuplicateRecordFields
+      FlexibleContexts
+      FlexibleInstances
+      LambdaCase
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      PatternSynonyms
+      QuasiQuotes
+      RankNTypes
+      ScopedTypeVariables
+      StandaloneDeriving
+      TypeApplications
+  build-depends:
+      ad
+    , aeson
+    , base <5.0
+    , lens
+    , relude >=1.0 && <2
+    , shakespeare
+    , vector
+    , xml-conduit
+    , xml-lens
+  default-language: Haskell2010
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      MusicXMLSpec
+      Paths_open_strings_core
+  hs-source-dirs:
+      test
+  default-extensions:
+      BangPatterns
+      BlockArguments
+      DeriveFunctor
+      DeriveGeneric
+      DerivingStrategies
+      DuplicateRecordFields
+      FlexibleContexts
+      FlexibleInstances
+      LambdaCase
+      MultiWayIf
+      NamedFieldPuns
+      NoImplicitPrelude
+      OverloadedStrings
+      PatternSynonyms
+      QuasiQuotes
+      RankNTypes
+      ScopedTypeVariables
+      StandaloneDeriving
+      TypeApplications
+  build-depends:
+      ad
+    , aeson
+    , base <5.0
+    , file-embed
+    , hspec >=2.0.0
+    , lens
+    , open-strings-core
+    , relude >=1.0 && <2
+    , shakespeare
+    , vector
+    , xml-conduit
+    , xml-lens
+  default-language: Haskell2010

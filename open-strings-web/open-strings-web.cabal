@@ -4,16 +4,9 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           fingerdb
-version:        0.0.0
+name:           open-strings-web
+version:        0.1.0
 build-type:     Simple
-data-files:
-    data/Brahms_violin_concerto.musicxml
-    data/Prokofiev_violin_concerto_No_2_excerpt.musicxml
-    data/Sibelius_violin_concerto_excerpt.musicxml
-    data/Sibelius_violin_concerto_excerpt_clean.musicxml
-    data/tartini_devil_page_1.musicxml
-    "data/Ysaye ballade excerpt.musicxml"
 
 flag dev
   description: Turn on development settings, like auto-reload templates.
@@ -34,9 +27,7 @@ library
   exposed-modules:
       Application
       Database.Persist.URL
-      Fingering
       Foundation
-      Graph.ShortestPath
       Handler.Common
       Handler.Home
       Handler.IMSLP
@@ -49,12 +40,10 @@ library
       Model.Parts
       Model.Survey
       Model.UserType
-      MusicXML
       Settings
       Settings.StaticFiles
-      Visualization
   other-modules:
-      Paths_fingerdb
+      Paths_open_strings_web
   hs-source-dirs:
       src
   default-extensions:
@@ -107,8 +96,7 @@ library
       TypeSynonymInstances
       ViewPatterns
   build-depends:
-      ad
-    , aeson >=1.4 && <1.6
+      aeson >=1.4 && <1.6
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.12
@@ -116,7 +104,6 @@ library
     , classy-prelude ==1.5.*
     , classy-prelude-conduit ==1.5.*
     , classy-prelude-yesod ==1.5.*
-    , comonad
     , conduit >=1.0 && <2.0
     , containers
     , data-default
@@ -140,6 +127,7 @@ library
     , monad-logger ==0.3.*
     , monad-memo >=0.5.0 && <0.6
     , mtl
+    , open-strings-core
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
@@ -174,10 +162,10 @@ library
     ghc-options: -Wall -fwarn-tabs -O2
   default-language: Haskell2010
 
-executable fingerdb
+executable open-strings-web-exe
   main-is: main.hs
   other-modules:
-      Paths_fingerdb
+      Paths_open_strings_web
   hs-source-dirs:
       app
   default-extensions:
@@ -231,8 +219,7 @@ executable fingerdb
       ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      ad
-    , aeson >=1.4 && <1.6
+      aeson >=1.4 && <1.6
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.12
@@ -240,7 +227,6 @@ executable fingerdb
     , classy-prelude ==1.5.*
     , classy-prelude-conduit ==1.5.*
     , classy-prelude-yesod ==1.5.*
-    , comonad
     , conduit >=1.0 && <2.0
     , containers
     , data-default
@@ -248,7 +234,6 @@ executable fingerdb
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , fingerdb
     , flow
     , foreign-store
     , generic-lens
@@ -265,6 +250,8 @@ executable fingerdb
     , monad-logger ==0.3.*
     , monad-memo >=0.5.0 && <0.6
     , mtl
+    , open-strings-core
+    , open-strings-web
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
@@ -299,7 +286,7 @@ executable fingerdb
 executable survey-plot
   main-is: main.hs
   other-modules:
-      Paths_fingerdb
+      Paths_open_strings_web
   hs-source-dirs:
       survey
   default-extensions:
@@ -353,8 +340,7 @@ executable survey-plot
       ViewPatterns
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      ad
-    , aeson >=1.4 && <1.6
+      aeson >=1.4 && <1.6
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.12
@@ -363,7 +349,6 @@ executable survey-plot
     , classy-prelude ==1.5.*
     , classy-prelude-conduit ==1.5.*
     , classy-prelude-yesod ==1.5.*
-    , comonad
     , conduit >=1.0 && <2.0
     , containers
     , data-default
@@ -371,7 +356,6 @@ executable survey-plot
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , fingerdb
     , flow
     , foreign-store
     , generic-lens
@@ -388,6 +372,8 @@ executable survey-plot
     , monad-logger ==0.3.*
     , monad-memo >=0.5.0 && <0.6
     , mtl
+    , open-strings-core
+    , open-strings-web
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
@@ -420,15 +406,14 @@ executable survey-plot
     buildable: False
   default-language: Haskell2010
 
-test-suite fingerdb-test
+test-suite test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
       Handler.CommonSpec
       Handler.HomeSpec
-      MusicXMLSpec
       TestImport
-      Paths_fingerdb
+      Paths_open_strings_web
   hs-source-dirs:
       test
   default-extensions:
@@ -482,8 +467,7 @@ test-suite fingerdb-test
       ViewPatterns
   ghc-options: -Wall
   build-depends:
-      ad
-    , aeson >=1.4 && <1.6
+      aeson >=1.4 && <1.6
     , base >=4.9.1.0 && <5
     , blaze-html
     , bytestring >=0.10 && <0.12
@@ -491,7 +475,6 @@ test-suite fingerdb-test
     , classy-prelude ==1.5.*
     , classy-prelude-conduit ==1.5.*
     , classy-prelude-yesod ==1.5.*
-    , comonad
     , conduit >=1.0 && <2.0
     , containers
     , data-default
@@ -499,7 +482,6 @@ test-suite fingerdb-test
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , fingerdb
     , flow
     , foreign-store
     , generic-lens
@@ -517,6 +499,8 @@ test-suite fingerdb-test
     , monad-logger ==0.3.*
     , monad-memo >=0.5.0 && <0.6
     , mtl
+    , open-strings-core
+    , open-strings-web
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14

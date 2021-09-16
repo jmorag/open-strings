@@ -1,10 +1,7 @@
-name: fingerdb
-version: "0.0.0"
-
-data-files: data/*.musicxml
+name: open-strings-web
+version: "0.1.0"
 
 dependencies:
-  - ad
   - aeson >=1.4 && <1.6
   - base >=4.9.1.0 && <5
   - blaze-html
@@ -13,7 +10,6 @@ dependencies:
   - classy-prelude >=1.5 && <1.6
   - classy-prelude-conduit >=1.5 && <1.6
   - classy-prelude-yesod >=1.5 && <1.6
-  - comonad
   - conduit >=1.0 && <2.0
   - containers
   - data-default
@@ -37,6 +33,7 @@ dependencies:
   - monad-logger >=0.3 && <0.4
   - monad-memo >=0.5.0 && < 0.6
   - mtl
+  - open-strings-core
   - persistent >=2.9 && <2.14
   - persistent-postgresql >=2.9 && <2.14
   - persistent-template >=2.5 && <2.14
@@ -115,8 +112,6 @@ default-extensions:
   - TypeSynonymInstances
   - ViewPatterns
 
-# The library contains all of our application code. The executable
-# defined below is just a thin wrapper.
 library:
   source-dirs: src
   when:
@@ -135,7 +130,7 @@ library:
 
 # Runnable executable for our application
 executables:
-  fingerdb:
+  open-strings-web-exe:
     main: main.hs
     source-dirs: app
     ghc-options:
@@ -143,7 +138,7 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - fingerdb
+      - open-strings-web
     when:
       - condition: flag(library-only)
         buildable: false
@@ -155,7 +150,7 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - fingerdb
+      - open-strings-web
       - process
       - cassava
     when:
@@ -164,12 +159,12 @@ executables:
 
 # Test suite
 tests:
-  fingerdb-test:
+  test:
     main: Spec.hs
     source-dirs: test
     ghc-options: -Wall
     dependencies:
-      - fingerdb
+      - open-strings-web
       - hspec >=2.0.0
       - yesod-test
       - file-embed

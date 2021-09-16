@@ -11,6 +11,13 @@ packages:
       sha256: ae84d4cc0e1daf985db6cdcf2ac92319531b8e60f547183cc46480d00aafbe20
   original:
     hackage: classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
+- completed:
+    hackage: relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569
+    pantry-tree:
+      size: 4282
+      sha256: ead687d39d06c841de36fc214402ad4389e8837284485cfe52d975f51b274e81
+  original:
+    hackage: relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569
 snapshots:
 - completed:
     size: 587546

@@ -1,5 +1,7 @@
 resolver: lts-18.10
 packages:
-  - .
+  - open-strings-core
+  - open-strings-web
 extra-deps:
   - classy-prelude-yesod-1.5.0@sha256:8f7e183bdfd6d2ea9674284c4f285294ab086aff60d9be4e5d7d2f3c1a2b05b7,1330
+  - relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569

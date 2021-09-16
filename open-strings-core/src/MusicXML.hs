@@ -7,7 +7,6 @@ module MusicXML (
   timeStep,
 ) where
 
-import ClassyPrelude hiding (Element)
 import Control.Lens
 import Control.Monad (foldM_)
 import Control.Monad.ST
@@ -18,6 +17,7 @@ import qualified Data.Vector.Mutable as VM
 import Fingering
 import Text.XML
 import Text.XML.Lens
+import Relude
 
 inferFingerings :: Document -> Weights Double -> (Double, Document)
 inferFingerings doc weights =
@@ -28,7 +28,7 @@ inferFingerings doc weights =
     go elems =
       let (cost, assignedSteps) = inferFingerings' weights (readTimeSteps elems)
           assignedNotes =
-            ordNubBy (view (xmlRef . _1)) (==) (assignedSteps ^.. traversed . notes)
+            ordNubOn (view (xmlRef . _1)) (assignedSteps ^.. traversed . notes)
           fingers =
             map (\n -> (n ^. xmlRef . _1, n ^. fingering)) assignedNotes
           elems' = assignFingers (zip [0 ..] elems) fingers
@@ -154,7 +154,7 @@ dur e =
     then 0
     else
       fromMaybe (error "Duration element missing from non-grace note") $
-        e ^? deep (ell "duration") . text . to readMay . _Just
+        e ^? deep (ell "duration") . text . to (readMaybe . toString) . _Just
 
 -- | Shift measure numbers to start at the given point
 adjustMeasures :: Int -> Document -> Document

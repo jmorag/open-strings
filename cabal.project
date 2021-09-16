@@ -1,1 +1,3 @@
-packages: .
+packages:
+    - open-strings-core
+    - open-strings-web

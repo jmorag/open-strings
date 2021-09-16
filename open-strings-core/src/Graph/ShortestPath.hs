@@ -1,5 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
-
 -- |
 -- Module : Graph.ShortestPath
 module Graph.ShortestPath (shortestPath, pathCost, nEdges) where
@@ -12,7 +10,7 @@ import Data.List.NonEmpty (NonEmpty (..))
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
-import Prelude
+import Relude
 
 -- Introduction to Algorithms, Chapter 6 (Cormen, Leiserson, Rivest, Stein)
 -- https://edutechlearners.com/download/Introduction_to_algorithms-3rd%20Edition.pdf
@@ -82,7 +80,7 @@ shortestPath ::
   (a, [state])
 shortestPath _ _ [] _ _ = (0, [])
 shortestPath start infinity states singleCost transitionCost =
-  let (cost, _:path) = getPath (V.modify go (V.fromList graph)) in (cost, path)
+  let (cost, _ : path) = getPath (V.modify go (V.fromList graph)) in (cost, path)
   where
     graph = (Node start 0 0 Nothing :| []) : initialize infinity states singleCost
 
