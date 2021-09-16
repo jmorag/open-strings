@@ -1,1 +1,1 @@
-web: fingerdb
+web: open-strings-web-exe
