@@ -27,3 +27,7 @@ cabal.sandbox.config
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# Survey data
+survey_responses.csv
+*/survey/*.png
