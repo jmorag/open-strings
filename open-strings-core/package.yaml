@@ -15,24 +15,53 @@ dependencies:
 
 default-extensions:
   - BangPatterns
+  - BinaryLiterals
   - BlockArguments
+  - ConstraintKinds
+  - DataKinds
+  - DefaultSignatures
+  - DeriveAnyClass
+  - DeriveDataTypeable
+  - DeriveFoldable
   - DeriveFunctor
   - DeriveGeneric
+  - DeriveTraversable
   - DerivingStrategies
+  - DerivingVia
+  - DoAndIfThenElse
   - DuplicateRecordFields
+  - EmptyCase
+  - EmptyDataDecls
+  - ExistentialQuantification
   - FlexibleContexts
   - FlexibleInstances
+  - FunctionalDependencies
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
+  - KindSignatures
   - LambdaCase
+  - MultiParamTypeClasses
   - MultiWayIf
   - NamedFieldPuns
   - NoImplicitPrelude
+  - OverloadedLabels
   - OverloadedStrings
+  - PartialTypeSignatures
+  - PatternGuards
   - PatternSynonyms
+  - PolyKinds
   - QuasiQuotes
   - RankNTypes
+  - RecordWildCards
   - ScopedTypeVariables
   - StandaloneDeriving
+  - TupleSections
   - TypeApplications
+  - TypeFamilies
+  - TypeOperators
+  - TypeSynonymInstances
+  - ViewPatterns
 
 library:
   source-dirs: src

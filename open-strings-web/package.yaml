@@ -17,8 +17,6 @@ dependencies:
   - esqueleto
   - fast-logger >=2.2 && <3.1
   - file-embed
-  - flow
-  - foreign-store
   - generic-lens
   - hjsmin >=0.1 && <0.3
   - html-conduit
@@ -37,7 +35,6 @@ dependencies:
   - persistent >=2.9 && <2.14
   - persistent-postgresql >=2.9 && <2.14
   - persistent-template >=2.5 && <2.14
-  - safe
   - sendgrid-v3
   - shakespeare >=2.0 && <2.1
   - string-conversions
@@ -47,7 +44,6 @@ dependencies:
   - unordered-containers
   - uri-bytestring
   - validation-selective
-  - vector
   - wai
   - wai-extra >=3.0 && <3.2
   - wai-logger >=2.2 && <2.4

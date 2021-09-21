@@ -111,8 +111,6 @@ library
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , flow
-    , foreign-store
     , generic-lens
     , hjsmin >=0.1 && <0.3
     , html-conduit
@@ -131,7 +129,6 @@ library
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
-    , safe
     , sendgrid-v3
     , shakespeare ==2.0.*
     , string-conversions
@@ -141,7 +138,6 @@ library
     , unordered-containers
     , uri-bytestring
     , validation-selective
-    , vector
     , wai
     , wai-extra >=3.0 && <3.2
     , wai-logger >=2.2 && <2.4
@@ -234,8 +230,6 @@ executable open-strings-web-exe
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , flow
-    , foreign-store
     , generic-lens
     , hjsmin >=0.1 && <0.3
     , html-conduit
@@ -255,7 +249,6 @@ executable open-strings-web-exe
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
-    , safe
     , sendgrid-v3
     , shakespeare ==2.0.*
     , string-conversions
@@ -265,7 +258,6 @@ executable open-strings-web-exe
     , unordered-containers
     , uri-bytestring
     , validation-selective
-    , vector
     , wai
     , wai-extra >=3.0 && <3.2
     , wai-logger >=2.2 && <2.4
@@ -356,8 +348,6 @@ executable survey-plot
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , flow
-    , foreign-store
     , generic-lens
     , hjsmin >=0.1 && <0.3
     , html-conduit
@@ -378,7 +368,6 @@ executable survey-plot
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
     , process
-    , safe
     , sendgrid-v3
     , shakespeare ==2.0.*
     , string-conversions
@@ -388,7 +377,6 @@ executable survey-plot
     , unordered-containers
     , uri-bytestring
     , validation-selective
-    , vector
     , wai
     , wai-extra >=3.0 && <3.2
     , wai-logger >=2.2 && <2.4
@@ -482,8 +470,6 @@ test-suite test
     , esqueleto
     , fast-logger >=2.2 && <3.1
     , file-embed
-    , flow
-    , foreign-store
     , generic-lens
     , hjsmin >=0.1 && <0.3
     , hspec >=2.0.0
@@ -504,7 +490,6 @@ test-suite test
     , persistent >=2.9 && <2.14
     , persistent-postgresql >=2.9 && <2.14
     , persistent-template >=2.5 && <2.14
-    , safe
     , sendgrid-v3
     , shakespeare ==2.0.*
     , string-conversions
@@ -514,7 +499,6 @@ test-suite test
     , unordered-containers
     , uri-bytestring
     , validation-selective
-    , vector
     , wai
     , wai-extra >=3.0 && <3.2
     , wai-logger >=2.2 && <2.4
