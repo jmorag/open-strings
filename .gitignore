@@ -31,3 +31,4 @@ cabal.sandbox.config
 # Survey data
 survey_responses.csv
 open-strings-web/survey/*.png
+TAGS
