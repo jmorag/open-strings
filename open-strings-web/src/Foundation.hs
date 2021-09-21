@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -14,6 +15,7 @@ import Control.Lens ((^?), _Right)
 import Control.Monad.Logger (LogSource)
 import Data.Aeson.Lens
 import qualified Data.CaseInsensitive as CI
+import Data.FileEmbed (makeRelativeToProject, strToExp)
 import Data.List.NonEmpty (NonEmpty (..))
 import qualified Data.Text.Encoding as TE
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
@@ -69,7 +71,7 @@ data MenuTypes
 -- This function also generates the following type synonyms:
 -- type Handler = HandlerFor App
 -- type Widget = WidgetFor App ()
-mkYesodData "App" $(parseRoutesFile "config/routes")
+mkYesodData "App" $(parseRoutesFile =<< makeRelativeToProject "config/routes")
 
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerFor App) (FormResult x, Widget)
@@ -95,7 +97,7 @@ instance Yesod App where
     Just
       <$> defaultClientSessionBackend
         120 -- timeout in minutes
-        "config/client_session_key.aes"
+        $(makeRelativeToProject "config/client_session_key.aes" >>= strToExp)
 
   -- Yesod Middleware allows you to run code before and after each handler function.
   -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
@@ -138,13 +140,13 @@ instance Yesod App where
                 , menuItemRoute = AuthR LoginR
                 , menuItemAccessCallback = isNothing muser
                 }
-          -- , NavbarRight $
-          --     MenuItem
-          --       { menuItemLabel = "Sign Up"
-          --       , menuItemRoute = AuthR registerR
-          --       , menuItemAccessCallback = isNothing muser
-          --       }
-          , NavbarRight $
+          , -- , NavbarRight $
+            --     MenuItem
+            --       { menuItemLabel = "Sign Up"
+            --       , menuItemRoute = AuthR registerR
+            --       , menuItemAccessCallback = isNothing muser
+            --       }
+            NavbarRight $
               MenuItem
                 { menuItemLabel = "Logout"
                 , menuItemRoute = AuthR LogoutR
@@ -173,7 +175,10 @@ instance Yesod App where
       -- TODO: uncomment if icons necessary
       -- addScriptRemote "//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue-icons.min.js"
       $(widgetFile "default-layout")
-    withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+    withUrlRenderer
+      $( hamletFile
+          =<< makeRelativeToProject "templates/default-layout-wrapper.hamlet"
+       )
 
   -- The page to be redirected to when authentication is required.
   authRoute ::
@@ -326,14 +331,15 @@ instance YesodAuth App where
         ["openid", "email", "profile"]
         (appGoogleOauthClientId (appSettings app))
         (appGoogleOauthClientSecret (appSettings app))
-     -- disable this during survey season, and possibly forever
-     -- , authEmail
+        -- disable this during survey season, and possibly forever
+        -- , authEmail
     ]
       ++ extraAuthPlugins
     where
       -- Enable authDummy login if enabled.
       extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
-      googleWidget = [whamlet|
+      googleWidget =
+        [whamlet|
 <span .btn .btn-primary>
   <img src=@{StaticR img_btn_google_light_normal_svg}>
   Sign in with Google

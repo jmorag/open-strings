@@ -19,7 +19,7 @@ import Data.Aeson
     fromJSON,
     withObject,
   )
-import Data.FileEmbed (embedFile)
+import Data.FileEmbed (embedFile, makeRelativeToProject)
 import Data.Yaml (decodeEither')
 import Database.Persist.Postgresql (PostgresConf)
 import Database.Persist.URL
@@ -143,7 +143,8 @@ widgetFile = (if appReloadTemplates compileTimeAppSettings
 
 -- | Raw bytes at compile time of @config/settings.yml@
 configSettingsYmlBS :: ByteString
-configSettingsYmlBS = $(embedFile configSettingsYml)
+configSettingsYmlBS =
+  $(embedFile =<< makeRelativeToProject configSettingsYml)
 
 -- | @config/settings.yml@, parsed to a @Value@.
 configSettingsYmlValue :: Value

@@ -1,1 +1,1 @@
---command="stack repl open-strings-web --flag open-strings-web:dev" --warnings --test=appMain --restart open-strings-web/templates/ --restart open-strings-web/config/
+--command="YESOD_STATIC_DIR=open-strings-web/static stack repl --flag open-strings-web:dev" --warnings --test=appMain --restart open-strings-web/templates/ --restart open-strings-web/config/

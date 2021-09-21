@@ -5,6 +5,7 @@ module Model where
 
 import ClassyPrelude.Yesod
 import Data.Char
+import Data.FileEmbed (makeRelativeToProject)
 import qualified Data.Text as T
 import Database.Persist.Quasi
 import Model.Parts
@@ -18,7 +19,7 @@ import Model.UserType
 
 share
   [mkPersist sqlSettings, mkMigrate "migrateAll"]
-  $(persistFileWith lowerCaseSettings "config/models.persistentmodels")
+  $(persistFileWith lowerCaseSettings =<< makeRelativeToProject "config/models.persistentmodels")
 
 mkTitle :: Composer -> Work -> Text
 mkTitle composer work =
