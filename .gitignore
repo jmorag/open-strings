@@ -1,8 +1,8 @@
 dist/
 dist-newstyle/
-static/tmp/
-static/combined/
-config/client_session_key.aes
+open-strings-web/static/tmp/
+open-strings-web/static/combined/
+open-strings-web/config/client_session_key.aes
 *.hi
 *.o
 *.sqlite3
@@ -30,4 +30,4 @@ cabal.sandbox.config
 
 # Survey data
 survey_responses.csv
-*/survey/*.png
+open-strings-web/survey/*.png
