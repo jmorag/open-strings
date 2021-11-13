@@ -18,6 +18,13 @@ packages:
       sha256: ead687d39d06c841de36fc214402ad4389e8837284485cfe52d975f51b274e81
   original:
     hackage: relude-1.0.0.1@sha256:35bcdaf14018e79f11e712b0e2314c1aac79976f28f4adc179985457493557d5,11569
+- completed:
+    hackage: hashable-1.3.3.0@sha256:7f3b67151162a1dfe8472dc30430af98ed5470801d3f4b6c9b8d7a7443c920d4,4068
+    pantry-tree:
+      size: 1110
+      sha256: 6160857b68b296172e66cb7a1d467cf11182cd2a5ddaec0af3b23b1d4fadd0b2
+  original:
+    hackage: hashable-1.3.3.0
 snapshots:
 - completed:
     size: 587546

@@ -1,3 +1,6 @@
 packages:
   ./open-strings-core
   ./open-strings-web
+
+package hashable
+  flags: +random-initial-seed

@@ -6,7 +6,6 @@ import Control.Monad
 import Control.Monad.ST
 import Data.Function
 import Data.List (minimumBy)
-import Data.List.NonEmpty (NonEmpty (..))
 import Data.Vector (Vector)
 import qualified Data.Vector as V
 import qualified Data.Vector.Mutable as VM
