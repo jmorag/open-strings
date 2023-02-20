@@ -33,7 +33,7 @@ fromDatabaseUrl size url = do
   port <- abortNothing "port" $ authorityPort auth
   dbName <- abortNothing "path" $ snd <$> uncons (uriPath uri)
   unless (schemeBS (uriScheme uri) == "postgres") $
-    fail "DATABASE_URL has unknown scheme"
+    fail "HEROKU_POSTGRESQL_BLACK_URL has unknown scheme"
 
   return
     PostgresConf
@@ -51,7 +51,7 @@ fromDatabaseUrl size url = do
       }
 
 abortLeft :: (MonadFail m, Show e) => Either e b -> m b
-abortLeft = either (fail . ("DATABASE_URL failed to parse: " <>) . show) return
+abortLeft = either (fail . ("HEROKU_POSTGRESQL_BLACK_URL failed to parse: " <>) . show) return
 
 abortNothing :: MonadFail m => String -> Maybe a -> m a
-abortNothing s = maybe (fail $ "DATABASE_URL is missing " <> s) return
+abortNothing s = maybe (fail $ "HEROKU_POSTGRESQL_BLACK_URL is missing " <> s) return
