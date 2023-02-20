@@ -32,7 +32,7 @@ class FingeringEditor {
       if (this.enabled) this.enable();
       this.setupDrag(svg);
     });
-    this.cancelDrag = null;
+    this.cancelDrag = () => console.debug("cancel drag called before set");
   }
 
   static arabicToRoman(n) {
